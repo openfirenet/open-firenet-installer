@@ -69,8 +69,14 @@ tabs.forEach((tab) => {
 });
 
 // 2. Scan Network
+let isScanning = false;
+
 async function runScan() {
+  if (isScanning) return;
+  isScanning = true;
+
   btnScan.disabled = true;
+  if (emptyBtnRetry) emptyBtnRetry.disabled = true;
   btnScan.innerHTML = `<span class="spinner-btn"></span> ${t("btnScanInProgress")}`;
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
@@ -85,7 +91,9 @@ async function runScan() {
   } finally {
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
+    if (emptyBtnRetry) emptyBtnRetry.disabled = false;
     btnScan.innerHTML = `<span class="btn-icon">🔄</span> ${t("btnScan")}`;
+    isScanning = false;
   }
 }
 
@@ -110,8 +118,10 @@ function renderDevices(devices) {
   }
 
   let displayVersion = d.firmware_version;
-  if (!displayVersion || displayVersion.trim() === "" || displayVersion === "Inconnue") {
-    displayVersion = "v2.0.0";
+  if (!displayVersion || displayVersion.trim() === "" || displayVersion.toLowerCase() === "inconnue" || displayVersion.toLowerCase() === "unknown") {
+    displayVersion = t("versionUnknown");
+  } else if (!displayVersion.startsWith("v") && !displayVersion.startsWith("V")) {
+    displayVersion = `v${displayVersion}`;
   }
 
   const card = document.createElement("div");

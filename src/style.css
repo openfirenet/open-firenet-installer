@@ -285,12 +285,15 @@ body {
 }
 
 .btn:disabled {
-  opacity: 0.65;
+  opacity: 0.55;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
   pointer-events: none;
-  filter: grayscale(20%);
+  background: #334155 !important;
+  color: #94a3b8 !important;
+  border: 1px solid #475569 !important;
+  filter: grayscale(100%) !important;
 }
 
 /* Cards & Forms */

@@ -17,8 +17,15 @@ pub struct DiscoveredDongle {
 
 #[derive(Deserialize)]
 struct ApiDevice {
+    version: Option<String>,
     app_version: Option<String>,
+    firmware_version: Option<String>,
     wifi_rssi: Option<i32>,
+}
+
+#[derive(Deserialize)]
+struct ApiVersion {
+    version: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -34,6 +41,8 @@ struct ApiState {
     stove: Option<ApiStove>,
     model_name: Option<String>,
     model: Option<i32>,
+    firmware_version: Option<String>,
+    version: Option<String>,
 }
 
 pub struct NetworkScanner;
@@ -72,9 +81,21 @@ impl NetworkScanner {
 
         if resp.status() == 200 {
             if let Ok(state) = resp.into_json::<ApiState>() {
-                let fw_ver = state.device.as_ref()
-                    .and_then(|d| d.app_version.clone())
-                    .unwrap_or_else(|| "Inconnue".to_string());
+                let mut fw_ver = state.device.as_ref()
+                    .and_then(|d| d.version.clone().or_else(|| d.app_version.clone()).or_else(|| d.firmware_version.clone()))
+                    .or_else(|| state.firmware_version.clone())
+                    .or_else(|| state.version.clone());
+
+                if fw_ver.is_none() {
+                    let ver_url = format!("http://{}/api/version", ip);
+                    if let Ok(ver_resp) = ureq::get(&ver_url).timeout(Duration::from_millis(800)).call() {
+                        if let Ok(api_ver) = ver_resp.into_json::<ApiVersion>() {
+                            fw_ver = api_ver.version;
+                        }
+                    }
+                }
+
+                let fw_ver_str = fw_ver.unwrap_or_else(|| "Inconnue".to_string());
                 
                 let model = state.model_name
                     .or_else(|| state.stove.as_ref().and_then(|s| s.model_name.clone()))
@@ -101,7 +122,7 @@ impl NetworkScanner {
                 return Some(DiscoveredDongle {
                     ip: ip.to_string(),
                     hostname: "openfirenet.local".to_string(),
-                    firmware_version: fw_ver,
+                    firmware_version: fw_ver_str,
                     stove_model: model,
                     stove_state: st,
                     wifi_rssi: rssi,
