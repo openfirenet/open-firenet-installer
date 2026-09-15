@@ -1,17 +1,4 @@
-// Open-Firenet Installer Frontend Logic
-
-let invoke = null;
-let listen = null;
-
-// Dynamically import Tauri API if running in Tauri
-if (window.__TAURI_INTERNALS__) {
-  import("@tauri-apps/api/core").then((core) => {
-    invoke = core.invoke;
-  });
-  import("@tauri-apps/api/event").then((event) => {
-    listen = event.listen;
-  });
-}
+import { invoke } from "@tauri-apps/api/core";
 
 // State
 let discoveredDevices = [];
@@ -67,35 +54,24 @@ tabs.forEach((tab) => {
 
 // 2. Scan Network
 async function runScan() {
+  btnScan.disabled = true;
+  btnScan.innerHTML = '<span class="spinner-btn"></span> Scan en cours...';
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
   devicesContainer.innerHTML = "";
-  headerStatusText.textContent = "Scan en cours...";
+  headerStatusText.textContent = "Recherche sur le réseau...";
 
   try {
-    if (invoke) {
-      discoveredDevices = await invoke("scan_network");
-    } else {
-      // Mock for browser preview / local dev
-      await new Promise((r) => setTimeout(r, 1200));
-      discoveredDevices = [
-        {
-          ip: "192.168.1.93",
-          hostname: "openfirenet.local",
-          stove_model: "DOMO",
-          stove_state: "En fonctionnement (Flamme)",
-          wifi_rssi: "-51 dBm (Excellent)",
-          firmware_version: "v1.9.0",
-        },
-      ];
-    }
+    discoveredDevices = await invoke("scan_network");
     renderDevices(discoveredDevices);
   } catch (err) {
-    console.error("Erreur scan :", err);
+    console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
     headerStatusText.textContent = "Erreur de scan";
   } finally {
     scanLoading.classList.add("hidden");
+    btnScan.disabled = false;
+    btnScan.innerHTML = '<span class="btn-icon">🔄</span> Scanner le réseau';
   }
 }
 
@@ -115,36 +91,60 @@ function renderDevices(devices) {
   devices.forEach((d) => {
     const card = document.createElement("div");
     card.className = "device-card";
+    
+    // Format human-friendly state
+    let displayState = d.stove_state;
+    if (!displayState || displayState === "--") {
+      displayState = "En veille / Connecté";
+    }
+
+    let displayVersion = d.firmware_version;
+    if (!displayVersion || displayVersion === "Inconnue") {
+      displayVersion = "Inconnue (Firmware d'origine)";
+    }
+
     card.innerHTML = `
       <div class="device-header">
         <div class="device-model">🔥 ${d.stove_model || "Poêle RIKA"}</div>
-        <span class="device-badge">${d.stove_state || "Connecté"}</span>
+        <span class="device-badge">${displayState}</span>
       </div>
       <div class="device-details">
-        <div>IP : <strong>${d.ip}</strong></div>
-        <div>Signal : <strong>${d.wifi_rssi}</strong></div>
-        <div>Version : <strong>${d.firmware_version || "Inconnue"}</strong></div>
-        <div>Hôte : <strong>${d.hostname}</strong></div>
+        <div>Adresse IP : <strong>${d.ip}</strong></div>
+        <div>Signal Wi-Fi : <strong>${d.wifi_rssi}</strong></div>
+        <div>Version : <strong>${displayVersion}</strong></div>
+        <div>Nom réseau : <strong>${d.hostname}</strong></div>
       </div>
       <div class="device-actions">
         <button class="btn btn-primary btn-sm btn-update-this" data-ip="${d.ip}">
           📡 Mettre à jour en Wi-Fi (OTA)
         </button>
-        <a href="http://${d.ip}" target="_blank" class="btn btn-secondary btn-sm">
+        <button class="btn btn-secondary btn-sm btn-open-web" data-ip="${d.ip}">
           🌐 Ouvrir l'interface Web
-        </a>
+        </button>
       </div>
     `;
     devicesContainer.appendChild(card);
   });
 
-  // Attach click handler for "Mettre à jour"
+  // Attach click handlers
   document.querySelectorAll(".btn-update-this").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const ip = e.currentTarget.getAttribute("data-ip");
       otaIpInput.value = ip;
-      // Switch to OTA tab
       document.querySelector('[data-tab="tab-ota"]').click();
+    });
+  });
+
+  document.querySelectorAll(".btn-open-web").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const ip = e.currentTarget.getAttribute("data-ip");
+      const url = `http://${ip}/`;
+      try {
+        await invoke("open_browser_url", { url });
+      } catch (err) {
+        console.error("Erreur ouverture navigateur :", err);
+        window.open(url, "_blank");
+      }
     });
   });
 }
@@ -152,44 +152,32 @@ function renderDevices(devices) {
 // 3. GitHub Releases
 async function loadReleases() {
   try {
-    if (invoke) {
-      availableReleases = await invoke("get_releases");
-    } else {
-      // Mock for browser dev
-      availableReleases = [
-        {
-          tag_name: "v2.0.0",
-          name: "Open-Firenet v2.0.0 Stable",
-          body: "Release majeure avec support 26 modèles RIKA.",
-          prerelease: false,
-          assets: [
-            { name: "open-firenet-factory.bin", browser_download_url: "#", size: 1450000 },
-            { name: "open-firenet-ota.bin", browser_download_url: "#", size: 950000 },
-          ],
-        },
-        {
-          tag_name: "v1.9.0",
-          name: "Open-Firenet v1.9.0",
-          body: "Version stable précédente.",
-          prerelease: false,
-          assets: [
-            { name: "open-firenet-factory.bin", browser_download_url: "#", size: 1400000 },
-            { name: "open-firenet-ota.bin", browser_download_url: "#", size: 920000 },
-          ],
-        },
-      ];
-    }
-
+    availableReleases = await invoke("get_releases");
     populateReleaseDropdowns(availableReleases);
     renderReleasesList(availableReleases);
   } catch (err) {
     console.error("Erreur récupération releases :", err);
+    populateReleaseDropdowns([]);
+    renderReleasesList([]);
   }
 }
 
 function populateReleaseDropdowns(releases) {
   otaReleaseSelect.innerHTML = "";
   usbReleaseSelect.innerHTML = "";
+
+  if (!releases || releases.length === 0) {
+    const emptyOpt = document.createElement("option");
+    emptyOpt.value = "";
+    emptyOpt.textContent = "Aucune release GitHub officielle disponible (utilisez un fichier .bin local)";
+    otaReleaseSelect.appendChild(emptyOpt);
+
+    const emptyOptUsb = document.createElement("option");
+    emptyOptUsb.value = "";
+    emptyOptUsb.textContent = "Aucune release GitHub officielle disponible (utilisez un fichier .bin local)";
+    usbReleaseSelect.appendChild(emptyOptUsb);
+    return;
+  }
 
   releases.forEach((r) => {
     const optOta = document.createElement("option");
@@ -206,6 +194,18 @@ function populateReleaseDropdowns(releases) {
 
 function renderReleasesList(releases) {
   releasesList.innerHTML = "";
+  if (!releases || releases.length === 0) {
+    releasesList.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h3>Aucune version officielle publiée pour le moment</h3>
+        <p>Le dépôt GitHub <code>openfirenet/open-firenet</code> n'a pas encore de release formalisée.<br>
+        Vous pouvez flasher ou mettre à jour directement votre clé à l'aide d'un fichier <code>.bin</code> local.</p>
+      </div>
+    `;
+    return;
+  }
+
   releases.forEach((r) => {
     const item = document.createElement("div");
     item.className = "card mb-3";
@@ -226,25 +226,18 @@ function renderReleasesList(releases) {
 
 // 4. USB Ports
 async function refreshPorts() {
-  usbPortSelect.innerHTML = "<option>Détection...</option>";
-  wifiPortSelect.innerHTML = "<option>Détection...</option>";
+  btnRefreshPorts.disabled = true;
+  usbPortSelect.innerHTML = "<option>Recherche des ports USB...</option>";
+  wifiPortSelect.innerHTML = "<option>Recherche des ports USB...</option>";
 
   try {
-    if (invoke) {
-      detectedPorts = await invoke("list_serial_ports");
-    } else {
-      detectedPorts = [
-        { port_name: "/dev/ttyACM0", description: "🔥 ESP32-S3 (Open-Firenet)", is_esp: true },
-        { port_name: "/dev/ttyUSB0", description: "USB Serial Generic", is_esp: false },
-      ];
-    }
-
+    detectedPorts = await invoke("list_serial_ports");
     usbPortSelect.innerHTML = "";
     wifiPortSelect.innerHTML = "";
 
-    if (detectedPorts.length === 0) {
-      usbPortSelect.innerHTML = "<option value=''>Aucun port série détecté</option>";
-      wifiPortSelect.innerHTML = "<option value=''>Aucun port série détecté</option>";
+    if (!detectedPorts || detectedPorts.length === 0) {
+      usbPortSelect.innerHTML = "<option value=''>Aucun port série détecté (branchez votre clé en USB)</option>";
+      wifiPortSelect.innerHTML = "<option value=''>Aucun port série détecté (branchez votre clé en USB)</option>";
       return;
     }
 
@@ -261,6 +254,10 @@ async function refreshPorts() {
     });
   } catch (err) {
     console.error("Erreur détection ports :", err);
+    usbPortSelect.innerHTML = "<option value=''>Erreur d'accès aux ports série</option>";
+    wifiPortSelect.innerHTML = "<option value=''>Erreur d'accès aux ports série</option>";
+  } finally {
+    btnRefreshPorts.disabled = false;
   }
 }
 
@@ -272,35 +269,40 @@ btnRefreshReleases.addEventListener("click", loadReleases);
 btnUseDetectedIp.addEventListener("click", () => {
   if (discoveredDevices.length > 0) {
     otaIpInput.value = discoveredDevices[0].ip;
+  } else {
+    alert("Aucun poêle détecté sur le réseau pour le moment. Lancez un scan d'abord.");
   }
 });
 
 btnStartOta.addEventListener("click", async () => {
   const ip = otaIpInput.value.trim();
   if (!ip) {
-    alert("Veuillez saisir ou sélectionner une adresse IP.");
+    alert("Veuillez renseigner l'adresse IP du poêle.");
     return;
   }
   const tag = otaReleaseSelect.value;
+  const localFileInput = document.getElementById("ota-file-input");
+  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+
+  if (!tag && !localFile) {
+    alert("Veuillez sélectionner un fichier .bin local (aucune release GitHub disponible pour l'instant).");
+    return;
+  }
+
   otaProgressBox.classList.remove("hidden");
   otaProgressBar.style.width = "20%";
-  otaStatusText.textContent = "Téléchargement du firmware et préparation...";
+  otaProgressBar.style.backgroundColor = "";
+  otaStatusText.textContent = "Téléchargement / préparation du firmware...";
 
   try {
-    if (invoke) {
-      otaProgressBar.style.width = "50%";
-      const res = await invoke("update_ota_device", {
-        ip: ip,
-        releaseTag: tag || null,
-        customFile: null,
-      });
-      otaProgressBar.style.width = "100%";
-      otaStatusText.textContent = res;
-    } else {
-      await new Promise((r) => setTimeout(r, 2000));
-      otaProgressBar.style.width = "100%";
-      otaStatusText.textContent = "Mise à jour réussie ! Le poêle redémarre.";
-    }
+    otaProgressBar.style.width = "50%";
+    const res = await invoke("update_ota_device", {
+      ip: ip,
+      releaseTag: tag || null,
+      customFile: localFile || null,
+    });
+    otaProgressBar.style.width = "100%";
+    otaStatusText.textContent = res;
   } catch (err) {
     otaProgressBar.style.width = "100%";
     otaProgressBar.style.backgroundColor = "var(--danger-red)";
@@ -311,29 +313,32 @@ btnStartOta.addEventListener("click", async () => {
 btnStartUsbFlash.addEventListener("click", async () => {
   const port = usbPortSelect.value;
   if (!port) {
-    alert("Veuillez brancher et sélectionner votre port USB.");
+    alert("Veuillez brancher la clé en USB et sélectionner son port série.");
     return;
   }
   const tag = usbReleaseSelect.value;
+  const localFileInput = document.getElementById("usb-file-input");
+  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+
+  if (!tag && !localFile) {
+    alert("Veuillez sélectionner un fichier .bin local (aucune release GitHub disponible pour l'instant).");
+    return;
+  }
+
   usbProgressBox.classList.remove("hidden");
   usbProgressBar.style.width = "20%";
-  usbStatusText.textContent = "Connexion au bootloader USB...";
+  usbProgressBar.style.backgroundColor = "";
+  usbStatusText.textContent = "Connexion au bootloader ESP32-S3...";
 
   try {
-    if (invoke) {
-      usbProgressBar.style.width = "50%";
-      const res = await invoke("flash_usb_device", {
-        port: port,
-        releaseTag: tag || null,
-        customFile: null,
-      });
-      usbProgressBar.style.width = "100%";
-      usbStatusText.textContent = res;
-    } else {
-      await new Promise((r) => setTimeout(r, 2500));
-      usbProgressBar.style.width = "100%";
-      usbStatusText.textContent = "Flashage terminé avec succès !";
-    }
+    usbProgressBar.style.width = "50%";
+    const res = await invoke("flash_usb_device", {
+      port: port,
+      releaseTag: tag || null,
+      customFile: localFile || null,
+    });
+    usbProgressBar.style.width = "100%";
+    usbStatusText.textContent = res;
   } catch (err) {
     usbProgressBar.style.width = "100%";
     usbProgressBar.style.backgroundColor = "var(--danger-red)";
@@ -354,15 +359,9 @@ btnSendWifi.addEventListener("click", async () => {
   wifiStatusText.textContent = "Envoi des identifiants au poêle...";
 
   try {
-    if (invoke) {
-      const res = await invoke("configure_wifi", { port, ssid, password: pass });
-      wifiStatusText.textContent = res;
-      wifiStatusText.style.color = "var(--success-green)";
-    } else {
-      await new Promise((r) => setTimeout(r, 1000));
-      wifiStatusText.textContent = "Identifiants Wi-Fi envoyés !";
-      wifiStatusText.style.color = "var(--success-green)";
-    }
+    const res = await invoke("configure_wifi", { port, ssid, password: pass });
+    wifiStatusText.textContent = res;
+    wifiStatusText.style.color = "var(--success-green)";
   } catch (err) {
     wifiStatusText.textContent = `Erreur : ${err}`;
     wifiStatusText.style.color = "var(--danger-red)";

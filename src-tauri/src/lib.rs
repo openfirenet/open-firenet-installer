@@ -101,6 +101,32 @@ fn configure_wifi(
     Ok("Configuration Wi-Fi envoyée avec succès !".to_string())
 }
 
+#[tauri::command]
+fn open_browser_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le navigateur : {}", e))?;
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", &url])
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le navigateur : {}", e))?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| format!("Impossible d'ouvrir le navigateur : {}", e))?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -110,7 +136,8 @@ pub fn run() {
             list_serial_ports,
             flash_usb_device,
             update_ota_device,
-            configure_wifi
+            configure_wifi,
+            open_browser_url
         ])
         .run(tauri::generate_context!())
         .expect("erreur lors du lancement de l'interface graphique");

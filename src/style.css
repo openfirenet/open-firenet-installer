@@ -54,17 +54,24 @@ body {
   gap: 14px;
 }
 
-.flame-icon {
-  font-size: 28px;
-  width: 46px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle, rgba(249,115,22,0.2) 0%, rgba(234,88,12,0.05) 70%);
-  border: 1px solid rgba(249,115,22,0.4);
-  border-radius: 12px;
-  box-shadow: 0 0 16px rgba(249,115,22,0.25);
+.app-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.35);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  object-fit: cover;
+}
+
+.spinner-btn {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 6px;
 }
 
 .app-title {
@@ -253,7 +260,7 @@ label {
   color: var(--text-muted);
 }
 
-input[type="text"], input[type="password"], select {
+input[type="text"], input[type="password"] {
   width: 100%;
   padding: 10px 14px;
   background: #090d16;
@@ -263,6 +270,30 @@ input[type="text"], input[type="password"], select {
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+}
+
+select {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: #131b2e !important;
+  color: #f8fafc !important;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+select option {
+  background-color: #131b2e !important;
+  color: #f8fafc !important;
+  padding: 10px;
+}
+
+select option:checked, select option:hover {
+  background-color: #1e293b !important;
+  color: #fb923c !important;
 }
 
 input[type="text"]:focus, input[type="password"]:focus, select:focus {
