@@ -13,13 +13,21 @@
       <div class="logo-group">
         <img src="/icon.png" class="app-logo-img" alt="Open-Firenet" />
         <div>
-          <h1 class="app-title">Open-Firenet <span>Installer</span></h1>
-          <p class="app-subtitle">Assistant universel d'installation & mise à jour</p>
+          <h1 class="app-title"><span data-i18n="appTitle">Open-Firenet</span> <span class="app-title-suffix" data-i18n="appTitleSuffix">Installer</span></h1>
+          <p class="app-subtitle" data-i18n="appSubtitle">Assistant universel d'installation & mise à jour</p>
         </div>
       </div>
-      <div class="header-status" id="header-status">
-        <span class="status-dot"></span>
-        <span id="header-status-text">Prêt</span>
+      <div class="header-right">
+        <!-- Language Switcher (FR / EN) -->
+        <div class="lang-switch">
+          <button class="lang-btn active" data-lang="fr" title="Français">FR</button>
+          <span class="lang-divider">|</span>
+          <button class="lang-btn" data-lang="en" title="English">EN</button>
+        </div>
+        <div class="header-status" id="header-status">
+          <span class="status-dot"></span>
+          <span id="header-status-text" data-i18n="statusReady">Prêt</span>
+        </div>
       </div>
     </header>
 
@@ -27,56 +35,65 @@
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="tab-discovery">
         <span class="tab-icon">🔍</span>
-        <span>Détection Réseau</span>
+        <span data-i18n="tabDiscovery">Détection Réseau</span>
       </button>
       <button class="tab-btn" data-tab="tab-ota">
         <span class="tab-icon">📡</span>
-        <span>Mise à jour Wi-Fi</span>
+        <span data-i18n="tabOta">Mise à jour Wi-Fi</span>
       </button>
       <button class="tab-btn" data-tab="tab-usb">
         <span class="tab-icon">⚡</span>
-        <span>Flash USB</span>
+        <span data-i18n="tabUsb">Flash USB</span>
       </button>
       <button class="tab-btn" data-tab="tab-wifi">
         <span class="tab-icon">📶</span>
-        <span>Config Wi-Fi</span>
+        <span data-i18n="tabWifi">Config Wi-Fi</span>
       </button>
       <button class="tab-btn" data-tab="tab-releases">
         <span class="tab-icon">📦</span>
-        <span>Releases</span>
+        <span data-i18n="tabReleases">Releases</span>
       </button>
     </nav>
 
     <!-- Content Sections -->
     <main class="app-main">
-      <!-- 1. Discovery Tab -->
+      <!-- 1. Discovery Tab (Centrée sur un seul poêle) -->
       <section id="tab-discovery" class="tab-pane active">
         <div class="pane-header">
           <div>
-            <h2>Détection automatique sur le réseau local</h2>
-            <p>Recherche votre clé Open-Firenet via mDNS et le sous-réseau local.</p>
+            <h2 data-i18n="discoveryTitle">Détection automatique de votre poêle</h2>
+            <p data-i18n="discoveryDesc">Recherche votre poêle Open-Firenet via mDNS (openfirenet.local) et sur votre réseau local.</p>
           </div>
           <button id="btn-scan" class="btn btn-primary" disabled>
-            <span class="spinner-btn"></span> Scan en cours...
+            <span class="spinner-btn"></span> <span data-i18n="btnScanInProgress">Recherche en cours...</span>
           </button>
         </div>
 
         <div id="scan-loading" class="card loading-card">
-          <h3>Recherche du poêle sur le réseau local...</h3>
-          <p>Détection mDNS et sonde du sous-réseau en cours...</p>
+          <h3 data-i18n="scanLoadingTitle">Recherche du poêle sur le réseau local...</h3>
+          <p data-i18n="scanLoadingDesc">Détection mDNS et sonde du sous-réseau en cours...</p>
           <div class="indeterminate-progress-bar">
             <div class="indeterminate-progress-fill"></div>
           </div>
         </div>
 
-        <div id="devices-container" class="cards-grid">
-          <!-- Discovered cards injected here -->
+        <!-- Conteneur centré pour le poêle unique -->
+        <div id="devices-container" class="single-stove-container">
+          <!-- Carte unique du poêle injectée ici -->
         </div>
 
         <div id="empty-devices" class="empty-state hidden">
           <div class="empty-icon">🔍</div>
-          <h3>Aucun dongle Open-Firenet détecté</h3>
-          <p>Assurez-vous que votre clé est allumée et connectée au même réseau Wi-Fi, ou lancez un scan.</p>
+          <h3 data-i18n="emptyDevicesTitle">Aucun poêle Open-Firenet détecté</h3>
+          <p data-i18n="emptyDevicesDesc">Vérifiez que votre clé est allumée et connectée au même réseau Wi-Fi que cet ordinateur.</p>
+          <div class="empty-actions">
+            <button id="empty-btn-retry" class="btn btn-primary">
+              <span class="btn-icon">🔄</span> <span data-i18n="emptyBtnRetryScan">Relancer la recherche</span>
+            </button>
+            <button id="empty-btn-wifi" class="btn btn-secondary">
+              <span class="btn-icon">📶</span> <span data-i18n="emptyBtnWifiSetup">Configurer le Wi-Fi via USB</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -84,35 +101,35 @@
       <section id="tab-ota" class="tab-pane">
         <div class="pane-header">
           <div>
-            <h2>Mise à jour sans fil (OTA)</h2>
-            <p>Mettez à jour le firmware de votre poêle à distance via votre réseau Wi-Fi.</p>
+            <h2 data-i18n="otaTitle">Mise à jour sans fil (OTA)</h2>
+            <p data-i18n="otaDesc">Mettez à jour le firmware de votre poêle à distance via votre réseau Wi-Fi.</p>
           </div>
         </div>
 
         <div class="card form-card">
           <div class="form-group">
-            <label for="ota-ip">Adresse IP du poêle :</label>
+            <label for="ota-ip" data-i18n="labelOtaIp">Adresse IP du poêle :</label>
             <div class="input-with-action">
-              <input type="text" id="ota-ip" placeholder="Ex: 192.168.1.93" />
-              <button id="btn-use-detected-ip" class="btn btn-secondary btn-sm">Utiliser IP détectée</button>
+              <input type="text" id="ota-ip" data-i18n-placeholder="placeholderOtaIp" placeholder="Ex: 192.168.1.93 ou openfirenet.local" />
+              <button id="btn-use-detected-ip" class="btn btn-secondary btn-sm" data-i18n="btnUseDetectedIp">Utiliser l'IP détectée</button>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="ota-release">Version du firmware à installer :</label>
+            <label for="ota-release-select" data-i18n="labelOtaRelease">Version du firmware à installer :</label>
             <select id="ota-release-select">
-              <option value="">Chargement des versions GitHub...</option>
+              <option value="" data-i18n="loadingReleases">Chargement des versions officielles...</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Ou sélectionner un fichier binaire local (.bin) :</label>
+            <label data-i18n="labelLocalFile">Ou sélectionner un fichier binaire local (.bin) :</label>
             <input type="file" id="ota-file-input" accept=".bin" class="file-input" />
           </div>
 
           <div class="action-row">
             <button id="btn-start-ota" class="btn btn-primary btn-lg">
-              <span class="btn-icon">🚀</span> Lancer la mise à jour OTA
+              <span class="btn-icon">🚀</span> <span data-i18n="btnStartOta">Lancer la mise à jour OTA</span>
             </button>
           </div>
 
@@ -120,7 +137,7 @@
             <div class="progress-bar-bg">
               <div id="ota-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
             </div>
-            <p id="ota-status-text" class="status-msg">En attente...</p>
+            <p id="ota-status-text" class="status-msg" data-i18n="statusOtaWaiting">En attente...</p>
           </div>
         </div>
       </section>
@@ -129,37 +146,37 @@
       <section id="tab-usb" class="tab-pane">
         <div class="pane-header">
           <div>
-            <h2>Flashage USB Série</h2>
-            <p>Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
+            <h2 data-i18n="usbTitle">Flashage USB Série</h2>
+            <p data-i18n="usbDesc">Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
           </div>
           <button id="btn-refresh-ports" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> Actualiser les ports
+            <span class="btn-icon">🔄</span> <span data-i18n="btnRefreshPorts">Actualiser les ports</span>
           </button>
         </div>
 
         <div class="card form-card">
           <div class="form-group">
-            <label for="usb-port-select">Port USB Série connecté :</label>
+            <label for="usb-port-select" data-i18n="labelUsbPort">Port USB Série connecté :</label>
             <select id="usb-port-select">
-              <option value="">Détection des ports en cours...</option>
+              <option value="" data-i18n="detectingPorts">Détection des ports en cours...</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="usb-release-select">Version du firmware (Image Factory complète) :</label>
+            <label for="usb-release-select" data-i18n="labelUsbRelease">Version du firmware (Image Factory complète) :</label>
             <select id="usb-release-select">
-              <option value="">Chargement des versions GitHub...</option>
+              <option value="" data-i18n="loadingReleases">Chargement des versions officielles...</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Ou binaire factory local :</label>
+            <label data-i18n="labelUsbLocalFile">Ou binaire factory local (.bin) :</label>
             <input type="file" id="usb-file-input" accept=".bin" class="file-input" />
           </div>
 
           <div class="action-row">
             <button id="btn-start-usb-flash" class="btn btn-primary btn-lg">
-              <span class="btn-icon">⚡</span> Flasher la clé USB
+              <span class="btn-icon">⚡</span> <span data-i18n="btnStartUsbFlash">Flasher la clé USB</span>
             </button>
           </div>
 
@@ -167,7 +184,7 @@
             <div class="progress-bar-bg">
               <div id="usb-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
             </div>
-            <p id="usb-status-text" class="status-msg">Flashage en cours...</p>
+            <p id="usb-status-text" class="status-msg" data-i18n="flashingInProgress">Flashage en cours...</p>
           </div>
         </div>
       </section>
@@ -176,32 +193,32 @@
       <section id="tab-wifi" class="tab-pane">
         <div class="pane-header">
           <div>
-            <h2>Configuration Wi-Fi de la clé</h2>
-            <p>Transmettez le nom de votre réseau Wi-Fi (SSID) et sa clé de sécurité via la liaison USB.</p>
+            <h2 data-i18n="wifiTitle">Configuration Wi-Fi de la clé</h2>
+            <p data-i18n="wifiDesc">Transmettez le nom de votre box Wi-Fi (SSID) et sa clé de sécurité via la liaison USB.</p>
           </div>
         </div>
 
         <div class="card form-card">
           <div class="form-group">
-            <label for="wifi-port-select">Port USB de la clé :</label>
+            <label for="wifi-port-select" data-i18n="labelWifiPort">Port USB de la clé :</label>
             <select id="wifi-port-select">
-              <option value="">Sélectionnez un port...</option>
+              <option value="" data-i18n="selectPort">Sélectionnez un port...</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="wifi-ssid">Nom du réseau Wi-Fi (SSID) :</label>
+            <label for="wifi-ssid" data-i18n="labelWifiSsid">Nom du réseau Wi-Fi (SSID) :</label>
             <input type="text" id="wifi-ssid" placeholder="MonReseauBox" />
           </div>
 
           <div class="form-group">
-            <label for="wifi-pass">Mot de passe Wi-Fi :</label>
+            <label for="wifi-pass" data-i18n="labelWifiPass">Mot de passe Wi-Fi :</label>
             <input type="password" id="wifi-pass" placeholder="••••••••••••" />
           </div>
 
           <div class="action-row">
             <button id="btn-send-wifi" class="btn btn-primary btn-lg">
-              <span class="btn-icon">💾</span> Enregistrer le Wi-Fi dans la clé
+              <span class="btn-icon">💾</span> <span data-i18n="btnSendWifi">Enregistrer le Wi-Fi dans la clé</span>
             </button>
           </div>
           <p id="wifi-status-text" class="status-msg mt-3"></p>
@@ -212,24 +229,24 @@
       <section id="tab-releases" class="tab-pane">
         <div class="pane-header">
           <div>
-            <h2>Versions officielles Open-Firenet</h2>
-            <p>Historique des publications officielles sur GitHub.</p>
+            <h2 data-i18n="releasesTitle">Versions officielles Open-Firenet</h2>
+            <p data-i18n="releasesDesc">Historique des publications officielles sur GitHub vérifiées par Minisign.</p>
           </div>
           <button id="btn-refresh-releases" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> Recharger
+            <span class="btn-icon">🔄</span> <span data-i18n="btnRefreshReleases">Recharger</span>
           </button>
         </div>
 
         <div id="releases-list" class="releases-container">
-          <!-- Releases cards injected here -->
+          <!-- Releases cards injectées ici -->
         </div>
       </section>
     </main>
 
     <!-- Footer -->
     <footer class="app-footer">
-      <span>Open-Firenet Installer • Open-Source & Sans Télémétrie</span>
-      <span id="footer-dongle-summary">Aucun poêle connecté</span>
+      <span data-i18n="footerTagline">Open-Firenet Installer • Open-Source & Sans Télémétrie</span>
+      <span id="footer-dongle-summary" data-i18n="footerNoStove">Aucun poêle connecté</span>
     </footer>
   </div>
 
