@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Emitter};
 use std::path::PathBuf;
 
+pub mod cli_i18n;
 pub mod discovery;
 pub mod flasher_ota;
 pub mod flasher_serial;
