@@ -1,133 +1,202 @@
 # 🔥 Open-Firenet Installer
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#downloads--releases)
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
+[![Tauri](https://img.shields.io/badge/built%20with-Tauri%20v2-24C8D8.svg)](https://tauri.app/)
 
-**Open-Firenet Installer** est l'assistant universel et multiplateforme pour installer, flasher et mettre à jour votre clé Wi-Fi **Open-Firenet** (remplacement open-source du module RIKA Firenet).
+> **[🇫🇷 Lire la documentation en français](README.fr.md)**
 
-Contrairement aux solutions WebSerial (ESP Web Tools) qui ne fonctionnent **ni sur Mozilla Firefox ni sur Apple Safari**, cet outil fonctionne nativement sur **Windows**, **macOS** (Intel & Apple Silicon) et **Linux**, sous la forme d'un exécutable unique et autonome.
+**Open-Firenet Installer** is the universal, cross-platform desktop GUI & CLI assistant to discover, flash, configure, and wirelessly update your **Open-Firenet** dongle (the open-source ESP32-S3 replacement for the proprietary RIKA Firenet module).
 
----
-
-## ✨ Fonctionnalités principales
-
-1. **🔍 Détection automatique sur le réseau local** :
-   - Scan mDNS (`openfirenet.local`) et scan rapide du sous-réseau.
-   - Découverte instantanée de l'adresse IP, du modèle de poêle connecté (ex: *DOMO*, *INDUO*), de l'état actuel et de la force du signal Wi-Fi.
-2. **⚡ Flashage USB Série (Premier flashage / Réinstallation)** :
-   - Détection automatique du port série USB de l'ESP32-S3.
-   - Récupération automatique du firmware complet (`factory.bin`) depuis les releases officielles GitHub.
-   - Flashage rapide et sécurisé de la mémoire flash.
-3. **📡 Mise à jour à distance via Wi-Fi (OTA)** :
-   - Mettez à jour le dongle branché sur votre poêle dans le salon sans jamais le débrancher !
-   - Envoi du firmware avec barre de progression et suivi du redémarrage en temps réel.
-4. **📶 Assistant de configuration Wi-Fi** :
-   - Saisie guidée du SSID et du mot de passe pour connecter facilement votre clé neuve à votre box.
-5. **📦 Gestion des versions GitHub** :
-   - Téléchargement des versions stables, pré-releases ou sélection d'un fichier binaire local.
-6. **📟 Moniteur Série intégré** :
-   - Visualisation des journaux de démarrage et des trames de dialogue poêle/clé en direct.
+Unlike WebSerial solutions (ESP Web Tools) that **fail completely on Mozilla Firefox and Apple Safari**, Open-Firenet Installer runs natively across **Windows**, **macOS** (Apple Silicon & Intel), and **Linux** as a single, self-contained executable with zero external runtime dependencies (no Python or esptool installation needed).
 
 ---
 
-## 🚀 Utilisation
+## 📸 Screenshots
 
-### Mode Interface Graphique (GUI - Recommandé)
+### 1. Automatic Stove Discovery & Status Dashboard
+Instant discovery of your stove on the local network via mDNS (`openfirenet.local`) and subnet probing, displaying live operation state, firmware version, and Wi-Fi signal quality.
 
-Double-cliquez simplement sur l'exécutable sous **Windows**, **macOS** ou **Linux** (ou lancez `./open-firenet-installer`) :
+![Automatic Stove Discovery](docs/screenshots/dashboard-scan.png)
 
-- **🔥 Tableau de bord interactif** aux couleurs d'Open-Firenet (Dark mode & dégradé ambre/orange feu).
-- **🔍 Détection automatique** : Votre poêle est trouvé sur le réseau local en quelques secondes avec son modèle (*DOMO*, etc.), son IP et la qualité du signal Wi-Fi.
-- **📡 Mise à jour Wi-Fi (OTA) en un clic** : Téléchargement automatique de la dernière version officielle GitHub et flashage sans fil avec barre de progression.
-- **⚡ Flash USB guidé** : Détection automatique des puces ESP32-S3 branchées et flashage de l'image *factory*.
-- **📶 Configuration Wi-Fi** : Paramétrage facile du SSID et mot de passe de la box.
+---
+
+### 2. Over-the-Air Wireless Update (OTA)
+Remotely upgrade your dongle straight from your sofa without ever having to unplug it from your stove. Includes real-time progress reporting, automatic reboot detection, and online confirmation.
+
+![Wireless OTA Update](docs/screenshots/ota-update.png)
+
+---
+
+### 3. USB Serial Flasher (Update & Factory Reset Modes)
+Auto-detects plugged ESP32-S3 devices. Supports two flashing modes: **Update mode** (preserves Wi-Fi credentials and NVS settings) or **Full Factory Reset** (wipes and initializes flash memory).
+
+![USB Serial Flasher](docs/screenshots/usb-flasher.png)
+
+---
+
+### 4. Guided Wi-Fi Configuration
+Easily provision your home Wi-Fi SSID and password directly over USB serial without manual AT commands.
+
+![Wi-Fi Configuration](docs/screenshots/wifi-setup.png)
+
+---
+
+### 5. Official GitHub Releases & Cryptographic Verification
+Browse official stable releases and pre-releases, download binaries automatically, and verify authenticity via **Minisign** cryptographic signatures and SHA-256 checksums.
+
+![Official GitHub Releases](docs/screenshots/releases.png)
+
+---
+
+## ✨ Key Features
+
+- **🔍 Automatic Network Discovery**: Detects your stove in seconds via mDNS and active subnet probing. Retrieves live stove model (*DOMO*, *INDUO*, etc.), operating status, IP address, and signal strength.
+- **📡 Pure Rust ArduinoOTA Wireless Flasher**: Built-in, high-speed pure Rust OTA client eliminating Python or external script requirements. Automatically polls for the device to restart and come back online.
+- **⚡ USB Serial Flasher with Safe Dual Modes**:
+  - **Update Mode** (offset `0x10000`): Updates application firmware while preserving your stored Wi-Fi credentials and configuration.
+  - **Full Reset / Factory Mode** (offset `0x0000`): Flashes a complete factory image onto new ESP32-S3 chips or for clean reinstalls.
+- **🔒 Cryptographic Integrity & Security**: Official firmware binaries are verified using **Minisign** digital signatures against the official Open-Firenet community public key before flashing.
+- **📶 Guided USB Wi-Fi Setup**: Provision Wi-Fi credentials over serial with a single click or terminal command.
+- **📟 Embedded Serial Monitor**: Monitor live stove UART dialogue frames and boot logs directly inside your terminal.
+- **🌐 Multilingual**: Built-in support for **English**, **French**, and **German**.
+- **🖥️ Dual Mode (GUI & CLI)**: Automatically launches a sleek, modern Tauri graphical interface in desktop environments, or falls back to an interactive menu / command-line tool in headless/SSH setups.
+
+---
+
+## 📥 Downloads & Releases
+
+Pre-compiled standalone binaries are available on the [**GitHub Releases**](https://github.com/openfirenet/open-firenet-installer/releases) page:
+
+| Operating System & Architecture | Binary Name | Packaging |
+|---|---|---|
+| **Linux (x86_64)** | `open-firenet-installer-linux-x86_64` | Standalone ELF 64-bit |
+| **Windows (x86_64)** | `open-firenet-installer-windows-x86_64.exe` | Standalone `.exe` executable |
+| **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64` | Standalone Mach-O arm64 |
+| **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64` | Standalone Mach-O x86_64 |
+
+> [!TIP]
+> **Linux users**: Ensure your user belongs to the `dialout` or `uucp` group to access USB serial ports:
+> ```bash
+> sudo usermod -aG dialout $USER
+> # Log out and log back in for changes to take effect
+> ```
+
+---
+
+## 🚀 Usage
+
+### Graphical User Interface (GUI - Recommended)
+
+Simply double-click the downloaded executable on Windows, macOS, or Linux (or execute from terminal):
 
 ```bash
-# Lancer l'interface graphique (ou simplement double-clic sur l'icône)
 ./open-firenet-installer
 ```
 
+- **Interactive Dashboard**: View stove connection, temperature status, and firmware version.
+- **1-Click Actions**: Launch the web interface, trigger wireless updates, or flash firmware with safety confirmation prompts.
+
 ---
 
-### Mode Menu Interactif en Terminal
+### Interactive Terminal Menu (`--cli`)
 
-Si vous êtes sur un serveur sans écran ou préférez le terminal :
+For SSH remote sessions, headless servers, or terminal enthusiasts:
 
 ```bash
 ./open-firenet-installer --cli
 ```
 
-Un menu interactif au clavier s'affiche dans votre terminal :
-
 ```text
 ╔═══════════════════════════════════════════════════════════════╗
 ║                 🔥  OPEN-FIRENET INSTALLER  🔥                ║
-║      Assistant multiplateforme de flash USB et mise à jour    ║
+║      Cross-platform USB flasher and OTA update assistant      ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-? Que souhaitez-vous faire ?
-❯ 🔍 1. Scanner le réseau local (détecter la clé & état du poêle)
-  ⚡ 2. Flasher la clé en USB (premier flash / réinstallation)
-  📡 3. Mettre à jour la clé à distance via Wi-Fi (OTA)
-  📶 4. Configurer le Wi-Fi de la clé (via USB Série)
-  📦 5. Consulter les versions GitHub (releases & pré-releases)
-  📟 6. Moniteur Série (voir les logs du poêle en direct)
-  🚪 7. Quitter
+? What would you like to do?
+❯ 🔍 1. Scan local network (discover dongle & stove status)
+  ⚡ 2. Flash dongle over USB (first-time install / factory reset)
+  📡 3. Update dongle wirelessly over Wi-Fi (OTA)
+  📶 4. Configure dongle Wi-Fi (via USB Serial)
+  📦 5. View GitHub releases (stable & pre-releases)
+  📟 6. Serial Monitor (inspect live stove communication)
+  🚪 7. Exit
 ```
 
 ---
 
-### Mode Ligne de Commande Directe (CLI)
+### Direct Scriptable CLI Commands
 
-Pour les scripts, l'automatisation ou les utilisateurs avancés :
+For automation scripts or advanced users:
 
 ```bash
-# Scanner le réseau local
+# Scan the local network for Open-Firenet dongles
 open-firenet-installer scan
 
-# Scanner un sous-réseau spécifique
+# Scan a specific subnet
 open-firenet-installer scan --subnet 192.168.1
 
-# Flasher en USB sur un port spécifique
+# Flash a dongle over USB (auto-selects or specify port)
 open-firenet-installer flash --port /dev/ttyACM0
 
-# Flasher un fichier binaire local spécifique
+# Flash a specific local binary file
 open-firenet-installer flash --file ./open-firenet-factory.bin
 
-# Mettre à jour via Wi-Fi (OTA) une clé à une IP donnée
+# Wirelessly update a dongle over Wi-Fi (OTA)
 open-firenet-installer ota --ip 192.168.1.93
 
-# Mettre à jour avec une version GitHub spécifique
-open-firenet-installer ota --ip 192.168.1.93 --release v2.0.0
+# Wirelessly update specifying an official GitHub release
+open-firenet-installer ota --ip 192.168.1.93 --release v2.0.1
 
-# Configurer le Wi-Fi par liaison série
+# Configure Wi-Fi credentials over USB serial
 open-firenet-installer wifi-setup --port /dev/ttyACM0
 
-# Écouter les logs série (baudrate 115200)
+# Launch serial monitor at 115200 baud
 open-firenet-installer monitor --port /dev/ttyACM0
 ```
 
 ---
 
-## 🛠 Compilation depuis les sources
+## 🛠️ Building from Source
 
-Prérequis : [Rust et Cargo](https://rustup.rs/) ($\ge$ 1.85).
+### Prerequisites
+
+- [**Rust toolchain**](https://rustup.rs/) ($\ge$ 1.85)
+- [**Node.js**](https://nodejs.org/) ($\ge$ 20 or 22)
+- **Linux build dependencies** (Ubuntu/Debian):
+  ```bash
+  sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
+  ```
+
+### Build Steps
 
 ```bash
-# Cloner le dépôt
+# 1. Clone repository
 git clone https://github.com/openfirenet/open-firenet-installer.git
 cd open-firenet-installer
 
-# Compiler en mode release optimisé
+# 2. Install frontend dependencies and build assets
+npm install
+npm run build
+
+# 3. Build optimized release binary
 cargo build --release
 
-# L'exécutable se trouve dans target/release/open-firenet-installer
+# The compiled standalone binary is located at:
 ./target/release/open-firenet-installer
 ```
 
 ---
 
-## 📄 Licence
+## 🔒 Security & Privacy
 
-Distribué sous licence **Apache-2.0**. Voir [LICENSE](LICENSE) pour plus de détails.
+- **100% Privacy First**: No telemetry, no tracking, and no external analytics.
+- **Cryptographic Validation**: All GitHub firmware assets are verified with SHA-256 and Minisign signatures before flashing.
+- **Local Network Operations**: Network scans and updates operate strictly within your local Wi-Fi / LAN network.
+
+---
+
+## 📄 License
+
+Distributed under the **Apache-2.0** License. See [LICENSE](LICENSE) for full details.

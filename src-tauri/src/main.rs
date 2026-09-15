@@ -1,3 +1,4 @@
+mod cli_i18n;
 mod discovery;
 mod flasher_ota;
 mod flasher_serial;
@@ -6,6 +7,7 @@ mod wifi_setup;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use cli_i18n::CliLang;
 use colored::*;
 use dialoguer::{Confirm, Select};
 use std::path::PathBuf;
@@ -20,20 +22,24 @@ use wifi_setup::WifiSetup;
 #[command(
     name = "open-firenet-installer",
     author = "Open-Firenet Community",
-    version = "0.1.0",
-    about = "Outil universel d'installation, flashage USB et mise à jour OTA pour Open-Firenet"
+    version = env!("CARGO_PKG_VERSION"),
+    about = "Universal installation, USB flashing and OTA update tool for Open-Firenet"
 )]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// Lancer l'interface graphique (GUI)
+    /// Lancer l'interface graphique (GUI) / Launch Graphical User Interface
     #[arg(long)]
     gui: bool,
 
-    /// Forcer le mode menu interactif dans le terminal
+    /// Forcer le mode menu interactif dans le terminal / Force interactive CLI terminal menu
     #[arg(long)]
     cli: bool,
+
+    /// Langue de la CLI / CLI Language (fr, en, de)
+    #[arg(short, long)]
+    lang: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -77,10 +83,10 @@ enum Commands {
     },
 }
 
-fn print_banner() {
+fn print_banner(lang: CliLang) {
     println!("{}", "╔═══════════════════════════════════════════════════════════════╗".cyan().bold());
     println!("{}", "║                 🔥  OPEN-FIRENET INSTALLER  🔥                ║".cyan().bold());
-    println!("{}", "║      Assistant multiplateforme de flash USB et mise à jour    ║".cyan().bold());
+    println!("{}", format!("║{:^63}║", lang.banner_subtitle()).cyan().bold());
     println!("{}", "╚═══════════════════════════════════════════════════════════════╝".cyan().bold());
     println!();
 }
@@ -88,16 +94,21 @@ fn print_banner() {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    let lang = match cli.lang.as_deref() {
+        Some(l) => CliLang::from_str(l),
+        None => CliLang::detect(),
+    };
+
     match cli.command {
-        Some(Commands::Scan { subnet }) => cmd_scan(subnet)?,
-        Some(Commands::Flash { port, file, release }) => cmd_flash(port, file, release)?,
-        Some(Commands::Ota { ip, file, release }) => cmd_ota(&ip, file, release)?,
-        Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port)?,
-        Some(Commands::ListReleases) => cmd_list_releases()?,
-        Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud)?,
+        Some(Commands::Scan { subnet }) => cmd_scan(subnet, lang)?,
+        Some(Commands::Flash { port, file, release }) => cmd_flash(port, file, release, lang)?,
+        Some(Commands::Ota { ip, file, release }) => cmd_ota(&ip, file, release, lang)?,
+        Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port, lang)?,
+        Some(Commands::ListReleases) => cmd_list_releases(lang)?,
+        Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud, lang)?,
         None => {
             if cli.cli || (std::env::var("DISPLAY").is_err() && std::env::var("WAYLAND_DISPLAY").is_err()) {
-                run_interactive_menu()?;
+                run_interactive_menu(lang)?;
             } else {
                 open_firenet_installer::run();
             }
@@ -107,44 +118,63 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn run_interactive_menu() -> Result<()> {
+fn run_interactive_menu(mut lang: CliLang) -> Result<()> {
     loop {
-        print_banner();
+        print_banner(lang);
 
-        let choices = &[
-            "🔍 1. Scanner le réseau local (détecter la clé & état du poêle)",
-            "⚡ 2. Flasher la clé en USB (premier flash / réinstallation)",
-            "📡 3. Mettre à jour la clé à distance via Wi-Fi (OTA)",
-            "📶 4. Configurer le Wi-Fi de la clé (via USB Série)",
-            "📦 5. Consulter les versions GitHub (releases & pré-releases)",
-            "📟 6. Moniteur Série (voir les logs du poêle en direct)",
-            "🚪 7. Quitter",
-        ];
+        let choices = lang.menu_choices();
+        let lang_switch_opt = match lang {
+            CliLang::Fr => "🌐 8. Changer de langue / Switch Language",
+            CliLang::En => "🌐 8. Switch Language / Changer de langue",
+            CliLang::De => "🌐 8. Sprache wechseln / Switch Language",
+        };
+
+        let mut menu_items = choices.to_vec();
+        menu_items.push(lang_switch_opt);
 
         let selection = Select::new()
-            .with_prompt("Que souhaitez-vous faire ?")
-            .items(choices)
+            .with_prompt(lang.menu_title())
+            .items(&menu_items)
             .default(0)
             .interact()?;
 
         println!();
 
         match selection {
-            0 => cmd_scan(None)?,
-            1 => cmd_flash(None, None, None)?,
-            2 => interactive_ota()?,
-            3 => cmd_wifi_setup(None)?,
-            4 => cmd_list_releases()?,
-            5 => cmd_monitor(None, 115200)?,
+            0 => cmd_scan(None, lang)?,
+            1 => cmd_flash(None, None, None, lang)?,
+            2 => interactive_ota(lang)?,
+            3 => cmd_wifi_setup(None, lang)?,
+            4 => cmd_list_releases(lang)?,
+            5 => cmd_monitor(None, 115200, lang)?,
             6 => {
-                println!("Au revoir !");
+                println!("{}", lang.goodbye());
                 break;
+            }
+            7 => {
+                let lang_opts = &["🇫🇷 Français", "🇬🇧 English", "🇩🇪 Deutsch"];
+                let chosen = Select::new()
+                    .with_prompt("Choisir la langue / Select language / Sprache wählen :")
+                    .items(lang_opts)
+                    .default(match lang {
+                        CliLang::Fr => 0,
+                        CliLang::En => 1,
+                        CliLang::De => 2,
+                    })
+                    .interact()?;
+                lang = match chosen {
+                    0 => CliLang::Fr,
+                    1 => CliLang::En,
+                    2 => CliLang::De,
+                    _ => CliLang::Fr,
+                };
+                continue;
             }
             _ => unreachable!(),
         }
 
         println!("\n{}", "─".repeat(60).dimmed());
-        if !Confirm::new().with_prompt("Revenir au menu principal ?").default(true).interact()? {
+        if !Confirm::new().with_prompt(lang.menu_return_prompt()).default(true).interact()? {
             break;
         }
         println!();
@@ -152,8 +182,8 @@ fn run_interactive_menu() -> Result<()> {
     Ok(())
 }
 
-fn cmd_scan(subnet: Option<String>) -> Result<()> {
-    println!("{}", "🔍 Recherche de la clé Open-Firenet sur votre réseau...".bold());
+fn cmd_scan(subnet: Option<String>, lang: CliLang) -> Result<()> {
+    println!("{}", lang.scan_searching().bold());
 
     // 1. Essai mDNS
     let mut found = NetworkScanner::probe_mdns_hosts();
@@ -174,65 +204,64 @@ fn cmd_scan(subnet: Option<String>) -> Result<()> {
     }
 
     if found.is_empty() {
-        println!("{}", "❌ Aucune clé Open-Firenet détectée sur le réseau.".red().bold());
-        println!("Conseils :");
-        println!("  - Vérifiez que la clé est bien allumée et connectée au Wi-Fi.");
-        println!("  - Si c'est un premier démarrage, connectez-vous au point d'accès Wi-Fi 'OpenFirenet-Setup'.");
-        println!("  - Ou branchez-la en USB pour effectuer le premier flashage.");
+        println!("{}", lang.scan_not_found().red().bold());
+        for line in lang.scan_tips() {
+            println!("{}", line);
+        }
     } else {
-        println!("{}", format!("✔ {} clé(s) Open-Firenet trouvée(s) :", found.len()).green().bold());
+        println!("{}", lang.scan_found(found.len()).green().bold());
         for (i, d) in found.iter().enumerate() {
-            println!("\n  [{}] Adresse IP     : {}", i + 1, d.ip.cyan().bold());
-            println!("      Nom d'hôte     : {}", d.hostname.dimmed());
-            println!("      Modèle poêle   : {}", d.stove_model.yellow().bold());
-            println!("      État actuel    : {}", d.stove_state.white());
-            println!("      Signal Wi-Fi   : {}", d.wifi_rssi);
-            println!("      Version firmw. : {}", d.firmware_version);
-            println!("      Accès Web      : http://{}/", d.ip);
+            println!("\n  [{}] {}: {}", i + 1, lang.label_ip(), d.ip.cyan().bold());
+            println!("      {}: {}", lang.label_hostname(), d.hostname.dimmed());
+            println!("      {}: {}", lang.label_stove_model(), d.stove_model.yellow().bold());
+            println!("      {}: {}", lang.label_stove_state(), d.stove_state.white());
+            println!("      {}: {}", lang.label_wifi_signal(), d.wifi_rssi);
+            println!("      {}: {}", lang.label_firmware_version(), d.firmware_version);
+            println!("      {}: http://{}/", lang.label_web_access(), d.ip);
         }
     }
     Ok(())
 }
 
-fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String>) -> Result<()> {
-    println!("{}", "⚡ Flashage USB série de la clé Open-Firenet".bold());
+fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String>, lang: CliLang) -> Result<()> {
+    println!("{}", lang.flash_usb_title().bold());
 
-    let selected_port = choose_serial_port(port)?;
+    let selected_port = choose_serial_port(port, lang)?;
     let bin_path = if let Some(f) = file {
         f
     } else {
-        choose_or_download_firmware(true, release)?
+        choose_or_download_firmware(true, release, lang)?
     };
 
     SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, |_pct, _msg| {})?;
     Ok(())
 }
 
-fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>) -> Result<()> {
-    println!("{} Mise à jour Wi-Fi (OTA) vers {}", "📡".bold(), ip.cyan());
+fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, lang: CliLang) -> Result<()> {
+    println!("{}", lang.ota_updating_to(ip).bold());
 
     let bin_path = if let Some(f) = file {
         f
     } else {
-        choose_or_download_firmware(false, release)?
+        choose_or_download_firmware(false, release, lang)?
     };
 
     OtaFlasher::flash_arduino_ota(ip, &bin_path, |_pct, _msg| {})?;
     Ok(())
 }
 
-fn cmd_wifi_setup(port: Option<String>) -> Result<()> {
-    let selected_port = choose_serial_port(port)?;
-    WifiSetup::prompt_and_configure(&selected_port)
+fn cmd_wifi_setup(port: Option<String>, lang: CliLang) -> Result<()> {
+    let selected_port = choose_serial_port(port, lang)?;
+    WifiSetup::prompt_and_configure(&selected_port, lang)
 }
 
-fn choose_serial_port(explicit: Option<String>) -> Result<String> {
+fn choose_serial_port(explicit: Option<String>, lang: CliLang) -> Result<String> {
     if let Some(p) = explicit {
         return Ok(p);
     }
     let ports = SerialFlasher::list_ports()?;
     if ports.is_empty() {
-        anyhow::bail!("❌ Aucun port série USB détecté. Branchez votre ESP32-S3 en USB.");
+        anyhow::bail!("{}", lang.no_serial_port_found());
     }
 
     let port_items: Vec<String> = ports.iter()
@@ -240,7 +269,7 @@ fn choose_serial_port(explicit: Option<String>) -> Result<String> {
         .collect();
 
     let idx = Select::new()
-        .with_prompt("Sélectionnez le port série USB de votre ESP32-S3 :")
+        .with_prompt(lang.select_serial_port())
         .items(&port_items)
         .default(0)
         .interact()?;
@@ -248,7 +277,7 @@ fn choose_serial_port(explicit: Option<String>) -> Result<String> {
     Ok(ports[idx].port_name.clone())
 }
 
-fn interactive_ota() -> Result<()> {
+fn interactive_ota(lang: CliLang) -> Result<()> {
     let mut found = NetworkScanner::probe_mdns_hosts();
     if found.is_empty() {
         for prefix in NetworkScanner::detect_local_prefixes() {
@@ -262,21 +291,21 @@ fn interactive_ota() -> Result<()> {
             .map(|d| format!("{} (Poêle {}, Version {})", d.ip, d.stove_model, d.firmware_version))
             .collect();
         let idx = Select::new()
-            .with_prompt("Sélectionnez la clé à mettre à jour :")
+            .with_prompt(lang.select_dongle_to_update())
             .items(&items)
             .default(0)
             .interact()?;
         found[idx].ip.clone()
     } else {
         dialoguer::Input::new()
-            .with_prompt("Entrez l'adresse IP de votre clé Open-Firenet")
+            .with_prompt(lang.enter_ip_prompt())
             .interact_text()?
     };
 
-    cmd_ota(&ip, None, None)
+    cmd_ota(&ip, None, None, lang)
 }
 
-fn choose_or_download_firmware(factory: bool, release_tag: Option<String>) -> Result<PathBuf> {
+fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang: CliLang) -> Result<PathBuf> {
     let gh = GitHubClient::new();
     let cache_dir = GitHubClient::cache_dir();
     std::fs::create_dir_all(&cache_dir)?;
@@ -286,23 +315,23 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>) -> Re
         releases.into_iter().find(|r| r.tag_name == tag)
             .ok_or_else(|| anyhow::anyhow!("Version {} introuvable sur GitHub", tag))?
     } else {
-        println!("{}", "Récupération des versions disponibles sur GitHub...".dimmed());
+        println!("{}", lang.fetching_releases().dimmed());
         let releases = gh.list_releases().unwrap_or_default();
         if releases.is_empty() {
-            println!("{}", "Aucune release publiée sur GitHub pour le moment.".yellow());
+            println!("{}", lang.no_releases_found().yellow());
             let path_str: String = dialoguer::Input::new()
-                .with_prompt("Chemin vers votre fichier binaire .bin local")
+                .with_prompt(lang.enter_bin_path_prompt())
                 .interact_text()?;
             return Ok(PathBuf::from(path_str));
         }
 
         let items: Vec<String> = releases.iter().map(|r| {
-            let label = if r.prerelease { " (pré-release/test)" } else { " (stable)" };
+            let label = if r.prerelease { lang.badge_prerelease() } else { lang.badge_stable() };
             format!("{} - {}{}", r.tag_name, r.name.as_deref().unwrap_or(""), label)
         }).collect();
 
         let idx = Select::new()
-            .with_prompt("Choisissez la version à installer :")
+            .with_prompt(lang.choose_version_prompt())
             .items(&items)
             .default(0)
             .interact()?;
@@ -318,9 +347,9 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>) -> Re
     let asset = match asset {
         Some(a) => a,
         None => {
-            println!("{}", "Aucun binaire précompilé approprié trouvé dans cette release.".yellow());
+            println!("{}", lang.no_binary_found().yellow());
             let path_str: String = dialoguer::Input::new()
-                .with_prompt("Entrez le chemin vers votre fichier .bin local")
+                .with_prompt(lang.enter_bin_path_prompt())
                 .interact_text()?;
             return Ok(PathBuf::from(path_str));
         }
@@ -329,24 +358,24 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>) -> Re
     let release_cache_dir = cache_dir.join(&rel.tag_name);
     let dest = release_cache_dir.join(&asset.name);
     if dest.exists() {
-        if Confirm::new().with_prompt(format!("Utiliser la version en cache ({}) ?", asset.name)).default(true).interact()? {
+        if Confirm::new().with_prompt(lang.use_cached_prompt(&asset.name)).default(true).interact()? {
             return Ok(dest);
         }
     }
 
-    println!("Téléchargement et vérification cryptographique de {}...", asset.name.cyan());
+    println!("{}", lang.downloading_asset(&asset.name).cyan());
     let verified_dest = gh.download_and_verify_asset(&rel, asset)?;
-    println!("{}", "✔ Signature Minisign et intégrité SHA256 validées avec succès !".green());
+    println!("{}", lang.verification_ok().green());
     Ok(verified_dest)
 }
 
-fn cmd_list_releases() -> Result<()> {
+fn cmd_list_releases(lang: CliLang) -> Result<()> {
     let gh = GitHubClient::new();
-    println!("{}", "📦 Versions d'Open-Firenet publiées sur GitHub :".bold());
+    println!("{}", lang.releases_title().bold());
 
     match gh.list_releases() {
         Ok(releases) if releases.is_empty() => {
-            println!("{}", "Aucune release officielle n'est encore publiée sur GitHub.".yellow());
+            println!("{}", lang.no_releases_found().yellow());
         }
         Ok(releases) => {
             for r in releases {
@@ -365,7 +394,7 @@ fn cmd_list_releases() -> Result<()> {
     Ok(())
 }
 
-fn cmd_monitor(port: Option<String>, baud: u32) -> Result<()> {
-    let selected_port = choose_serial_port(port)?;
-    WifiSetup::monitor_serial(&selected_port, baud)
+fn cmd_monitor(port: Option<String>, baud: u32, lang: CliLang) -> Result<()> {
+    let selected_port = choose_serial_port(port, lang)?;
+    WifiSetup::monitor_serial(&selected_port, baud, lang)
 }
