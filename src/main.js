@@ -44,18 +44,17 @@ const wifiStatusText = document.getElementById("wifi-status-text");
 const releasesList = document.getElementById("releases-list");
 const btnRefreshReleases = document.getElementById("btn-refresh-releases");
 
-// Language switcher
-document.querySelectorAll(".lang-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const lang = btn.getAttribute("data-lang");
-    setLanguage(lang, () => {
-      // Re-render dynamic components upon language change
+// Language selector dropdown
+const langSelect = document.getElementById("lang-select");
+if (langSelect) {
+  langSelect.addEventListener("change", (e) => {
+    setLanguage(e.target.value, () => {
       renderDevices(discoveredDevices);
       renderReleasesList(availableReleases);
       populateReleaseDropdowns(availableReleases);
     });
   });
-});
+}
 
 // 1. Tab Switching
 tabs.forEach((tab) => {

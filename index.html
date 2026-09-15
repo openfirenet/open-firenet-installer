@@ -18,12 +18,11 @@
         </div>
       </div>
       <div class="header-right">
-        <!-- Language Switcher (FR / EN) -->
-        <div class="lang-switch">
-          <button class="lang-btn active" data-lang="fr" title="Français">FR</button>
-          <span class="lang-divider">|</span>
-          <button class="lang-btn" data-lang="en" title="English">EN</button>
-        </div>
+        <!-- Language Selector Dropdown with Flags -->
+        <select class="lang-select" id="lang-select" aria-label="Langue / Language">
+          <option value="fr">🇫🇷 Français</option>
+          <option value="en">🇬🇧 English</option>
+        </select>
         <div class="header-status" id="header-status">
           <span class="status-dot"></span>
           <span id="header-status-text" data-i18n="statusReady">Prêt</span>

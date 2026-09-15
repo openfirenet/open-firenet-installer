@@ -243,10 +243,11 @@ export function setLanguage(lang, onLangChangeCallback) {
     if (key) el.title = t(key);
   });
 
-  // Toggle active button class
-  document.querySelectorAll(".lang-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
-  });
+  // Sync dropdown value
+  const selectEl = document.getElementById("lang-select");
+  if (selectEl && selectEl.value !== lang) {
+    selectEl.value = lang;
+  }
 
   if (typeof onLangChangeCallback === "function") {
     onLangChangeCallback(lang);
