@@ -462,8 +462,9 @@ btnStartOta.addEventListener("click", async () => {
 
   btnStartOta.disabled = true;
   otaProgressBox.classList.remove("hidden");
-  otaProgressBar.style.width = "0%";
+  otaProgressBar.style.width = "5%";
   otaStatusText.textContent = t("statusOtaSending");
+  otaProgressBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   try {
     await invoke("update_ota_device", {
@@ -472,8 +473,10 @@ btnStartOta.addEventListener("click", async () => {
       customFile: localFile,
     });
     otaProgressBar.style.width = "100%";
-    otaStatusText.textContent = t("statusOtaSuccess");
-    alert(t("otaSuccessMsg"));
+    otaStatusText.textContent = `✔ ${t("statusOtaSuccess")}`;
+    setTimeout(() => {
+      alert(t("otaSuccessMsg"));
+    }, 400);
   } catch (err) {
     console.error("Erreur OTA :", err);
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
@@ -492,8 +495,9 @@ async function doUsbFlash() {
 
   btnStartUsbFlash.disabled = true;
   usbProgressBox.classList.remove("hidden");
-  usbProgressBar.style.width = "0%";
+  usbProgressBar.style.width = "5%";
   usbStatusText.textContent = t("statusFlashingUsb");
+  usbProgressBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   try {
     await invoke("flash_usb_device", {
@@ -502,8 +506,10 @@ async function doUsbFlash() {
       customFile: localFile,
     });
     usbProgressBar.style.width = "100%";
-    usbStatusText.textContent = t("statusFlashingSuccess");
-    alert(t("statusFlashingSuccess"));
+    usbStatusText.textContent = `✔ ${t("statusFlashingSuccess")}`;
+    setTimeout(() => {
+      alert(t("statusFlashingSuccess"));
+    }, 400);
   } catch (err) {
     console.error("Erreur Flash USB :", err);
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
