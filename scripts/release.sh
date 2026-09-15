@@ -81,7 +81,7 @@ LATEST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 
 if [[ -z "$LATEST_TAG" ]]; then
   warn "Aucun tag existant trouvé dans ce dépôt."
-  DEFAULT_NEXT="v0.1.0"
+  DEFAULT_NEXT="v1.0.0"
   LATEST_TAG="aucun"
 else
   info "Dernier tag détecté : ${BOLD}${LATEST_TAG}${NC}"
@@ -145,7 +145,51 @@ if [[ ! "$confirm" =~ ^[oOyY]$ ]]; then
   fatal "Publication annulée par l'utilisateur."
 fi
 
-# 7. Création et push du tag
+# 7. Mise à jour automatique des fichiers de version
+CLEAN_VER="${TARGET_VERSION#v}"
+info "Mise à jour automatique des fichiers de version vers ${CLEAN_VER}..."
+
+# 7.1 package.json
+node -e "
+const fs = require('fs');
+const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+pkg.version = '$CLEAN_VER';
+fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+"
+ok "package.json synchronisé (${CLEAN_VER})."
+
+# 7.2 src-tauri/tauri.conf.json
+node -e "
+const fs = require('fs');
+const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+conf.version = '$CLEAN_VER';
+fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+"
+ok "src-tauri/tauri.conf.json synchronisé (${CLEAN_VER})."
+
+# 7.3 src-tauri/Cargo.toml
+sed -i -E "s/^(version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$CLEAN_VER\"/" src-tauri/Cargo.toml
+ok "src-tauri/Cargo.toml synchronisé (${CLEAN_VER})."
+
+# 7.4 Rebuild frontend & synchronisation Cargo.lock
+info "Reconstruction du frontend et synchronisation Cargo.lock..."
+npm run build >/dev/null
+(cd src-tauri && cargo check --quiet 2>/dev/null || true)
+ok "Build frontend et Cargo.lock synchronisés."
+
+# 7.5 Commit automatique du bump de version
+info "Commit automatique de la version ${TARGET_VERSION}..."
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml Cargo.lock src-tauri/Cargo.lock dist/ 2>/dev/null || true
+if ! git diff --cached --quiet; then
+  git commit -m "chore(release): bump version to ${TARGET_VERSION}" --author="openfirenet <openfirenet@lestang.net>"
+  info "Push du commit sur origin/${CURRENT_BRANCH}..."
+  git push origin "$CURRENT_BRANCH"
+  ok "Commit de version poussé sur origin."
+else
+  ok "Fichiers de version déjà à jour."
+fi
+
+# 8. Création et push du tag
 info "Création du tag annoté '${TARGET_VERSION}'..."
 git tag -a "$TARGET_VERSION" -m "Release $TARGET_VERSION"
 ok "Tag créé localement."

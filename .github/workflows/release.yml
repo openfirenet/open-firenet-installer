@@ -60,6 +60,24 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci || npm install
 
+      - name: Sync version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          echo "Synchronizing project versions to $TAG_VER from tag $GITHUB_REF_NAME"
+          sed -i -E "s/^(version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$TAG_VER\"/" src-tauri/Cargo.toml
+          node -e "
+            const fs = require('fs');
+            for (const f of ['package.json', 'src-tauri/tauri.conf.json']) {
+              if (fs.existsSync(f)) {
+                const data = JSON.parse(fs.readFileSync(f, 'utf8'));
+                data.version = '$TAG_VER';
+                fs.writeFileSync(f, JSON.stringify(data, null, 2) + '\n');
+              }
+            }
+          "
+
       - name: Build Frontend
         run: npm run build
 

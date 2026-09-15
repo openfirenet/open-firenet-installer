@@ -22,7 +22,7 @@ use wifi_setup::WifiSetup;
 #[command(
     name = "open-firenet-installer",
     author = "Open-Firenet Community",
-    version = "0.1.0",
+    version = env!("CARGO_PKG_VERSION"),
     about = "Universal installation, USB flashing and OTA update tool for Open-Firenet"
 )]
 struct Cli {
