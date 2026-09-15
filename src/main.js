@@ -35,11 +35,107 @@ const usbProgressBox = document.getElementById("usb-progress-box");
 const usbProgressBar = document.getElementById("usb-progress-bar");
 const usbStatusText = document.getElementById("usb-status-text");
 
+// USB Mode Toggle (Mise à jour vs Reset Factory)
+const btnUsbModeUpdate = document.getElementById("usb-mode-update");
+const btnUsbModeFactory = document.getElementById("usb-mode-factory");
+let selectedUsbMode = "update"; // "update" | "factory"
+
+if (btnUsbModeUpdate && btnUsbModeFactory) {
+  btnUsbModeUpdate.addEventListener("click", () => {
+    selectedUsbMode = "update";
+    btnUsbModeUpdate.classList.add("active");
+    btnUsbModeFactory.classList.remove("active");
+  });
+
+  btnUsbModeFactory.addEventListener("click", () => {
+    selectedUsbMode = "factory";
+    btnUsbModeFactory.classList.add("active");
+    btnUsbModeUpdate.classList.remove("active");
+  });
+}
+
+// Confirmation Modal Elements (Partagé USB & OTA)
 const confirmModal = document.getElementById("confirm-modal");
-const modalTargetPort = document.getElementById("modal-target-port");
+const modalIcon = document.getElementById("modal-icon");
+const modalTitle = document.getElementById("modal-title");
+const modalDesc = document.getElementById("modal-desc");
+const modalTargetLabel = document.getElementById("modal-target-label");
+const modalTargetVal = document.getElementById("modal-target-val");
 const modalTargetFirmware = document.getElementById("modal-target-firmware");
+const modalWarningText = document.getElementById("modal-warning-text");
 const modalBtnCancel = document.getElementById("modal-btn-cancel");
 const modalBtnConfirm = document.getElementById("modal-btn-confirm");
+const modalConfirmIcon = document.getElementById("modal-confirm-icon");
+const modalConfirmLabel = document.getElementById("modal-confirm-label");
+
+let currentConfirmAction = null;
+
+function openConfirmModal({
+  icon = "⚡",
+  titleKey = "modalConfirmTitle",
+  descKey = "modalConfirmDesc",
+  targetLabelKey = "modalTargetPort",
+  targetValue = "-",
+  firmwareValue = "-",
+  warningKey = "modalConfirmWarning",
+  confirmIcon = "⚡",
+  confirmLabelKey = "modalBtnConfirm",
+  onConfirm = null,
+}) {
+  currentConfirmAction = onConfirm;
+  if (modalIcon) modalIcon.textContent = icon;
+  if (modalTitle) {
+    modalTitle.setAttribute("data-i18n", titleKey);
+    modalTitle.textContent = t(titleKey);
+  }
+  if (modalDesc) {
+    modalDesc.setAttribute("data-i18n", descKey);
+    modalDesc.textContent = t(descKey);
+  }
+  if (modalTargetLabel) {
+    modalTargetLabel.setAttribute("data-i18n", targetLabelKey);
+    modalTargetLabel.textContent = t(targetLabelKey);
+  }
+  if (modalTargetVal) modalTargetVal.textContent = targetValue;
+  if (modalTargetFirmware) modalTargetFirmware.textContent = firmwareValue;
+  if (modalWarningText) {
+    modalWarningText.setAttribute("data-i18n", warningKey);
+    modalWarningText.textContent = t(warningKey);
+  }
+  if (modalConfirmIcon) modalConfirmIcon.textContent = confirmIcon;
+  if (modalConfirmLabel) {
+    modalConfirmLabel.setAttribute("data-i18n", confirmLabelKey);
+    modalConfirmLabel.textContent = t(confirmLabelKey);
+  }
+  confirmModal.classList.remove("hidden");
+}
+
+if (modalBtnCancel) {
+  modalBtnCancel.addEventListener("click", () => {
+    confirmModal.classList.add("hidden");
+    currentConfirmAction = null;
+  });
+}
+
+if (modalBtnConfirm) {
+  modalBtnConfirm.addEventListener("click", () => {
+    confirmModal.classList.add("hidden");
+    if (typeof currentConfirmAction === "function") {
+      const action = currentConfirmAction;
+      currentConfirmAction = null;
+      action();
+    }
+  });
+}
+
+if (confirmModal) {
+  confirmModal.addEventListener("click", (e) => {
+    if (e.target === confirmModal) {
+      confirmModal.classList.add("hidden");
+      currentConfirmAction = null;
+    }
+  });
+}
 
 const wifiPortSelect = document.getElementById("wifi-port-select");
 const wifiSsid = document.getElementById("wifi-ssid");
@@ -49,6 +145,27 @@ const wifiStatusText = document.getElementById("wifi-status-text");
 
 const releasesList = document.getElementById("releases-list");
 const btnRefreshReleases = document.getElementById("btn-refresh-releases");
+
+// État des opérations en cours
+let isOtaInProgress = false;
+let isUsbFlashingInProgress = false;
+let isWifiConfigInProgress = false;
+
+function resetTransientUi() {
+  if (!isOtaInProgress && otaProgressBox) {
+    otaProgressBox.classList.add("hidden");
+    if (otaProgressBar) otaProgressBar.style.width = "0%";
+    if (otaStatusText) otaStatusText.textContent = t("statusOtaWaiting");
+  }
+  if (!isUsbFlashingInProgress && usbProgressBox) {
+    usbProgressBox.classList.add("hidden");
+    if (usbProgressBar) usbProgressBar.style.width = "0%";
+    if (usbStatusText) usbStatusText.textContent = t("flashingInProgress");
+  }
+  if (!isWifiConfigInProgress && wifiStatusText) {
+    wifiStatusText.textContent = "";
+  }
+}
 
 // Language selector dropdown
 const langSelect = document.getElementById("lang-select");
@@ -71,6 +188,7 @@ tabs.forEach((tab) => {
     const targetId = tab.getAttribute("data-tab");
     const targetPane = document.getElementById(targetId);
     if (targetPane) targetPane.classList.add("active");
+    resetTransientUi();
   });
 });
 
@@ -445,21 +563,13 @@ btnUseDetectedIp.addEventListener("click", () => {
   }
 });
 
-btnStartOta.addEventListener("click", async () => {
+async function doOtaUpdate() {
   const ip = otaIpInput.value.trim();
-  if (!ip) {
-    alert(t("alertFillIp"));
-    return;
-  }
   const tag = otaReleaseSelect.value;
   const localFileInput = document.getElementById("ota-file-input");
   const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
 
-  if (!tag && !localFile) {
-    alert(t("alertSelectVersionOrFile"));
-    return;
-  }
-
+  isOtaInProgress = true;
   btnStartOta.disabled = true;
   otaProgressBox.classList.remove("hidden");
   otaProgressBar.style.width = "5%";
@@ -482,8 +592,40 @@ btnStartOta.addEventListener("click", async () => {
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    isOtaInProgress = false;
     btnStartOta.disabled = false;
   }
+}
+
+btnStartOta.addEventListener("click", () => {
+  const ip = otaIpInput.value.trim();
+  if (!ip) {
+    alert(t("alertFillIp"));
+    return;
+  }
+  const tag = otaReleaseSelect.value;
+  const localFileInput = document.getElementById("ota-file-input");
+  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+
+  if (!tag && !localFile) {
+    alert(t("alertSelectVersionOrFile"));
+    return;
+  }
+
+  const firmwareDisplay = tag ? `${tag} (OTA Update)` : localFile;
+
+  openConfirmModal({
+    icon: "📡",
+    titleKey: "modalOtaConfirmTitle",
+    descKey: "modalOtaConfirmDesc",
+    targetLabelKey: "modalTargetIp",
+    targetValue: ip,
+    firmwareValue: firmwareDisplay,
+    warningKey: "modalOtaConfirmWarning",
+    confirmIcon: "📡",
+    confirmLabelKey: "modalOtaBtnConfirm",
+    onConfirm: doOtaUpdate,
+  });
 });
 
 // Flash USB avec boîte de dialogue de confirmation préalable
@@ -493,6 +635,7 @@ async function doUsbFlash() {
   const localFileInput = document.getElementById("usb-file-input");
   const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
 
+  isUsbFlashingInProgress = true;
   btnStartUsbFlash.disabled = true;
   usbProgressBox.classList.remove("hidden");
   usbProgressBar.style.width = "5%";
@@ -504,6 +647,7 @@ async function doUsbFlash() {
       port,
       releaseTag: tag || null,
       customFile: localFile,
+      mode: selectedUsbMode,
     });
     usbProgressBar.style.width = "100%";
     usbStatusText.textContent = `✔ ${t("statusFlashingSuccess")}`;
@@ -515,6 +659,7 @@ async function doUsbFlash() {
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    isUsbFlashingInProgress = false;
     btnStartUsbFlash.disabled = false;
   }
 }
@@ -535,24 +680,22 @@ btnStartUsbFlash.addEventListener("click", () => {
     return;
   }
 
-  modalTargetPort.textContent = port;
-  modalTargetFirmware.textContent = tag ? `${tag} (Factory Image)` : localFile;
-  confirmModal.classList.remove("hidden");
-});
+  const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
+  const firmwareDisplay = tag ? `${tag} (${modeLabel})` : localFile;
+  const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
 
-modalBtnCancel.addEventListener("click", () => {
-  confirmModal.classList.add("hidden");
-});
-
-modalBtnConfirm.addEventListener("click", () => {
-  confirmModal.classList.add("hidden");
-  doUsbFlash();
-});
-
-confirmModal.addEventListener("click", (e) => {
-  if (e.target === confirmModal) {
-    confirmModal.classList.add("hidden");
-  }
+  openConfirmModal({
+    icon: "⚡",
+    titleKey: "modalConfirmTitle",
+    descKey: "modalConfirmDesc",
+    targetLabelKey: "modalTargetPort",
+    targetValue: port,
+    firmwareValue: firmwareDisplay,
+    warningKey: warningKey,
+    confirmIcon: "⚡",
+    confirmLabelKey: "modalBtnConfirm",
+    onConfirm: doUsbFlash,
+  });
 });
 
 btnSendWifi.addEventListener("click", async () => {
@@ -569,6 +712,7 @@ btnSendWifi.addEventListener("click", async () => {
     return;
   }
 
+  isWifiConfigInProgress = true;
   btnSendWifi.disabled = true;
   wifiStatusText.textContent = t("statusSearching");
 
@@ -581,6 +725,7 @@ btnSendWifi.addEventListener("click", async () => {
     wifiStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    isWifiConfigInProgress = false;
     btnSendWifi.disabled = false;
   }
 });

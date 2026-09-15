@@ -164,7 +164,7 @@ impl OtaFlasher {
         }
 
         pb.finish_with_message("Mise à jour sans fil terminée avec succès !");
-        on_progress(100, "Mise à jour réussie ! Redémarrage du poêle...");
+        on_progress(100, "Mise à jour réussie ! La clé redémarre...");
         println!("{} Transfert OTA terminé avec succès !", "✔".green().bold());
 
         // 7. Attente de reconnexion

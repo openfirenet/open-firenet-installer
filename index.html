@@ -22,6 +22,7 @@
         <select class="lang-select" id="lang-select" aria-label="Langue / Language">
           <option value="fr">🇫🇷 Français</option>
           <option value="en">🇬🇧 English</option>
+          <option value="de">🇩🇪 Deutsch</option>
         </select>
       </div>
     </header>
@@ -158,7 +159,27 @@
           </div>
 
           <div class="form-group">
-            <label for="usb-release-select" data-i18n="labelUsbRelease">Version du firmware (Image Factory complète) :</label>
+            <label data-i18n="labelUsbMode">Type d'opération USB :</label>
+            <div class="mode-toggle-group">
+              <button type="button" id="usb-mode-update" class="mode-btn active" data-mode="update">
+                <span class="mode-icon">🔄</span>
+                <div class="mode-text">
+                  <span class="mode-title" data-i18n="usbModeUpdateTitle">Mise à jour (Conserver la config)</span>
+                  <span class="mode-desc" data-i18n="usbModeUpdateDesc">Préserve vos identifiants Wi-Fi et paramètres NVS</span>
+                </div>
+              </button>
+              <button type="button" id="usb-mode-factory" class="mode-btn" data-mode="factory">
+                <span class="mode-icon">⚠️</span>
+                <div class="mode-text">
+                  <span class="mode-title" data-i18n="usbModeFactoryTitle">Reset complet (Image Usine)</span>
+                  <span class="mode-desc" data-i18n="usbModeFactoryDesc">Écrase toute la mémoire flash (reconfiguration requise)</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="usb-release-select" data-i18n="labelUsbRelease">Version du firmware :</label>
             <select id="usb-release-select">
               <option value="" data-i18n="loadingReleases">Chargement des versions officielles...</option>
             </select>
@@ -245,19 +266,19 @@
     </footer>
   </div>
 
-  <!-- Modal Confirmation Flash USB -->
+  <!-- Modal Confirmation Flash USB & OTA -->
   <div id="confirm-modal" class="modal-overlay hidden">
     <div class="card modal-dialog">
       <div class="modal-header">
-        <span class="modal-icon">⚡</span>
-        <h3 data-i18n="modalConfirmTitle">Confirmation du flashage USB</h3>
+        <span id="modal-icon" class="modal-icon">⚡</span>
+        <h3 id="modal-title" data-i18n="modalConfirmTitle">Confirmation du flashage USB</h3>
       </div>
       <div class="modal-body">
-        <p data-i18n="modalConfirmDesc">Vous êtes sur le point d'écrire le firmware sur la clé Open-Firenet. Veuillez vérifier les paramètres :</p>
+        <p id="modal-desc" data-i18n="modalConfirmDesc">Vous êtes sur le point d'écrire le firmware sur la clé Open-Firenet. Veuillez vérifier les paramètres :</p>
         <div class="modal-summary">
           <div class="modal-summary-row">
-            <span class="modal-summary-label" data-i18n="modalTargetPort">Port USB cible :</span>
-            <span id="modal-target-port" class="modal-summary-val">-</span>
+            <span id="modal-target-label" class="modal-summary-label" data-i18n="modalTargetPort">Port USB cible :</span>
+            <span id="modal-target-val" class="modal-summary-val">-</span>
           </div>
           <div class="modal-summary-row">
             <span class="modal-summary-label" data-i18n="modalTargetVersion">Firmware :</span>
@@ -265,13 +286,13 @@
           </div>
         </div>
         <div class="modal-warning">
-          <span data-i18n="modalConfirmWarning">Attention : cette opération va écraser la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !</span>
+          <span id="modal-warning-text" data-i18n="modalConfirmWarning">Attention : cette opération va écrire sur la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !</span>
         </div>
       </div>
       <div class="modal-actions">
         <button id="modal-btn-cancel" class="btn btn-secondary" data-i18n="modalBtnCancel">Annuler</button>
         <button id="modal-btn-confirm" class="btn btn-primary">
-          <span class="btn-icon">⚡</span> <span data-i18n="modalBtnConfirm">Confirmer et flasher</span>
+          <span id="modal-confirm-icon" class="btn-icon">⚡</span> <span id="modal-confirm-label" data-i18n="modalBtnConfirm">Confirmer et flasher</span>
         </button>
       </div>
     </div>

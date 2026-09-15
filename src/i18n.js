@@ -13,7 +13,7 @@ export const translations = {
     statusFlashingSuccess: "Flashage terminé avec succès !",
     statusOtaWaiting: "En attente...",
     statusOtaSending: "Envoi du firmware via Wi-Fi...",
-    statusOtaSuccess: "Mise à jour réussie ! Le poêle redémarre.",
+    statusOtaSuccess: "Mise à jour réussie ! La clé redémarre.",
 
     // Tabs
     tabDiscovery: "Détection Réseau",
@@ -56,7 +56,7 @@ export const translations = {
     loadingReleases: "Chargement des versions officielles...",
     labelLocalFile: "Ou sélectionner un fichier binaire local (.bin) :",
     btnStartOta: "Lancer la mise à jour OTA",
-    otaSuccessMsg: "Mise à jour réussie ! Le poêle redémarre.",
+    otaSuccessMsg: "Mise à jour réussie ! La clé redémarre.",
 
     // USB Tab
     usbTitle: "Flashage USB Série",
@@ -65,8 +65,13 @@ export const translations = {
     labelUsbPort: "Port USB Série connecté :",
     detectingPorts: "Détection des ports en cours...",
     noPortDetected: "Aucun port série détecté (branchez votre clé en USB)",
-    labelUsbRelease: "Version du firmware (Image Factory complète) :",
-    labelUsbLocalFile: "Ou binaire factory local (.bin) :",
+    labelUsbMode: "Type d'opération USB :",
+    usbModeUpdateTitle: "Mise à jour (Conserver la config)",
+    usbModeUpdateDesc: "Préserve vos identifiants Wi-Fi et paramètres NVS",
+    usbModeFactoryTitle: "Reset complet (Image Usine)",
+    usbModeFactoryDesc: "Écrase toute la mémoire flash (reconfiguration requise)",
+    labelUsbRelease: "Version du firmware :",
+    labelUsbLocalFile: "Ou binaire local (.bin) :",
     btnStartUsbFlash: "Flasher la clé USB",
     flashingInProgress: "Flashage en cours...",
 
@@ -95,14 +100,21 @@ export const translations = {
     noReleaseTitle: "Aucune version officielle trouvée",
     noReleaseDesc: "Vous pouvez flasher ou mettre à jour directement votre clé à l'aide d'un fichier .bin local.",
 
-    // Modal confirmation flash USB
+    // Modal confirmation flash USB & OTA
     modalConfirmTitle: "Confirmation du flashage USB",
     modalConfirmDesc: "Vous êtes sur le point d'écrire le firmware sur la clé Open-Firenet. Veuillez vérifier les paramètres :",
     modalTargetPort: "Port USB cible :",
     modalTargetVersion: "Firmware :",
-    modalConfirmWarning: "Attention : cette opération va écraser la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !",
+    modalConfirmWarning: "Attention : cette opération va écrire sur la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !",
+    modalConfirmWarningFactory: "Attention : cette opération va réinitialiser l'ensemble de la mémoire flash. La configuration Wi-Fi devra être réenregistrée !",
     modalBtnCancel: "Annuler",
     modalBtnConfirm: "Confirmer et flasher",
+
+    modalOtaConfirmTitle: "Confirmation de la mise à jour sans fil (OTA)",
+    modalOtaConfirmDesc: "Vous êtes sur le point de mettre à jour votre clé Open-Firenet via le réseau Wi-Fi :",
+    modalTargetIp: "Adresse IP cible :",
+    modalOtaConfirmWarning: "Attention : assurez-vous que le poêle et la clé restent allumés pendant le transfert. Ne coupez pas l'alimentation !",
+    modalOtaBtnConfirm: "Confirmer et mettre à jour",
 
     // Footer & Alerts
     footerTagline: "Open-Firenet Installer • Open-Source & Sans Télémétrie",
@@ -131,7 +143,7 @@ export const translations = {
     statusFlashingSuccess: "Flashing completed successfully!",
     statusOtaWaiting: "Waiting...",
     statusOtaSending: "Sending firmware over Wi-Fi...",
-    statusOtaSuccess: "Update successful! The stove is rebooting.",
+    statusOtaSuccess: "Update successful! The dongle is restarting.",
 
     // Tabs
     tabDiscovery: "Network Scan",
@@ -174,7 +186,7 @@ export const translations = {
     loadingReleases: "Loading official releases...",
     labelLocalFile: "Or select a local binary file (.bin):",
     btnStartOta: "Start OTA Update",
-    otaSuccessMsg: "Update successful! The stove is restarting.",
+    otaSuccessMsg: "Update successful! The dongle is restarting.",
 
     // USB Tab
     usbTitle: "USB Serial Flasher",
@@ -183,8 +195,13 @@ export const translations = {
     labelUsbPort: "Connected USB Serial Port:",
     detectingPorts: "Detecting serial ports...",
     noPortDetected: "No serial port detected (plug your dongle into USB)",
-    labelUsbRelease: "Firmware version (Full Factory Image):",
-    labelUsbLocalFile: "Or local factory binary (.bin):",
+    labelUsbMode: "USB Operation Type:",
+    usbModeUpdateTitle: "Update (Keep Configuration)",
+    usbModeUpdateDesc: "Preserves Wi-Fi credentials and NVS settings",
+    usbModeFactoryTitle: "Full Reset (Factory Image)",
+    usbModeFactoryDesc: "Overwrites entire flash memory (Wi-Fi setup required)",
+    labelUsbRelease: "Firmware version:",
+    labelUsbLocalFile: "Or local binary (.bin):",
     btnStartUsbFlash: "Flash USB Dongle",
     flashingInProgress: "Flashing in progress...",
 
@@ -213,14 +230,21 @@ export const translations = {
     noReleaseTitle: "No official releases found",
     noReleaseDesc: "You can flash or update your dongle directly using a local .bin file.",
 
-    // Modal confirmation flash USB
+    // Modal confirmation flash USB & OTA
     modalConfirmTitle: "USB Flashing Confirmation",
     modalConfirmDesc: "You are about to flash your Open-Firenet dongle. Please verify the settings below:",
     modalTargetPort: "Target USB Port:",
     modalTargetVersion: "Firmware:",
-    modalConfirmWarning: "Warning: This operation will overwrite the ESP32 flash memory. Do not unplug the dongle during the process!",
+    modalConfirmWarning: "Warning: This operation will write to the ESP32 flash memory. Do not unplug the dongle during the process!",
+    modalConfirmWarningFactory: "Warning: This will overwrite the entire flash memory. Wi-Fi configuration will need to be reconfigured!",
     modalBtnCancel: "Cancel",
     modalBtnConfirm: "Confirm & Flash",
+
+    modalOtaConfirmTitle: "Wireless Update Confirmation (OTA)",
+    modalOtaConfirmDesc: "You are about to update your Open-Firenet dongle over the Wi-Fi network:",
+    modalTargetIp: "Target IP Address:",
+    modalOtaConfirmWarning: "Warning: Ensure the stove and dongle remain powered on during the transfer. Do not disconnect power!",
+    modalOtaBtnConfirm: "Confirm & Update",
 
     // Footer & Alerts
     footerTagline: "Open-Firenet Installer • Open-Source & Privacy First",
@@ -233,10 +257,140 @@ export const translations = {
     alertFillSsid: "Please enter your Wi-Fi network name (SSID).",
     alertNoStoveDetected: "No stove detected on the network yet. Run a search first.",
     alertErrorPrefix: "Error:"
+  },
+
+  de: {
+    // Header
+    appTitle: "Open-Firenet",
+    appTitleSuffix: "Installer",
+    appSubtitle: "Universeller Installations- & Update-Assistent",
+    statusReady: "Bereit",
+    statusSearching: "Netzwerk wird durchsucht...",
+    statusNotFound: "Kein Pelletofen gefunden",
+    statusFound: "Pelletofen erkannt",
+    statusError: "Scan-Fehler",
+    statusFlashingUsb: "USB-Flash läuft...",
+    statusFlashingSuccess: "USB-Flash erfolgreich abgeschlossen!",
+    statusOtaWaiting: "Warten...",
+    statusOtaSending: "Firmware wird per WLAN übertragen...",
+    statusOtaSuccess: "Update erfolgreich! Der Dongle startet neu.",
+
+    // Tabs
+    tabDiscovery: "Netzwerk-Scan",
+    tabOta: "WLAN-Update",
+    tabUsb: "USB-Flash",
+    tabWifi: "WLAN-Setup",
+    tabReleases: "Releases",
+
+    // Discovery Tab
+    discoveryTitle: "Automatische Pelletofen-Erkennung",
+    discoveryDesc: "Findet Ihren Open-Firenet-Ofen via mDNS (openfirenet.local) und im lokalen Netzwerk.",
+    btnScanInProgress: "Suche läuft...",
+    btnScan: "Suchen",
+    scanLoadingTitle: "Pelletofen wird im lokalen Netzwerk gesucht...",
+    scanLoadingDesc: "mDNS- und Subnetz-Scan läuft...",
+    emptyDevicesTitle: "Kein Open-Firenet-Ofen erkannt",
+    emptyDevicesDesc: "Stellen Sie sicher, dass der Dongle eingeschaltet und im selben WLAN wie dieser Computer ist.",
+    emptyBtnWifiSetup: "WLAN via USB konfigurieren",
+    emptyBtnRetryScan: "Suche wiederholen",
+
+    // Single Device Card
+    stoveOnline: "Online / Verbunden",
+    stoveStandby: "Standby / Verbunden",
+    stoveModelDefault: "RIKA Pelletofen",
+    labelIp: "IP-Adresse",
+    labelHostname: "Hostname",
+    labelFirmware: "Firmware-Version",
+    versionUnknown: "Unbekannt",
+    labelWifiSignal: "WLAN-Signal",
+    btnOpenWeb: "Web-Dashboard öffnen",
+    btnUpdateOta: "Per WLAN aktualisieren",
+
+    // OTA Tab
+    otaTitle: "Drahtlose Aktualisierung (OTA)",
+    otaDesc: "Aktualisieren Sie die Firmware Ihres Ofens drahtlos über Ihr lokales WLAN.",
+    labelOtaIp: "IP-Adresse des Ofens:",
+    btnUseDetectedIp: "Erkannte IP verwenden",
+    placeholderOtaIp: "Z.B. 192.168.1.93 oder openfirenet.local",
+    labelOtaRelease: "Zu installierende Firmware-Version:",
+    loadingReleases: "Offizielle Versionen werden geladen...",
+    labelLocalFile: "Oder lokale Binärdatei (.bin) wählen:",
+    btnStartOta: "WLAN-Update starten",
+    otaSuccessMsg: "Update erfolgreich! Der Dongle startet neu.",
+
+    // USB Tab
+    usbTitle: "Serieller USB-Flash",
+    usbDesc: "Ideal für das Erstflashen eines neuen ESP32-S3 oder eine Neuinstallation.",
+    btnRefreshPorts: "Ports aktualisieren",
+    labelUsbPort: "Verbundener USB-Seriell-Port:",
+    detectingPorts: "Ports werden gesucht...",
+    noPortDetected: "Kein serieller Port erkannt (Dongle per USB anschließen)",
+    labelUsbMode: "USB-Vorgang:",
+    usbModeUpdateTitle: "Update (Einstellungen behalten)",
+    usbModeUpdateDesc: "Behält WLAN-Zugangsdaten und NVS-Einstellungen bei",
+    usbModeFactoryTitle: "Kompletter Reset (Werkseinstellung)",
+    usbModeFactoryDesc: "Überschreibt gesamten Flash-Speicher (WLAN-Setup erforderlich)",
+    labelUsbRelease: "Firmware-Version:",
+    labelUsbLocalFile: "Oder lokale Binärdatei (.bin):",
+    btnStartUsbFlash: "USB-Dongle flashen",
+    flashingInProgress: "Flashvorgang läuft...",
+
+    // Wi-Fi Config Tab
+    wifiTitle: "WLAN-Konfiguration des Dongles",
+    wifiDesc: "Übertragen Sie WLAN-Name (SSID) und Passwort über die USB-Verbindung an den Dongle.",
+    labelWifiPort: "USB-Port des Dongles:",
+    selectPort: "Port auswählen...",
+    labelWifiSsid: "WLAN-Netzwerkname (SSID):",
+    labelWifiPass: "WLAN-Passwort:",
+    btnSendWifi: "WLAN auf Dongle speichern",
+    wifiConfigSuccess: "WLAN-Daten gesendet! Der Dongle verbindet sich...",
+
+    // Releases Tab
+    releasesTitle: "Offizielle Open-Firenet Releases",
+    releasesDesc: "Übersicht der offiziellen GitHub-Releases mit Minisign-Kryptosignatur.",
+    btnRefreshReleases: "Neu laden",
+    checkingReleases: "GitHub wird abgefragt...",
+    checkingReleasesDesc: "Prüfung offizieller Releases auf openfirenet/open-firenet...",
+    badgeStable: "Stabil",
+    badgePrerelease: "Pre-Release",
+    availableFiles: "Dateien & Signaturen:",
+    viewOnGithub: "Auf GitHub ansehen",
+    useForOta: "Per WLAN installieren (OTA)",
+    useForUsb: "Per USB-Flash installieren",
+    noReleaseTitle: "Keine offiziellen Versionen gefunden",
+    noReleaseDesc: "Sie können Ihren Dongle direkt mit einer lokalen .bin-Datei flashen.",
+
+    // Modal confirmation flash USB & OTA
+    modalConfirmTitle: "Bestätigung des USB-Flashvorgangs",
+    modalConfirmDesc: "Sie sind dabei, die Firmware auf den Open-Firenet-Dongle zu schreiben. Bitte Einstellungen prüfen:",
+    modalTargetPort: "Ziel-USB-Port:",
+    modalTargetVersion: "Firmware:",
+    modalConfirmWarning: "Achtung: Dieser Vorgang beschreibt den Flash-Speicher des ESP32. Dongle nicht trennen!",
+    modalConfirmWarningFactory: "Achtung: Dieser Vorgang überschreibt den gesamten Flash-Speicher. WLAN muss danach neu eingerichtet werden!",
+    modalBtnCancel: "Abbrechen",
+    modalBtnConfirm: "Bestätigen & Flashen",
+
+    modalOtaConfirmTitle: "Bestätigung des WLAN-Updates (OTA)",
+    modalOtaConfirmDesc: "Sie sind dabei, Ihren Open-Firenet-Dongle über das WLAN-Netzwerk zu aktualisieren:",
+    modalTargetIp: "Ziel-IP-Adresse:",
+    modalOtaConfirmWarning: "Achtung: Stellen Sie sicher, dass Ofen und Dongle während der Übertragung eingeschaltet bleiben!",
+    modalOtaBtnConfirm: "Bestätigen & Aktualisieren",
+
+    // Footer & Alerts
+    footerTagline: "Open-Firenet Installer • Open-Source & Datenschutz",
+    footerNoStove: "Kein Pelletofen verbunden",
+    footerStoveActive: "Aktiver Ofen:",
+    alertFillIp: "Bitte geben Sie die IP-Adresse des Ofens ein.",
+    alertSelectVersionOrFile: "Bitte wählen Sie eine Version oder eine lokale Binärdatei aus.",
+    alertSelectPort: "Bitte wählen Sie einen USB-Port aus.",
+    alertSelectWifiPort: "Bitte wählen Sie den USB-Port des Dongles aus.",
+    alertFillSsid: "Bitte geben Sie den Namen Ihres WLAN-Netzwerks (SSID) ein.",
+    alertNoStoveDetected: "Bisher kein Ofen im Netzwerk erkannt. Bitte zuerst einen Scan starten.",
+    alertErrorPrefix: "Fehler:"
   }
 };
 
-let currentLang = localStorage.getItem("of_lang") || (navigator.language.startsWith("en") ? "en" : "fr");
+let currentLang = localStorage.getItem("of_lang") || (navigator.language.startsWith("de") ? "de" : navigator.language.startsWith("en") ? "en" : "fr");
 
 export function getLang() {
   return currentLang;
@@ -248,7 +402,7 @@ export function t(key) {
 }
 
 export function setLanguage(lang, onLangChangeCallback) {
-  if (lang !== "fr" && lang !== "en") lang = "fr";
+  if (lang !== "fr" && lang !== "en" && lang !== "de") lang = "fr";
   currentLang = lang;
   localStorage.setItem("of_lang", lang);
   document.documentElement.lang = lang;

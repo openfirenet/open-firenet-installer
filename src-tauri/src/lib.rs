@@ -49,8 +49,12 @@ async fn flash_usb_device(
     port: String,
     release_tag: Option<String>,
     custom_file: Option<String>,
+    mode: Option<String>,
 ) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        let is_update = mode.as_deref().unwrap_or("update") == "update";
+        let offset = if is_update { "0x10000" } else { "0x0000" };
+
         let bin_path = if let Some(path) = custom_file {
             PathBuf::from(path)
         } else if let Some(tag) = release_tag {
@@ -58,8 +62,13 @@ async fn flash_usb_device(
             let releases = client.list_releases().map_err(|e| e.to_string())?;
             let release = releases.into_iter().find(|r| r.tag_name == tag)
                 .ok_or_else(|| format!("Release {} introuvable", tag))?;
-            let asset = release.factory_asset()
-                .ok_or_else(|| "Aucun binaire factory trouvé pour cette release".to_string())?;
+            let asset = if is_update {
+                release.ota_asset()
+                    .ok_or_else(|| "Aucun binaire de mise à jour (OTA/app) trouvé pour cette release".to_string())?
+            } else {
+                release.factory_asset()
+                    .ok_or_else(|| "Aucun binaire factory trouvé pour cette release".to_string())?
+            };
             let _ = app.emit("flash-status", "Téléchargement et vérification cryptographique Minisign...");
             let dest = client.download_and_verify_asset(&release, asset).map_err(|e| e.to_string())?;
             dest
@@ -72,14 +81,14 @@ async fn flash_usb_device(
             "percent": 5,
             "message": "Flashage en cours sur le port USB..."
         }));
-        SerialFlasher::flash_factory_bin(&port, &bin_path, 921600, move |pct, msg| {
+        SerialFlasher::flash_usb_bin(&port, &bin_path, offset, 921600, move |pct, msg| {
             let _ = app_handle.emit("flash-progress", serde_json::json!({
                 "percent": pct,
                 "message": msg
             }));
         }).map_err(|e| e.to_string())?;
         let _ = app.emit("flash-status", "Flashage terminé avec succès !");
-        Ok("Flashage terminé avec succès !".to_string())
+        Ok("Flashage terminé avec succès ! La clé redémarre.".to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -121,7 +130,7 @@ async fn update_ota_device(
             }));
         }).map_err(|e| e.to_string())?;
         let _ = app.emit("ota-status", "Mise à jour OTA réussie !");
-        Ok("Mise à jour réussie ! Le poêle redémarre.".to_string())
+        Ok("Mise à jour réussie ! La clé redémarre.".to_string())
     })
     .await
     .map_err(|e| e.to_string())?

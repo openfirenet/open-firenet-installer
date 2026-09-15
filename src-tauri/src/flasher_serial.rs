@@ -69,8 +69,8 @@ impl SerialFlasher {
         None
     }
 
-    /// Flashe un binaire complet (factory.bin) à l'adresse 0x0 sur le port sélectionné
-    pub fn flash_factory_bin<F>(port: &str, bin_path: &Path, baud_rate: u32, on_progress: F) -> Result<()>
+    /// Flashe un binaire USB avec l'adresse mémoire offset spécifiée (0x0000 pour factory, 0x10000 pour app update)
+    pub fn flash_usb_bin<F>(port: &str, bin_path: &Path, offset: &str, baud_rate: u32, on_progress: F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
@@ -83,8 +83,8 @@ impl SerialFlasher {
 
         let tool_name = if esptool_cmd.starts_with("esptool.py") { "esptool.py" } else { "esptool" };
 
-        println!("\n{} Début du flashage via {} sur {} à {} bauds...",
-            "🚀".bold(), tool_name.cyan(), port.yellow(), baud_rate);
+        println!("\n{} Début du flashage via {} sur {} à {} bauds (offset {})...",
+            "🚀".bold(), tool_name.cyan(), port.yellow(), baud_rate, offset.magenta());
 
         on_progress(5, "Connexion à la puce ESP32-S3 (Bootloader)...");
 
@@ -105,7 +105,7 @@ impl SerialFlasher {
                 "--flash_mode", "dio",
                 "--flash_freq", "80m",
                 "--flash_size", "4MB",
-                "0x0000", bin_path.to_str().unwrap(),
+                offset, bin_path.to_str().unwrap(),
             ])
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -144,11 +144,19 @@ impl SerialFlasher {
         pb.finish_and_clear();
 
         if status.success() {
-            println!("{} Flashage USB terminé avec succès ! L'ESP32-S3 redémarre.", "✔".green().bold());
-            on_progress(100, "Flashage terminé avec succès ! L'ESP32-S3 redémarre.");
+            println!("{} Flashage USB terminé avec succès ! La clé redémarre.", "✔".green().bold());
+            on_progress(100, "Flashage terminé avec succès ! La clé redémarre.");
             Ok(())
         } else {
             Err(anyhow!("Le flashage a échoué (code de sortie {})", status))
         }
+    }
+
+    /// Flashe un binaire complet (factory.bin) à l'adresse 0x0000 sur le port sélectionné
+    pub fn flash_factory_bin<F>(port: &str, bin_path: &Path, baud_rate: u32, on_progress: F) -> Result<()>
+    where
+        F: Fn(u32, &str) + Send + Sync,
+    {
+        Self::flash_usb_bin(port, bin_path, "0x0000", baud_rate, on_progress)
     }
 }
