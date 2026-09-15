@@ -2,14 +2,14 @@ name: CI
 
 on:
   push:
-    branches: [ main, 'feat/**', 'fix/**' ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
-# Cancel obsolete in-progress runs on the same branch to unblock macOS and Windows runners immediately
+# Cancel obsolete in-progress runs for the same branch or PR to prevent runner starvation
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
