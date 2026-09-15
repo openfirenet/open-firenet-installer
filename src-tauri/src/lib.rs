@@ -66,8 +66,17 @@ fn flash_usb_device(
         return Err("Veuillez choisir une version ou un fichier local".to_string());
     };
 
-    let _ = app.emit("flash-status", "Flashage en cours sur le port USB...");
-    SerialFlasher::flash_factory_bin(&port, &bin_path, 921600).map_err(|e| e.to_string())?;
+    let app_handle = app.clone();
+    let _ = app.emit("flash-progress", serde_json::json!({
+        "percent": 5,
+        "message": "Flashage en cours sur le port USB..."
+    }));
+    SerialFlasher::flash_factory_bin(&port, &bin_path, 921600, move |pct, msg| {
+        let _ = app_handle.emit("flash-progress", serde_json::json!({
+            "percent": pct,
+            "message": msg
+        }));
+    }).map_err(|e| e.to_string())?;
     let _ = app.emit("flash-status", "Flashage terminé avec succès !");
     Ok("Flashage terminé avec succès !".to_string())
 }
@@ -95,8 +104,17 @@ fn update_ota_device(
         return Err("Veuillez choisir une version ou un fichier local".to_string());
     };
 
-    let _ = app.emit("ota-status", "Envoi du firmware via Wi-Fi...");
-    flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path).map_err(|e| e.to_string())?;
+    let app_handle = app.clone();
+    let _ = app.emit("ota-progress", serde_json::json!({
+        "percent": 5,
+        "message": "Envoi du firmware via Wi-Fi (ArduinoOTA)..."
+    }));
+    flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path, move |pct, msg| {
+        let _ = app_handle.emit("ota-progress", serde_json::json!({
+            "percent": pct,
+            "message": msg
+        }));
+    }).map_err(|e| e.to_string())?;
     let _ = app.emit("ota-status", "Mise à jour OTA réussie !");
     Ok("Mise à jour réussie ! Le poêle redémarre.".to_string())
 }

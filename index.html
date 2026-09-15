@@ -245,6 +245,38 @@
     </footer>
   </div>
 
+  <!-- Modal Confirmation Flash USB -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="card modal-dialog">
+      <div class="modal-header">
+        <span class="modal-icon">⚡</span>
+        <h3 data-i18n="modalConfirmTitle">Confirmation du flashage USB</h3>
+      </div>
+      <div class="modal-body">
+        <p data-i18n="modalConfirmDesc">Vous êtes sur le point d'écrire le firmware sur la clé Open-Firenet. Veuillez vérifier les paramètres :</p>
+        <div class="modal-summary">
+          <div class="modal-summary-row">
+            <span class="modal-summary-label" data-i18n="modalTargetPort">Port USB cible :</span>
+            <span id="modal-target-port" class="modal-summary-val">-</span>
+          </div>
+          <div class="modal-summary-row">
+            <span class="modal-summary-label" data-i18n="modalTargetVersion">Firmware :</span>
+            <span id="modal-target-firmware" class="modal-summary-val">-</span>
+          </div>
+        </div>
+        <div class="modal-warning">
+          <span data-i18n="modalConfirmWarning">Attention : cette opération va écraser la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-btn-cancel" class="btn btn-secondary" data-i18n="modalBtnCancel">Annuler</button>
+        <button id="modal-btn-confirm" class="btn btn-primary">
+          <span class="btn-icon">⚡</span> <span data-i18n="modalBtnConfirm">Confirmer et flasher</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

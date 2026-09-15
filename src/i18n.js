@@ -95,6 +95,15 @@ export const translations = {
     noReleaseTitle: "Aucune version officielle trouvée",
     noReleaseDesc: "Vous pouvez flasher ou mettre à jour directement votre clé à l'aide d'un fichier .bin local.",
 
+    // Modal confirmation flash USB
+    modalConfirmTitle: "Confirmation du flashage USB",
+    modalConfirmDesc: "Vous êtes sur le point d'écrire le firmware sur la clé Open-Firenet. Veuillez vérifier les paramètres :",
+    modalTargetPort: "Port USB cible :",
+    modalTargetVersion: "Firmware :",
+    modalConfirmWarning: "Attention : cette opération va écraser la mémoire flash de l'ESP32. Ne débranchez pas la clé pendant l'opération !",
+    modalBtnCancel: "Annuler",
+    modalBtnConfirm: "Confirmer et flasher",
+
     // Footer & Alerts
     footerTagline: "Open-Firenet Installer • Open-Source & Sans Télémétrie",
     footerNoStove: "Aucun poêle connecté",
@@ -203,6 +212,15 @@ export const translations = {
     useForUsb: "Install via USB Flash",
     noReleaseTitle: "No official releases found",
     noReleaseDesc: "You can flash or update your dongle directly using a local .bin file.",
+
+    // Modal confirmation flash USB
+    modalConfirmTitle: "USB Flashing Confirmation",
+    modalConfirmDesc: "You are about to flash your Open-Firenet dongle. Please verify the settings below:",
+    modalTargetPort: "Target USB Port:",
+    modalTargetVersion: "Firmware:",
+    modalConfirmWarning: "Warning: This operation will overwrite the ESP32 flash memory. Do not unplug the dongle during the process!",
+    modalBtnCancel: "Cancel",
+    modalBtnConfirm: "Confirm & Flash",
 
     // Footer & Alerts
     footerTagline: "Open-Firenet Installer • Open-Source & Privacy First",

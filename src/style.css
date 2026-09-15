@@ -25,11 +25,15 @@ body {
   background-color: var(--bg-dark);
   color: var(--text-main);
   font-family: var(--font-family);
-  user-select: none;
+  user-select: text;
   overflow: hidden;
   height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+button, .tab-btn, .lang-select, .nav-tabs {
+  user-select: none;
 }
 
 #app {
@@ -1055,5 +1059,101 @@ select option:checked, select option:hover {
   display: flex;
   gap: 10px;
   margin-top: 4px;
+}
+
+/* Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(4, 7, 14, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-dialog {
+  width: 90%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeInScale 0.25s ease-out;
+  border-color: rgba(249, 115, 22, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(249, 115, 22, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-icon {
+  font-size: 26px;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.modal-summary {
+  background: rgba(9, 13, 22, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.modal-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modal-summary-label {
+  color: var(--text-muted);
+}
+
+.modal-summary-val {
+  color: #fff;
+  font-weight: 600;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.modal-warning {
+  font-size: 12.5px;
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
 }
 

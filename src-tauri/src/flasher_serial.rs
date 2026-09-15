@@ -70,7 +70,10 @@ impl SerialFlasher {
     }
 
     /// Flashe un binaire complet (factory.bin) à l'adresse 0x0 sur le port sélectionné
-    pub fn flash_factory_bin(port: &str, bin_path: &Path, baud_rate: u32) -> Result<()> {
+    pub fn flash_factory_bin<F>(port: &str, bin_path: &Path, baud_rate: u32, on_progress: F) -> Result<()>
+    where
+        F: Fn(u32, &str) + Send + Sync,
+    {
         if !bin_path.exists() {
             return Err(anyhow!("Le fichier binaire n'existe pas : {:?}", bin_path));
         }
@@ -82,6 +85,8 @@ impl SerialFlasher {
 
         println!("\n{} Début du flashage via {} sur {} à {} bauds...",
             "🚀".bold(), tool_name.cyan(), port.yellow(), baud_rate);
+
+        on_progress(5, "Connexion à la puce ESP32-S3 (Bootloader)...");
 
         let pb = ProgressBar::new_spinner();
         pb.set_style(ProgressStyle::default_spinner()
@@ -112,12 +117,25 @@ impl SerialFlasher {
             for line in reader.lines().flatten() {
                 if line.contains("Connecting") {
                     pb.set_message("Connexion à la puce ESP32-S3...");
+                    on_progress(10, "Connexion à la puce ESP32-S3...");
+                } else if line.contains("Chip is ESP32-S3") {
+                    pb.set_message("Puce ESP32-S3 identifiée.");
+                    on_progress(15, "Puce ESP32-S3 identifiée.");
+                } else if line.contains("Erasing flash") {
+                    pb.set_message("Effacement de la mémoire flash...");
+                    on_progress(20, "Effacement de la mémoire flash...");
                 } else if line.contains("Writing at") {
                     if let Some(pct) = line.split('(').nth(1).and_then(|s| s.split('%').next()) {
-                        pb.set_message(format!("Écriture de la mémoire flash : {}%", pct.trim()));
+                        if let Ok(pct_val) = pct.trim().parse::<u32>() {
+                            let scaled_pct = 20 + (pct_val * 75 / 100);
+                            let msg = format!("Écriture flash USB : {}%", pct_val);
+                            pb.set_message(msg.clone());
+                            on_progress(scaled_pct.min(98), &msg);
+                        }
                     }
                 } else if line.contains("Hash of data verified") {
                     pb.set_message("Vérification de l'intégrité MD5... OK");
+                    on_progress(99, "Vérification de l'intégrité MD5... OK");
                 }
             }
         }
@@ -127,6 +145,7 @@ impl SerialFlasher {
 
         if status.success() {
             println!("{} Flashage USB terminé avec succès ! L'ESP32-S3 redémarre.", "✔".green().bold());
+            on_progress(100, "Flashage terminé avec succès ! L'ESP32-S3 redémarre.");
             Ok(())
         } else {
             Err(anyhow!("Le flashage a échoué (code de sortie {})", status))

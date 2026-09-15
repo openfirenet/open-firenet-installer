@@ -204,7 +204,7 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
         choose_or_download_firmware(true, release)?
     };
 
-    SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800)?;
+    SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, |_pct, _msg| {})?;
     Ok(())
 }
 
@@ -217,7 +217,7 @@ fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>) -> Result<(
         choose_or_download_firmware(false, release)?
     };
 
-    OtaFlasher::flash_arduino_ota(ip, &bin_path)?;
+    OtaFlasher::flash_arduino_ota(ip, &bin_path, |_pct, _msg| {})?;
     Ok(())
 }
 

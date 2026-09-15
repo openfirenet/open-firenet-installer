@@ -35,6 +35,12 @@ const usbProgressBox = document.getElementById("usb-progress-box");
 const usbProgressBar = document.getElementById("usb-progress-bar");
 const usbStatusText = document.getElementById("usb-status-text");
 
+const confirmModal = document.getElementById("confirm-modal");
+const modalTargetPort = document.getElementById("modal-target-port");
+const modalTargetFirmware = document.getElementById("modal-target-firmware");
+const modalBtnCancel = document.getElementById("modal-btn-cancel");
+const modalBtnConfirm = document.getElementById("modal-btn-confirm");
+
 const wifiPortSelect = document.getElementById("wifi-port-select");
 const wifiSsid = document.getElementById("wifi-ssid");
 const wifiPass = document.getElementById("wifi-pass");
@@ -77,7 +83,7 @@ async function runScan() {
 
   btnScan.disabled = true;
   if (emptyBtnRetry) emptyBtnRetry.disabled = true;
-  btnScan.innerHTML = `<span class="spinner-btn"></span> ${t("btnScanInProgress")}`;
+  btnScan.innerHTML = `<span class="btn-icon">🔄</span> ${t("btnScan")}`;
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
   devicesContainer.innerHTML = "";
@@ -456,7 +462,7 @@ btnStartOta.addEventListener("click", async () => {
 
   btnStartOta.disabled = true;
   otaProgressBox.classList.remove("hidden");
-  otaProgressBar.style.width = "40%";
+  otaProgressBar.style.width = "0%";
   otaStatusText.textContent = t("statusOtaSending");
 
   try {
@@ -477,25 +483,16 @@ btnStartOta.addEventListener("click", async () => {
   }
 });
 
-btnStartUsbFlash.addEventListener("click", async () => {
+// Flash USB avec boîte de dialogue de confirmation préalable
+async function doUsbFlash() {
   const port = usbPortSelect.value;
-  if (!port) {
-    alert(t("alertSelectPort"));
-    return;
-  }
-
   const tag = usbReleaseSelect.value;
   const localFileInput = document.getElementById("usb-file-input");
   const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
 
-  if (!tag && !localFile) {
-    alert(t("alertSelectVersionOrFile"));
-    return;
-  }
-
   btnStartUsbFlash.disabled = true;
   usbProgressBox.classList.remove("hidden");
-  usbProgressBar.style.width = "40%";
+  usbProgressBar.style.width = "0%";
   usbStatusText.textContent = t("statusFlashingUsb");
 
   try {
@@ -513,6 +510,42 @@ btnStartUsbFlash.addEventListener("click", async () => {
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
     btnStartUsbFlash.disabled = false;
+  }
+}
+
+btnStartUsbFlash.addEventListener("click", () => {
+  const port = usbPortSelect.value;
+  if (!port) {
+    alert(t("alertSelectPort"));
+    return;
+  }
+
+  const tag = usbReleaseSelect.value;
+  const localFileInput = document.getElementById("usb-file-input");
+  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+
+  if (!tag && !localFile) {
+    alert(t("alertSelectVersionOrFile"));
+    return;
+  }
+
+  modalTargetPort.textContent = port;
+  modalTargetFirmware.textContent = tag ? `${tag} (Factory Image)` : localFile;
+  confirmModal.classList.remove("hidden");
+});
+
+modalBtnCancel.addEventListener("click", () => {
+  confirmModal.classList.add("hidden");
+});
+
+modalBtnConfirm.addEventListener("click", () => {
+  confirmModal.classList.add("hidden");
+  doUsbFlash();
+});
+
+confirmModal.addEventListener("click", (e) => {
+  if (e.target === confirmModal) {
+    confirmModal.classList.add("hidden");
   }
 });
 
@@ -551,8 +584,36 @@ listen("flash-status", (event) => {
   if (usbStatusText) usbStatusText.textContent = event.payload;
 });
 
+listen("flash-progress", (event) => {
+  const payload = event.payload;
+  if (!payload) return;
+  const percent = typeof payload === "object" ? payload.percent : payload;
+  const message = typeof payload === "object" ? payload.message : null;
+  if (typeof percent === "number") {
+    usbProgressBox.classList.remove("hidden");
+    usbProgressBar.style.width = `${percent}%`;
+  }
+  if (message && usbStatusText) {
+    usbStatusText.textContent = message;
+  }
+});
+
 listen("ota-status", (event) => {
   if (otaStatusText) otaStatusText.textContent = event.payload;
+});
+
+listen("ota-progress", (event) => {
+  const payload = event.payload;
+  if (!payload) return;
+  const percent = typeof payload === "object" ? payload.percent : payload;
+  const message = typeof payload === "object" ? payload.message : null;
+  if (typeof percent === "number") {
+    otaProgressBox.classList.remove("hidden");
+    otaProgressBar.style.width = `${percent}%`;
+  }
+  if (message && otaStatusText) {
+    otaStatusText.textContent = message;
+  }
 });
 
 // Intercepter tous les liens externes pour les ouvrir dans le navigateur par défaut de l'utilisateur
