@@ -369,8 +369,18 @@ btnSendWifi.addEventListener("click", async () => {
 });
 
 // Auto-run on startup
-window.addEventListener("DOMContentLoaded", () => {
-  runScan();
-  loadReleases();
-  refreshPorts();
-});
+function init() {
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      runScan();
+      loadReleases();
+      refreshPorts();
+    }, 50);
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}

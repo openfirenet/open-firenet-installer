@@ -12,25 +12,35 @@ use flasher_serial::{DetectedPort, SerialFlasher};
 use github::{GitHubClient, Release};
 
 #[tauri::command]
-fn scan_network() -> Result<Vec<DiscoveredDongle>, String> {
-    // 1. First probe mDNS
-    let mut devices = NetworkScanner::probe_mdns_hosts();
-    if devices.is_empty() {
-        // 2. Fast subnet scan (default 192.168.1)
-        devices = NetworkScanner::scan_subnet("192.168.1");
-    }
-    Ok(devices)
+async fn scan_network() -> Result<Vec<DiscoveredDongle>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let mut devices = NetworkScanner::probe_mdns_hosts();
+        if devices.is_empty() {
+            devices = NetworkScanner::scan_subnet("192.168.1");
+        }
+        devices
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn get_releases() -> Result<Vec<Release>, String> {
-    let client = GitHubClient::new();
-    client.list_releases().map_err(|e| e.to_string())
+async fn get_releases() -> Result<Vec<Release>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let client = GitHubClient::new();
+        client.list_releases().unwrap_or_default()
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn list_serial_ports() -> Result<Vec<DetectedPort>, String> {
-    SerialFlasher::list_ports().map_err(|e| e.to_string())
+async fn list_serial_ports() -> Result<Vec<DetectedPort>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        SerialFlasher::list_ports().unwrap_or_default()
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -56,21 +56,21 @@
             <h2>Détection automatique sur le réseau local</h2>
             <p>Recherche votre clé Open-Firenet via mDNS et le sous-réseau local.</p>
           </div>
-          <button id="btn-scan" class="btn btn-primary">
-            <span class="btn-icon">🔄</span> Scanner le réseau
+          <button id="btn-scan" class="btn btn-primary" disabled>
+            <span class="spinner-btn"></span> Scan en cours...
           </button>
         </div>
 
-        <div id="scan-loading" class="loading-container hidden">
+        <div id="scan-loading" class="loading-container">
           <div class="spinner"></div>
-          <p>Recherche du poêle en cours sur le réseau local...</p>
+          <p>Recherche automatique du poêle en cours sur votre réseau local...</p>
         </div>
 
         <div id="devices-container" class="cards-grid">
           <!-- Discovered cards injected here -->
         </div>
 
-        <div id="empty-devices" class="empty-state">
+        <div id="empty-devices" class="empty-state hidden">
           <div class="empty-icon">🔍</div>
           <h3>Aucun dongle Open-Firenet détecté</h3>
           <p>Assurez-vous que votre clé est allumée et connectée au même réseau Wi-Fi, ou lancez un scan.</p>
