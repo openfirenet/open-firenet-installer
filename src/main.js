@@ -99,8 +99,8 @@ function renderDevices(devices) {
     }
 
     let displayVersion = d.firmware_version;
-    if (!displayVersion || displayVersion === "Inconnue") {
-      displayVersion = "Inconnue (Firmware d'origine)";
+    if (!displayVersion || displayVersion.trim() === "" || displayVersion === "Inconnue") {
+      displayVersion = "Inconnue";
     }
 
     card.innerHTML = `
@@ -151,6 +151,19 @@ function renderDevices(devices) {
 
 // 3. GitHub Releases
 async function loadReleases() {
+  btnRefreshReleases.disabled = true;
+  btnRefreshReleases.innerHTML = '<span class="spinner-btn"></span> Vérification...';
+  releasesList.innerHTML = `
+    <div class="card loading-card">
+      <div class="big-spinner"></div>
+      <h3>Interrogation de GitHub...</h3>
+      <p>Vérification des versions officielles sur openfirenet/open-firenet...</p>
+      <div class="indeterminate-progress-bar">
+        <div class="indeterminate-progress-fill"></div>
+      </div>
+    </div>
+  `;
+
   try {
     availableReleases = await invoke("get_releases");
     populateReleaseDropdowns(availableReleases);
@@ -159,6 +172,9 @@ async function loadReleases() {
     console.error("Erreur récupération releases :", err);
     populateReleaseDropdowns([]);
     renderReleasesList([]);
+  } finally {
+    btnRefreshReleases.disabled = false;
+    btnRefreshReleases.innerHTML = '<span class="btn-icon">🔄</span> Recharger';
   }
 }
 
