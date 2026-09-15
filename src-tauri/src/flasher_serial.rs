@@ -1,12 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use colored::*;
 use indicatif::{ProgressBar, ProgressStyle};
+use serde::{Deserialize, Serialize};
 use serialport::{SerialPortType, UsbPortInfo};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectedPort {
     pub port_name: String,
     pub description: String,

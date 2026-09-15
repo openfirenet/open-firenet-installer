@@ -33,15 +33,32 @@ Contrairement aux solutions WebSerial (ESP Web Tools) qui ne fonctionnent **ni s
 
 ## 🚀 Utilisation
 
-### Mode Interactif (Recommandé)
+### Mode Interface Graphique (GUI - Recommandé)
 
-Lancez simplement l'application sans argument (ou double-cliquez sur l'exécutable sous Windows/Mac) :
+Double-cliquez simplement sur l'exécutable sous **Windows**, **macOS** ou **Linux** (ou lancez `./open-firenet-installer`) :
+
+- **🔥 Tableau de bord interactif** aux couleurs d'Open-Firenet (Dark mode & dégradé ambre/orange feu).
+- **🔍 Détection automatique** : Votre poêle est trouvé sur le réseau local en quelques secondes avec son modèle (*DOMO*, etc.), son IP et la qualité du signal Wi-Fi.
+- **📡 Mise à jour Wi-Fi (OTA) en un clic** : Téléchargement automatique de la dernière version officielle GitHub et flashage sans fil avec barre de progression.
+- **⚡ Flash USB guidé** : Détection automatique des puces ESP32-S3 branchées et flashage de l'image *factory*.
+- **📶 Configuration Wi-Fi** : Paramétrage facile du SSID et mot de passe de la box.
 
 ```bash
+# Lancer l'interface graphique (ou simplement double-clic sur l'icône)
 ./open-firenet-installer
 ```
 
-Un menu interactif s'affiche dans votre terminal :
+---
+
+### Mode Menu Interactif en Terminal
+
+Si vous êtes sur un serveur sans écran ou préférez le terminal :
+
+```bash
+./open-firenet-installer --cli
+```
+
+Un menu interactif au clavier s'affiche dans votre terminal :
 
 ```text
 ╔═══════════════════════════════════════════════════════════════╗
@@ -61,7 +78,7 @@ Un menu interactif s'affiche dans votre terminal :
 
 ---
 
-### Mode Ligne de Commande (CLI)
+### Mode Ligne de Commande Directe (CLI)
 
 Pour les scripts, l'automatisation ou les utilisateurs avancés :
 

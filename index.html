@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open-Firenet Installer</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="flame-icon">🔥</div>
+        <div>
+          <h1 class="app-title">Open-Firenet <span>Installer</span></h1>
+          <p class="app-subtitle">Assistant universel d'installation & mise à jour</p>
+        </div>
+      </div>
+      <div class="header-status" id="header-status">
+        <span class="status-dot"></span>
+        <span id="header-status-text">Prêt</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="tab-discovery">
+        <span class="tab-icon">🔍</span>
+        <span>Détection Réseau</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-ota">
+        <span class="tab-icon">📡</span>
+        <span>Mise à jour Wi-Fi</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-usb">
+        <span class="tab-icon">⚡</span>
+        <span>Flash USB</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-wifi">
+        <span class="tab-icon">📶</span>
+        <span>Config Wi-Fi</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-releases">
+        <span class="tab-icon">📦</span>
+        <span>Releases</span>
+      </button>
+    </nav>
+
+    <!-- Content Sections -->
+    <main class="app-main">
+      <!-- 1. Discovery Tab -->
+      <section id="tab-discovery" class="tab-pane active">
+        <div class="pane-header">
+          <div>
+            <h2>Détection automatique sur le réseau local</h2>
+            <p>Recherche votre clé Open-Firenet via mDNS et le sous-réseau local.</p>
+          </div>
+          <button id="btn-scan" class="btn btn-primary">
+            <span class="btn-icon">🔄</span> Scanner le réseau
+          </button>
+        </div>
+
+        <div id="scan-loading" class="loading-container hidden">
+          <div class="spinner"></div>
+          <p>Recherche du poêle en cours sur le réseau local...</p>
+        </div>
+
+        <div id="devices-container" class="cards-grid">
+          <!-- Discovered cards injected here -->
+        </div>
+
+        <div id="empty-devices" class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>Aucun dongle Open-Firenet détecté</h3>
+          <p>Assurez-vous que votre clé est allumée et connectée au même réseau Wi-Fi, ou lancez un scan.</p>
+        </div>
+      </section>
+
+      <!-- 2. OTA Tab -->
+      <section id="tab-ota" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Mise à jour sans fil (OTA)</h2>
+            <p>Mettez à jour le firmware de votre poêle à distance via votre réseau Wi-Fi.</p>
+          </div>
+        </div>
+
+        <div class="card form-card">
+          <div class="form-group">
+            <label for="ota-ip">Adresse IP du poêle :</label>
+            <div class="input-with-action">
+              <input type="text" id="ota-ip" placeholder="Ex: 192.168.1.93" />
+              <button id="btn-use-detected-ip" class="btn btn-secondary btn-sm">Utiliser IP détectée</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ota-release">Version du firmware à installer :</label>
+            <select id="ota-release-select">
+              <option value="">Chargement des versions GitHub...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Ou sélectionner un fichier binaire local (.bin) :</label>
+            <input type="file" id="ota-file-input" accept=".bin" class="file-input" />
+          </div>
+
+          <div class="action-row">
+            <button id="btn-start-ota" class="btn btn-primary btn-lg">
+              <span class="btn-icon">🚀</span> Lancer la mise à jour OTA
+            </button>
+          </div>
+
+          <div id="ota-progress-box" class="progress-box hidden">
+            <div class="progress-bar-bg">
+              <div id="ota-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <p id="ota-status-text" class="status-msg">En attente...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. USB Flasher Tab -->
+      <section id="tab-usb" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Flashage USB Série</h2>
+            <p>Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
+          </div>
+          <button id="btn-refresh-ports" class="btn btn-secondary">
+            <span class="btn-icon">🔄</span> Actualiser les ports
+          </button>
+        </div>
+
+        <div class="card form-card">
+          <div class="form-group">
+            <label for="usb-port-select">Port USB Série connecté :</label>
+            <select id="usb-port-select">
+              <option value="">Détection des ports en cours...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="usb-release-select">Version du firmware (Image Factory complète) :</label>
+            <select id="usb-release-select">
+              <option value="">Chargement des versions GitHub...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Ou binaire factory local :</label>
+            <input type="file" id="usb-file-input" accept=".bin" class="file-input" />
+          </div>
+
+          <div class="action-row">
+            <button id="btn-start-usb-flash" class="btn btn-primary btn-lg">
+              <span class="btn-icon">⚡</span> Flasher la clé USB
+            </button>
+          </div>
+
+          <div id="usb-progress-box" class="progress-box hidden">
+            <div class="progress-bar-bg">
+              <div id="usb-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <p id="usb-status-text" class="status-msg">Flashage en cours...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Wi-Fi Config Tab -->
+      <section id="tab-wifi" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Configuration Wi-Fi de la clé</h2>
+            <p>Transmettez le nom de votre réseau Wi-Fi (SSID) et sa clé de sécurité via la liaison USB.</p>
+          </div>
+        </div>
+
+        <div class="card form-card">
+          <div class="form-group">
+            <label for="wifi-port-select">Port USB de la clé :</label>
+            <select id="wifi-port-select">
+              <option value="">Sélectionnez un port...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="wifi-ssid">Nom du réseau Wi-Fi (SSID) :</label>
+            <input type="text" id="wifi-ssid" placeholder="MonReseauBox" />
+          </div>
+
+          <div class="form-group">
+            <label for="wifi-pass">Mot de passe Wi-Fi :</label>
+            <input type="password" id="wifi-pass" placeholder="••••••••••••" />
+          </div>
+
+          <div class="action-row">
+            <button id="btn-send-wifi" class="btn btn-primary btn-lg">
+              <span class="btn-icon">💾</span> Enregistrer le Wi-Fi dans la clé
+            </button>
+          </div>
+          <p id="wifi-status-text" class="status-msg mt-3"></p>
+        </div>
+      </section>
+
+      <!-- 5. Releases Tab -->
+      <section id="tab-releases" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2>Versions officielles Open-Firenet</h2>
+            <p>Historique des publications officielles sur GitHub.</p>
+          </div>
+          <button id="btn-refresh-releases" class="btn btn-secondary">
+            <span class="btn-icon">🔄</span> Recharger
+          </button>
+        </div>
+
+        <div id="releases-list" class="releases-container">
+          <!-- Releases cards injected here -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <span>Open-Firenet Installer • Open-Source & Sans Télémétrie</span>
+      <span id="footer-dongle-summary">Aucun poêle connecté</span>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -26,6 +26,14 @@ use wifi_setup::WifiSetup;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Lancer l'interface graphique (GUI)
+    #[arg(long)]
+    gui: bool,
+
+    /// Forcer le mode menu interactif dans le terminal
+    #[arg(long)]
+    cli: bool,
 }
 
 #[derive(Subcommand)]
@@ -87,7 +95,13 @@ fn main() -> Result<()> {
         Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port)?,
         Some(Commands::ListReleases) => cmd_list_releases()?,
         Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud)?,
-        None => run_interactive_menu()?,
+        None => {
+            if cli.cli || (std::env::var("DISPLAY").is_err() && std::env::var("WAYLAND_DISPLAY").is_err()) {
+                run_interactive_menu()?;
+            } else {
+                open_firenet_installer::run();
+            }
+        }
     }
 
     Ok(())

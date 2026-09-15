@@ -21,18 +21,21 @@ impl WifiSetup {
             .interact()?;
 
         println!("\nEnvoi de la configuration sur {}...", port_name.yellow());
+        Self::send_credentials(port_name, &ssid, &password)?;
+        println!("{} Commande transmise. Le dongle va tenter de se connecter.", "✔".green().bold());
+        Ok(())
+    }
 
+    /// Envoie directement les identifiants Wi-Fi sur le port série
+    pub fn send_credentials(port_name: &str, ssid: &str, password: &str) -> Result<()> {
         let mut port = serialport::new(port_name, 115200)
             .timeout(Duration::from_millis(500))
             .open()
             .context("Impossible d'ouvrir le port série")?;
 
-        // Envoi d'une trame de configuration standard NVS ou commande console
         let cmd = format!("WIFI_SET:ssid={};pass={};\n", ssid, password);
         port.write_all(cmd.as_bytes())?;
         port.flush()?;
-
-        println!("{} Commande transmise. Le dongle va tenter de se connecter.", "✔".green().bold());
         Ok(())
     }
 

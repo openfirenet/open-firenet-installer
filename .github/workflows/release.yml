@@ -40,11 +40,22 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Frontend Dependencies
+        run: npm install
+
+      - name: Build Frontend
+        run: npm run build
+
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libudev-dev pkg-config
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
 
       - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
@@ -52,19 +63,19 @@ jobs:
       - name: Prepare binary
         shell: bash
         run: |
-          mkdir -p dist
+          mkdir -p release-dist
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "dist/${{ matrix.asset_name }}"
+            cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "release-dist/${{ matrix.asset_name }}"
           else
-            cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "dist/${{ matrix.asset_name }}"
-            chmod +x "dist/${{ matrix.asset_name }}"
+            cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "release-dist/${{ matrix.asset_name }}"
+            chmod +x "release-dist/${{ matrix.asset_name }}"
           fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: dist/${{ matrix.asset_name }}
+          path: release-dist/${{ matrix.asset_name }}
 
   release:
     name: Publish GitHub Release
@@ -75,11 +86,11 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: dist
+          path: release-dist
 
       - name: Flatten directory and compute checksums
         run: |
-          cd dist
+          cd release-dist
           mv */* . 2>/dev/null || true
           rm -rf open-firenet-installer-*_* 2>/dev/null || true
           sha256sum open-firenet-installer-* > SHA256SUMS
@@ -89,6 +100,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/open-firenet-installer-*
-            dist/SHA256SUMS
+            release-dist/open-firenet-installer-*
+            release-dist/SHA256SUMS
           generate_release_notes: true

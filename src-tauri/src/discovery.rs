@@ -1,11 +1,11 @@
 use colored::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveredDongle {
     pub ip: String,
     pub hostname: String,
