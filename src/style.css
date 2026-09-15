@@ -234,6 +234,15 @@ body {
   font-size: 15px;
 }
 
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  filter: grayscale(20%);
+}
+
 /* Cards & Forms */
 .card {
   background: var(--card-bg);

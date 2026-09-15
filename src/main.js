@@ -155,7 +155,6 @@ async function loadReleases() {
   btnRefreshReleases.innerHTML = '<span class="spinner-btn"></span> Vérification...';
   releasesList.innerHTML = `
     <div class="card loading-card">
-      <div class="big-spinner"></div>
       <h3>Interrogation de GitHub...</h3>
       <p>Vérification des versions officielles sur openfirenet/open-firenet...</p>
       <div class="indeterminate-progress-bar">
