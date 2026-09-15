@@ -265,12 +265,12 @@ input[type="text"], input[type="password"] {
   width: 100%;
   padding: 10px 14px;
   background: #090d16;
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 8px;
   color: var(--text-main);
   font-size: 14px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 select {
@@ -282,7 +282,7 @@ select {
   padding: 10px 38px 10px 14px;
   background-color: #131b2e !important;
   color: #f8fafc !important;
-  border: 1px solid var(--card-border);
+  border: 1px solid rgba(249, 115, 22, 0.45) !important;
   border-radius: 8px;
   font-size: 14px;
   outline: none;
@@ -291,7 +291,18 @@ select {
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 14px;
-  transition: border-color 0.2s;
+  box-shadow: 0 1px 6px rgba(249, 115, 22, 0.1);
+  transition: all 0.2s ease;
+}
+
+select:hover {
+  border-color: rgba(249, 115, 22, 0.75) !important;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.25);
+}
+
+select:focus, input[type="text"]:focus, input[type="password"]:focus {
+  border-color: var(--primary-orange) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3) !important;
 }
 
 select option {
@@ -304,11 +315,6 @@ select option {
 select option:checked, select option:hover {
   background-color: #1e293b !important;
   color: #fb923c !important;
-}
-
-input[type="text"]:focus, input[type="password"]:focus, select:focus {
-  border-color: var(--primary-orange);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
 }
 
 .file-input {
