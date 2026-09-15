@@ -17,7 +17,6 @@ const devicesContainer = document.getElementById("devices-container");
 const emptyDevices = document.getElementById("empty-devices");
 const emptyBtnRetry = document.getElementById("empty-btn-retry");
 const emptyBtnWifi = document.getElementById("empty-btn-wifi");
-const headerStatusText = document.getElementById("header-status-text");
 const footerDongleSummary = document.getElementById("footer-dongle-summary");
 
 const otaIpInput = document.getElementById("ota-ip");
@@ -76,7 +75,6 @@ async function runScan() {
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
   devicesContainer.innerHTML = "";
-  headerStatusText.textContent = t("statusSearching");
 
   try {
     discoveredDevices = await invoke("scan_network");
@@ -84,7 +82,6 @@ async function runScan() {
   } catch (err) {
     console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
-    headerStatusText.textContent = t("statusError");
   } finally {
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
@@ -96,13 +93,11 @@ function renderDevices(devices) {
   devicesContainer.innerHTML = "";
   if (!devices || devices.length === 0) {
     emptyDevices.classList.remove("hidden");
-    headerStatusText.textContent = t("statusNotFound");
     footerDongleSummary.textContent = t("footerNoStove");
     return;
   }
 
   emptyDevices.classList.add("hidden");
-  headerStatusText.textContent = t("statusFound");
 
   const d = devices[0]; // Exactement 1 poêle ciblé
   const modelName = d.stove_model || t("stoveModelDefault");

@@ -79,9 +79,14 @@ body {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.5px;
+  color: #fff;
 }
 
-.app-title span {
+.app-title-main {
+  color: #ffffff;
+}
+
+.app-title-suffix {
   background: linear-gradient(135deg, var(--primary-amber), var(--primary-orange));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
