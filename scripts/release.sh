@@ -91,7 +91,36 @@ else
   NEXT_PATCH="v${MAJOR}.${MINOR}.$((PATCH + 1))"
   NEXT_MINOR="v${MAJOR}.$((MINOR + 1)).0"
   NEXT_MAJOR="v$((MAJOR + 1)).0.0"
-  DEFAULT_NEXT="$NEXT_PATCH"
+
+  # Analyse automatique de l'historique des commits (Conventional Commits)
+  COMMITS_LOG="$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%s%n%b" 2>/dev/null || true)"
+  FEAT_COUNT="$(echo "$COMMITS_LOG" | grep -ciE "^feat(\([a-z0-9_-]+\))?:" || true)"
+  FIX_COUNT="$(echo "$COMMITS_LOG" | grep -ciE "^fix(\([a-z0-9_-]+\))?:" || true)"
+  BREAKING_COUNT="$(echo "$COMMITS_LOG" | grep -ciE "(BREAKING CHANGE|BREAKING-CHANGE|^[a-z]+(\([a-z0-9_-]+\))?!:)" || true)"
+
+  echo -e "\n${BOLD}Analyse des commits depuis ${LATEST_TAG} (Conventional Commits) :${NC}"
+  echo -e "  • ${CYAN}${FEAT_COUNT}${NC} nouvelle(s) fonctionnalité(s) (feat)"
+  echo -e "  • ${CYAN}${FIX_COUNT}${NC} correction(s) de bug (fix)"
+  echo -e "  • ${CYAN}${BREAKING_COUNT}${NC} rupture(s) de compatibilité (breaking change)"
+
+  if [[ "$BREAKING_COUNT" -gt 0 ]]; then
+    SUGGESTED_BUMP="major"
+    DEFAULT_NEXT="$NEXT_MAJOR"
+    BUMP_REASON="Rupture de compatibilité détectée (BREAKING CHANGE)"
+    RECOMMENDED_CHOICE="3"
+  elif [[ "$FEAT_COUNT" -gt 0 ]]; then
+    SUGGESTED_BUMP="minor"
+    DEFAULT_NEXT="$NEXT_MINOR"
+    BUMP_REASON="Nouvelle fonctionnalité détectée (feat)"
+    RECOMMENDED_CHOICE="2"
+  else
+    SUGGESTED_BUMP="patch"
+    DEFAULT_NEXT="$NEXT_PATCH"
+    BUMP_REASON="Corrections (fix) ou maintenance sans nouvelle fonctionnalité"
+    RECOMMENDED_CHOICE="1"
+  fi
+
+  echo -e "  👉 Recommandation automatique : ${GREEN}${BOLD}${SUGGESTED_BUMP^^} (${DEFAULT_NEXT})${NC} [${BUMP_REASON}]"
 fi
 
 TARGET_VERSION=""
@@ -99,12 +128,13 @@ ARG_INPUT="${1:-}"
 
 if [[ -n "$ARG_INPUT" ]]; then
   case "$ARG_INPUT" in
+    auto)  TARGET_VERSION="$DEFAULT_NEXT" ;;
     patch) TARGET_VERSION="$NEXT_PATCH" ;;
     minor) TARGET_VERSION="$NEXT_MINOR" ;;
     major) TARGET_VERSION="$NEXT_MAJOR" ;;
     v*.*.*) TARGET_VERSION="$ARG_INPUT" ;;
     *.*.*)  TARGET_VERSION="v$ARG_INPUT" ;;
-    *) fatal "Argument invalide '$ARG_INPUT'. Utilisez: patch, minor, major ou vX.Y.Z" ;;
+    *) fatal "Argument invalide '$ARG_INPUT'. Utilisez: auto, patch, minor, major ou vX.Y.Z" ;;
   esac
 else
   if [[ "$LATEST_TAG" == "aucun" ]]; then
@@ -116,12 +146,14 @@ else
     echo "  2) Minor : ${BOLD}${NEXT_MINOR}${NC}"
     echo "  3) Major : ${BOLD}${NEXT_MAJOR}${NC}"
     echo "  4) Personnalisée"
-    read -rp "Votre choix [1/2/3/4, défaut: 1] : " choice
+    read -rp "Votre choix [1/2/3/4, Entrée = recommandé: $RECOMMENDED_CHOICE (${DEFAULT_NEXT})] : " choice
     case "$choice" in
+      1) TARGET_VERSION="$NEXT_PATCH" ;;
       2) TARGET_VERSION="$NEXT_MINOR" ;;
       3) TARGET_VERSION="$NEXT_MAJOR" ;;
       4) read -rp "Entrez la version (ex: v1.2.3) : " TARGET_VERSION ;;
-      *) TARGET_VERSION="$NEXT_PATCH" ;;
+      "") TARGET_VERSION="$DEFAULT_NEXT" ;;
+      *) TARGET_VERSION="$DEFAULT_NEXT" ;;
     esac
   fi
 fi
