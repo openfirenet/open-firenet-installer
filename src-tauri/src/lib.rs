@@ -59,8 +59,8 @@ fn flash_usb_device(
             .ok_or_else(|| format!("Release {} introuvable", tag))?;
         let asset = release.factory_asset()
             .ok_or_else(|| "Aucun binaire factory trouvé pour cette release".to_string())?;
-        let dest = GitHubClient::cache_dir().join(&asset.name);
-        client.download_file(&asset.browser_download_url, &dest).map_err(|e| e.to_string())?;
+        let _ = app.emit("flash-status", "Téléchargement et vérification cryptographique Minisign...");
+        let dest = client.download_and_verify_asset(&release, asset).map_err(|e| e.to_string())?;
         dest
     } else {
         return Err("Veuillez choisir une version ou un fichier local".to_string());
@@ -88,8 +88,8 @@ fn update_ota_device(
             .ok_or_else(|| format!("Release {} introuvable", tag))?;
         let asset = release.ota_asset()
             .ok_or_else(|| "Aucun binaire OTA trouvé pour cette release".to_string())?;
-        let dest = GitHubClient::cache_dir().join(&asset.name);
-        client.download_file(&asset.browser_download_url, &dest).map_err(|e| e.to_string())?;
+        let _ = app.emit("ota-status", "Téléchargement et vérification cryptographique Minisign...");
+        let dest = client.download_and_verify_asset(&release, asset).map_err(|e| e.to_string())?;
         dest
     } else {
         return Err("Veuillez choisir une version ou un fichier local".to_string());

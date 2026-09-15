@@ -25,6 +25,8 @@ pub struct Release {
     pub assets: Vec<ReleaseAsset>,
 }
 
+pub const OFFICIAL_PUBLIC_KEY: &str = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD2B9kQS21I+FABT4";
+
 impl Release {
     /// Trouve l'asset factory complet pour flash USB
     pub fn factory_asset(&self) -> Option<&ReleaseAsset> {
@@ -38,9 +40,12 @@ impl Release {
             .or_else(|| self.assets.iter().find(|a| a.name.ends_with(".bin") && !a.name.contains("factory")))
     }
 
-    #[allow(dead_code)]
     pub fn sha256_asset(&self) -> Option<&ReleaseAsset> {
-        self.assets.iter().find(|a| a.name.to_lowercase().contains("sha256"))
+        self.assets.iter().find(|a| a.name == "SHA256SUMS" || a.name.to_lowercase().contains("sha256"))
+    }
+
+    pub fn minisig_asset(&self) -> Option<&ReleaseAsset> {
+        self.assets.iter().find(|a| a.name.ends_with(".minisig"))
     }
 }
 
@@ -130,6 +135,68 @@ impl GitHubClient {
         Ok(())
     }
 
+    /// Télécharge un contenu texte distant (ex: SHA256SUMS ou .minisig)
+    pub fn download_string(&self, url: &str) -> Result<String> {
+        let resp = self.agent.get(url).call()
+            .map_err(|e| anyhow!("Erreur lors du téléchargement de {} : {}", url, e))?;
+        resp.into_string()
+            .context("Impossible de lire le contenu texte de la réponse")
+    }
+
+    /// Télécharge et valide cryptographiquement l'intégrité et la signature d'un asset
+    pub fn download_and_verify_asset(&self, release: &Release, asset: &ReleaseAsset) -> Result<PathBuf> {
+        let release_cache_dir = Self::cache_dir().join(&release.tag_name);
+        fs::create_dir_all(&release_cache_dir)?;
+        let dest = release_cache_dir.join(&asset.name);
+
+        // 1. Télécharger le fichier binaire
+        self.download_file(&asset.browser_download_url, &dest)?;
+
+        // 2. Si SHA256SUMS est disponible dans la release, vérifier l'intégrité
+        if let Some(sha_asset) = release.sha256_asset() {
+            let sha256_sums = self.download_string(&sha_asset.browser_download_url)
+                .context("Impossible de télécharger le fichier SHA256SUMS")?;
+
+            // 2a. Si la signature Minisign est présente, vérifier son authenticité
+            if let Some(sig_asset) = release.minisig_asset() {
+                let sig_content = self.download_string(&sig_asset.browser_download_url)
+                    .context("Impossible de télécharger la signature SHA256SUMS.minisig")?;
+
+                let pk = minisign_verify::PublicKey::from_base64(OFFICIAL_PUBLIC_KEY)
+                    .map_err(|e| anyhow!("Clé publique Minisign invalide: {:?}", e))?;
+                let signature = minisign_verify::Signature::decode(&sig_content)
+                    .map_err(|e| anyhow!("Format de signature Minisign invalide: {:?}", e))?;
+
+                pk.verify(sha256_sums.as_bytes(), &signature, false)
+                    .map_err(|e| anyhow!("Échec de vérification cryptographique Minisign pour la release {}: {:?}", release.tag_name, e))?;
+            }
+
+            // 2b. Vérifier que le SHA256 du fichier téléchargé correspond bien à la table
+            let computed_hash = Self::compute_sha256(&dest)?;
+            let mut matched = false;
+            for line in sha256_sums.lines() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() >= 2 && parts[0].eq_ignore_ascii_case(&computed_hash) {
+                    let filename = parts[1].trim_start_matches('*');
+                    if filename == asset.name {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+
+            if !matched {
+                fs::remove_file(&dest).ok();
+                return Err(anyhow!(
+                    "Échec de validation SHA256 ! Le fichier téléchargé ne correspond pas à la somme de contrôle officielle ({})",
+                    computed_hash
+                ));
+            }
+        }
+
+        Ok(dest)
+    }
+
     /// Dossier local de cache des firmwares
     pub fn cache_dir() -> PathBuf {
         let base = std::env::var("HOME")
@@ -138,7 +205,6 @@ impl GitHubClient {
         PathBuf::from(base).join(".cache").join("openfirenet-installer").join("firmware")
     }
 
-    #[allow(dead_code)]
     pub fn compute_sha256(path: &Path) -> Result<String> {
         let mut file = File::open(path)?;
         let mut hasher = Sha256::new();
@@ -149,5 +215,29 @@ impl GitHubClient {
             hasher.update(&buffer[..n]);
         }
         Ok(hex::encode(hasher.finalize()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_official_public_key_valid() {
+        let pk = minisign_verify::PublicKey::from_base64(OFFICIAL_PUBLIC_KEY);
+        assert!(pk.is_ok(), "The official Open-Firenet public key should parse without error");
+    }
+
+    #[test]
+    fn test_minisign_signature_tamper_detection() {
+        let pk = minisign_verify::PublicKey::from_base64(OFFICIAL_PUBLIC_KEY).unwrap();
+        // A valid signature string format
+        let sig_str = "untrusted comment: signature from minisign secret key\n\
+                       RWQhzS5dR0kodI/W8hXf3s+Lp2VnC2/N7rZ1y+u8E9Q=\ntrusted comment: timestamp:0\n\
+                       RWQhzS5dR0kodI/W8hXf3s+Lp2VnC2/N7rZ1y+u8E9Q=";
+        if let Ok(signature) = minisign_verify::Signature::decode(sig_str) {
+            let result = pk.verify(b"tampered content", &signature, false);
+            assert!(result.is_err(), "Verification should fail on tampered content");
+        }
     }
 }

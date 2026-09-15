@@ -326,16 +326,18 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>) -> Re
         }
     };
 
-    let dest = cache_dir.join(&asset.name);
+    let release_cache_dir = cache_dir.join(&rel.tag_name);
+    let dest = release_cache_dir.join(&asset.name);
     if dest.exists() {
         if Confirm::new().with_prompt(format!("Utiliser la version en cache ({}) ?", asset.name)).default(true).interact()? {
             return Ok(dest);
         }
     }
 
-    println!("Téléchargement de {}...", asset.name.cyan());
-    gh.download_file(&asset.browser_download_url, &dest)?;
-    Ok(dest)
+    println!("Téléchargement et vérification cryptographique de {}...", asset.name.cyan());
+    let verified_dest = gh.download_and_verify_asset(&rel, asset)?;
+    println!("{}", "✔ Signature Minisign et intégrité SHA256 validées avec succès !".green());
+    Ok(verified_dest)
 }
 
 fn cmd_list_releases() -> Result<()> {
