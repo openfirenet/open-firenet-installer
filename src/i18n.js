@@ -87,7 +87,10 @@ export const translations = {
     checkingReleasesDesc: "Vérification des versions officielles sur openfirenet/open-firenet...",
     badgeStable: "Stable",
     badgePrerelease: "Pré-release",
-    availableFiles: "Fichiers disponibles :",
+    availableFiles: "Fichiers & signatures :",
+    viewOnGithub: "Voir sur GitHub",
+    useForOta: "Installer via Wi-Fi (OTA)",
+    useForUsb: "Installer via Flash USB",
     noReleaseTitle: "Aucune version officielle trouvée",
     noReleaseDesc: "Vous pouvez flasher ou mettre à jour directement votre clé à l'aide d'un fichier .bin local.",
 
@@ -192,7 +195,10 @@ export const translations = {
     checkingReleasesDesc: "Checking official releases on openfirenet/open-firenet...",
     badgeStable: "Stable",
     badgePrerelease: "Pre-release",
-    availableFiles: "Available files:",
+    availableFiles: "Files & signatures:",
+    viewOnGithub: "View on GitHub",
+    useForOta: "Install via Wi-Fi (OTA)",
+    useForUsb: "Install via USB Flash",
     noReleaseTitle: "No official releases found",
     noReleaseDesc: "You can flash or update your dongle directly using a local .bin file.",
 

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { t, setLanguage, getLang } from "./i18n.js";
+import { renderMarkdown } from "./markdown.js";
 
 // State
 let discoveredDevices = [];
@@ -261,6 +262,23 @@ function populateReleaseDropdowns(releases) {
   });
 }
 
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return "";
+  const k = 1024;
+  const sizes = ["o", "Ko", "Mo", "Go"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function getAssetIcon(name) {
+  if (name.endsWith(".minisig")) return "🔐";
+  if (name.includes("factory") || name.includes("merged")) return "⚡";
+  if (name.includes("ota")) return "📡";
+  if (name.includes("SHA256") || name.includes("sha256")) return "📄";
+  if (name.endsWith(".bin")) return "💾";
+  return "📦";
+}
+
 function renderReleasesList(releases) {
   releasesList.innerHTML = "";
   if (!releases || releases.length === 0) {
@@ -275,20 +293,94 @@ function renderReleasesList(releases) {
   }
 
   releases.forEach((r) => {
-    const item = document.createElement("div");
-    item.className = "card mb-3";
-    item.style.marginBottom = "14px";
-    item.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3>${r.tag_name} - ${r.name || "Release"}</h3>
-        <span class="device-badge">${r.prerelease ? t("badgePrerelease") : t("badgeStable")}</span>
-      </div>
-      <p style="font-size:13px; color:var(--text-muted); margin: 8px 0;">${r.body || ""}</p>
-      <div style="font-size:12px; color:var(--text-muted);">
-        ${t("availableFiles")} ${r.assets.map((a) => a.name).join(", ")}
+    const card = document.createElement("div");
+    card.className = "release-card";
+
+    const isPrerelease = r.prerelease;
+    const badgeClass = isPrerelease ? "badge-prerelease" : "badge-stable";
+    const badgeText = isPrerelease ? t("badgePrerelease") : t("badgeStable");
+    const releaseTitle = r.name && r.name.trim() ? r.name : r.tag_name;
+    const githubReleaseUrl = `https://github.com/openfirenet/open-firenet/releases/tag/${r.tag_name}`;
+
+    const assetsHtml = (r.assets && r.assets.length > 0)
+      ? `
+        <div class="release-assets-section">
+          <div class="release-assets-title">
+            <span>📁</span> <span>${t("availableFiles")}</span>
+          </div>
+          <div class="release-assets-grid">
+            ${r.assets.map((a) => `
+              <a href="${a.browser_download_url}" class="asset-chip external-link" title="${a.name}">
+                <span class="asset-icon">${getAssetIcon(a.name)}</span>
+                <span class="asset-name">${a.name}</span>
+                ${a.size ? `<span class="asset-size">(${formatBytes(a.size)})</span>` : ""}
+                <span class="ext-icon">↗</span>
+              </a>
+            `).join("")}
+          </div>
+        </div>
+      `
+      : "";
+
+    const hasFactory = r.assets && r.assets.some(a => a.name.includes("factory") || a.name.includes("merged") || (a.name.endsWith(".bin") && !a.name.includes("ota")));
+    const hasOta = r.assets && r.assets.some(a => a.name.includes("ota") || a.name.endsWith(".bin"));
+
+    const actionsHtml = `
+      <div class="release-actions-row">
+        ${hasOta ? `
+          <button class="btn btn-secondary btn-sm btn-quick-ota" data-tag="${r.tag_name}">
+            <span class="btn-icon">📡</span> ${t("useForOta")}
+          </button>
+        ` : ""}
+        ${hasFactory ? `
+          <button class="btn btn-secondary btn-sm btn-quick-usb" data-tag="${r.tag_name}">
+            <span class="btn-icon">⚡</span> ${t("useForUsb")}
+          </button>
+        ` : ""}
       </div>
     `;
-    releasesList.appendChild(item);
+
+    card.innerHTML = `
+      <div class="release-card-header">
+        <div class="release-title-row">
+          <span class="release-tag-badge">${r.tag_name}</span>
+          <h3 class="release-title">${releaseTitle}</h3>
+        </div>
+        <div class="release-badges-row">
+          <span class="release-type-badge ${badgeClass}">${badgeText}</span>
+          <a href="${githubReleaseUrl}" class="github-link external-link" title="${t("viewOnGithub")}">
+            GitHub <span class="ext-icon">↗</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="release-body">
+        ${renderMarkdown(r.body)}
+      </div>
+
+      ${assetsHtml}
+      ${actionsHtml}
+    `;
+
+    releasesList.appendChild(card);
+
+    const btnOta = card.querySelector(".btn-quick-ota");
+    if (btnOta) {
+      btnOta.addEventListener("click", () => {
+        otaReleaseSelect.value = r.tag_name;
+        const otaTabBtn = document.querySelector('[data-tab="tab-ota"]');
+        if (otaTabBtn) otaTabBtn.click();
+      });
+    }
+
+    const btnUsb = card.querySelector(".btn-quick-usb");
+    if (btnUsb) {
+      btnUsb.addEventListener("click", () => {
+        usbReleaseSelect.value = r.tag_name;
+        const usbTabBtn = document.querySelector('[data-tab="tab-usb"]');
+        if (usbTabBtn) usbTabBtn.click();
+      });
+    }
   });
 }
 
@@ -458,6 +550,23 @@ listen("ota-status", (event) => {
   if (otaStatusText) otaStatusText.textContent = event.payload;
 });
 
+// Intercepter tous les liens externes pour les ouvrir dans le navigateur par défaut de l'utilisateur
+document.addEventListener("click", async (e) => {
+  const link = e.target.closest("a");
+  if (link && link.href) {
+    const url = link.href;
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      e.preventDefault();
+      try {
+        await invoke("open_browser_url", { url });
+      } catch (err) {
+        console.error("Erreur ouverture navigateur natif :", err);
+        window.open(url, "_blank");
+      }
+    }
+  }
+});
+
 // Initialisation au démarrage
 window.addEventListener("DOMContentLoaded", () => {
   // Appliquer la langue détectée ou sauvegardée
@@ -468,3 +577,4 @@ window.addEventListener("DOMContentLoaded", () => {
   refreshPorts();
   loadReleases();
 });
+
