@@ -5,6 +5,12 @@ on:
     branches: [ main, 'feat/**', 'fix/**' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+
+# Cancel obsolete in-progress runs on the same branch to unblock macOS and Windows runners immediately
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   frontend-check:
@@ -26,24 +32,26 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      - name: Upload frontend dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+          retention-days: 1
+
   rust-check:
     name: Rust Tests & Clippy
     runs-on: ubuntu-latest
+    needs: [frontend-check]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
         with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install Frontend Dependencies
-        run: npm ci || npm install
-
-      - name: Build Frontend
-        run: npm run build
+          name: frontend-dist
+          path: dist
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -53,12 +61,12 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: src-tauri -> target
+          workspaces: ". -> target"
 
       - name: Install Linux dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
 
       - name: Check code formatting
         run: cargo fmt --all -- --check || true
@@ -91,6 +99,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -100,25 +114,13 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-          workspaces: src-tauri -> target
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install Frontend Dependencies
-        run: npm ci || npm install
-
-      - name: Build Frontend
-        run: npm run build
+          workspaces: ". -> target"
 
       - name: Install Linux build dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
 
       - name: Build binary (${{ matrix.target }})
         run: cargo build --release --target ${{ matrix.target }}
