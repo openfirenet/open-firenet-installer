@@ -155,16 +155,27 @@ function resetTransientUi() {
   if (!isOtaInProgress && otaProgressBox) {
     otaProgressBox.classList.add("hidden");
     if (otaProgressBar) otaProgressBar.style.width = "0%";
-    if (otaStatusText) otaStatusText.textContent = t("statusOtaWaiting");
+    if (otaStatusText) otaStatusText.textContent = "";
   }
   if (!isUsbFlashingInProgress && usbProgressBox) {
     usbProgressBox.classList.add("hidden");
     if (usbProgressBar) usbProgressBar.style.width = "0%";
-    if (usbStatusText) usbStatusText.textContent = t("flashingInProgress");
+    if (usbStatusText) usbStatusText.textContent = "";
   }
   if (!isWifiConfigInProgress && wifiStatusText) {
     wifiStatusText.textContent = "";
   }
+}
+
+function updateDynamicButtons() {
+  const scanLabel = btnScan ? btnScan.querySelector(".btn-label") : null;
+  if (scanLabel) scanLabel.textContent = t("btnScan");
+  const portsLabel = btnRefreshPorts ? btnRefreshPorts.querySelector(".btn-label") : null;
+  if (portsLabel) portsLabel.textContent = t("btnRefreshPorts");
+  const releasesLabel = btnRefreshReleases ? btnRefreshReleases.querySelector(".btn-label") : null;
+  if (releasesLabel) releasesLabel.textContent = t("btnRefreshReleases");
+  const retryLabel = emptyBtnRetry ? emptyBtnRetry.querySelector(".btn-label") : null;
+  if (retryLabel) retryLabel.textContent = t("emptyBtnRetryScan");
 }
 
 // Language selector dropdown
@@ -172,6 +183,7 @@ const langSelect = document.getElementById("lang-select");
 if (langSelect) {
   langSelect.addEventListener("change", (e) => {
     setLanguage(e.target.value, () => {
+      updateDynamicButtons();
       renderDevices(discoveredDevices);
       renderReleasesList(availableReleases);
       populateReleaseDropdowns(availableReleases);
@@ -201,7 +213,7 @@ async function runScan() {
 
   btnScan.disabled = true;
   if (emptyBtnRetry) emptyBtnRetry.disabled = true;
-  btnScan.innerHTML = `<span class="btn-icon">🔄</span> ${t("btnScan")}`;
+  btnScan.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
   devicesContainer.innerHTML = "";
@@ -216,7 +228,7 @@ async function runScan() {
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
     if (emptyBtnRetry) emptyBtnRetry.disabled = false;
-    btnScan.innerHTML = `<span class="btn-icon">🔄</span> ${t("btnScan")}`;
+    btnScan.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
     isScanning = false;
   }
 }
@@ -335,7 +347,7 @@ if (emptyBtnWifi) {
 // 3. GitHub Releases
 async function loadReleases() {
   btnRefreshReleases.disabled = true;
-  btnRefreshReleases.innerHTML = `<span class="spinner-btn"></span> ${t("checkingReleases")}`;
+  btnRefreshReleases.innerHTML = `<span class="spinner-btn"></span> <span class="btn-label" data-i18n="checkingReleases">${t("checkingReleases")}</span>`;
   releasesList.innerHTML = `
     <div class="card loading-card">
       <h3>${t("checkingReleases")}</h3>
@@ -356,7 +368,7 @@ async function loadReleases() {
     renderReleasesList([]);
   } finally {
     btnRefreshReleases.disabled = false;
-    btnRefreshReleases.innerHTML = `<span class="btn-icon">🔄</span> ${t("btnRefreshReleases")}`;
+    btnRefreshReleases.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshReleases">${t("btnRefreshReleases")}</span>`;
   }
 }
 
@@ -516,6 +528,7 @@ function renderReleasesList(releases) {
 // 4. USB Ports
 async function refreshPorts() {
   btnRefreshPorts.disabled = true;
+  btnRefreshPorts.innerHTML = `<span class="spinner-btn"></span> <span class="btn-label" data-i18n="detectingPorts">${t("detectingPorts")}</span>`;
   usbPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
   wifiPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
 
@@ -547,6 +560,7 @@ async function refreshPorts() {
     wifiPortSelect.innerHTML = `<option value=''>${t("alertErrorPrefix")} USB</option>`;
   } finally {
     btnRefreshPorts.disabled = false;
+    btnRefreshPorts.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshPorts">${t("btnRefreshPorts")}</span>`;
   }
 }
 
@@ -583,9 +597,10 @@ async function doOtaUpdate() {
       customFile: localFile,
     });
     otaProgressBar.style.width = "100%";
-    otaStatusText.textContent = `✔ ${t("statusOtaSuccess")}`;
+    otaStatusText.textContent = `✔ ${t("statusOtaOnline")}`;
     setTimeout(() => {
-      alert(t("otaSuccessMsg"));
+      alert(t("otaSuccessOnline"));
+      runScan();
     }, 400);
   } catch (err) {
     console.error("Erreur OTA :", err);
@@ -788,6 +803,19 @@ document.addEventListener("click", async (e) => {
 window.addEventListener("DOMContentLoaded", () => {
   // Appliquer la langue détectée ou sauvegardée
   setLanguage(getLang());
+  updateDynamicButtons();
+
+  // Afficher la version de l'application
+  invoke("get_app_version")
+    .then((ver) => {
+      const appVersionEl = document.getElementById("app-version");
+      if (appVersionEl && ver) {
+        appVersionEl.textContent = `v${ver}`;
+      }
+    })
+    .catch((err) => {
+      console.warn("Version de l'application non disponible :", err);
+    });
 
   // Lancement des scans asynchrones
   runScan();

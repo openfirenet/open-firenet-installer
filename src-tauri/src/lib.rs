@@ -129,11 +129,16 @@ async fn update_ota_device(
                 "message": msg
             }));
         }).map_err(|e| e.to_string())?;
-        let _ = app.emit("ota-status", "Mise à jour OTA réussie !");
-        Ok("Mise à jour réussie ! La clé redémarre.".to_string())
+        let _ = app.emit("ota-status", "✔ La clé a redémarré et est de nouveau en ligne !");
+        Ok("Mise à jour réussie ! La clé a redémarré et est de nouveau en ligne.".to_string())
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn get_app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 #[tauri::command]
@@ -182,7 +187,8 @@ pub fn run() {
             flash_usb_device,
             update_ota_device,
             configure_wifi,
-            open_browser_url
+            open_browser_url,
+            get_app_version
         ])
         .run(tauri::generate_context!())
         .expect("erreur lors du lancement de l'interface graphique");

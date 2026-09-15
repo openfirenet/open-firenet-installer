@@ -164,29 +164,42 @@ impl OtaFlasher {
         }
 
         pb.finish_with_message("Mise à jour sans fil terminée avec succès !");
-        on_progress(100, "Mise à jour réussie ! La clé redémarre...");
         println!("{} Transfert OTA terminé avec succès !", "✔".green().bold());
 
         // 7. Attente de reconnexion
-        Self::wait_for_reboot(ip);
+        let reboot_ok = Self::wait_for_reboot(ip, &on_progress);
+        if reboot_ok {
+            on_progress(100, "✔ La clé a redémarré avec succès et est de nouveau en ligne !");
+        }
         Ok(())
     }
 
     /// Attend que le dongle redémarre et réponde à nouveau sur le réseau
-    pub fn wait_for_reboot(ip: &str) {
+    pub fn wait_for_reboot<F>(ip: &str, on_progress: F) -> bool
+    where
+        F: Fn(u32, &str) + Send + Sync,
+    {
         println!("Attente de la reconnexion au réseau...");
+        on_progress(100, "Redémarrage de la clé en cours... Attente de la reconnexion au Wi-Fi...");
         thread::sleep(Duration::from_secs(4));
 
-        for _ in 0..20 {
+        for attempt in 1..=20 {
             thread::sleep(Duration::from_secs(1));
+            on_progress(
+                100,
+                &format!("Attente de la reconnexion au réseau ({}/20)...", attempt),
+            );
             let url = format!("http://{}/api/state", ip);
             if let Ok(resp) = ureq::get(&url).timeout(Duration::from_millis(800)).call() {
                 if resp.status() == 200 {
                     println!("{} Open-Firenet est de nouveau en ligne et fonctionnel !", "🎉".bold());
-                    return;
+                    on_progress(100, "✔ La clé a redémarré avec succès et est de nouveau en ligne !");
+                    return true;
                 }
             }
         }
         println!("{} Le dongle prend plus de temps à se reconnecter. Vérifiez son adresse IP sur votre box.", "ℹ".yellow());
+        on_progress(100, "La clé prend plus de temps à se reconnecter. Vérifiez son adresse IP.");
+        false
     }
 }

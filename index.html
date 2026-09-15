@@ -13,7 +13,7 @@
       <div class="logo-group">
         <img src="/icon.png" class="app-logo-img" alt="Open-Firenet" />
         <div>
-          <h1 class="app-title"><span class="app-title-main" data-i18n="appTitle">Open-Firenet</span> <span class="app-title-suffix" data-i18n="appTitleSuffix">Installer</span></h1>
+          <h1 class="app-title"><span class="app-title-main" data-i18n="appTitle">Open-Firenet</span> <span class="app-title-suffix" data-i18n="appTitleSuffix">Installer</span> <span class="app-version-badge" id="app-version">v0.1.0</span></h1>
           <p class="app-subtitle" data-i18n="appSubtitle">Assistant universel d'installation & mise à jour</p>
         </div>
       </div>
@@ -61,7 +61,7 @@
             <p data-i18n="discoveryDesc">Recherche votre poêle Open-Firenet via mDNS (openfirenet.local) et sur votre réseau local.</p>
           </div>
           <button id="btn-scan" class="btn btn-primary" disabled>
-            <span class="spinner-btn"></span> <span data-i18n="btnScanInProgress">Recherche en cours...</span>
+            <span class="spinner-btn"></span> <span class="btn-label" data-i18n="btnScanInProgress">Recherche en cours...</span>
           </button>
         </div>
 
@@ -84,7 +84,7 @@
           <p data-i18n="emptyDevicesDesc">Vérifiez que votre clé est allumée et connectée au même réseau Wi-Fi que cet ordinateur.</p>
           <div class="empty-actions">
             <button id="empty-btn-retry" class="btn btn-primary">
-              <span class="btn-icon">🔄</span> <span data-i18n="emptyBtnRetryScan">Relancer la recherche</span>
+              <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="emptyBtnRetryScan">Relancer la recherche</span>
             </button>
             <button id="empty-btn-wifi" class="btn btn-secondary">
               <span class="btn-icon">📶</span> <span data-i18n="emptyBtnWifiSetup">Configurer le Wi-Fi via USB</span>
@@ -133,7 +133,7 @@
             <div class="progress-bar-bg">
               <div id="ota-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
             </div>
-            <p id="ota-status-text" class="status-msg" data-i18n="statusOtaWaiting">En attente...</p>
+            <p id="ota-status-text" class="status-msg"></p>
           </div>
         </div>
       </section>
@@ -146,7 +146,7 @@
             <p data-i18n="usbDesc">Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
           </div>
           <button id="btn-refresh-ports" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> <span data-i18n="btnRefreshPorts">Actualiser les ports</span>
+            <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshPorts">Actualiser les ports</span>
           </button>
         </div>
 
@@ -200,7 +200,7 @@
             <div class="progress-bar-bg">
               <div id="usb-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
             </div>
-            <p id="usb-status-text" class="status-msg" data-i18n="flashingInProgress">Flashage en cours...</p>
+            <p id="usb-status-text" class="status-msg"></p>
           </div>
         </div>
       </section>
@@ -249,7 +249,7 @@
             <p data-i18n="releasesDesc">Historique des publications officielles sur GitHub vérifiées par Minisign.</p>
           </div>
           <button id="btn-refresh-releases" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> <span data-i18n="btnRefreshReleases">Recharger</span>
+            <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshReleases">Recharger</span>
           </button>
         </div>
 

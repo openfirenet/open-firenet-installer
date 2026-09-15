@@ -14,6 +14,9 @@ export const translations = {
     statusOtaWaiting: "En attente...",
     statusOtaSending: "Envoi du firmware via Wi-Fi...",
     statusOtaSuccess: "Mise à jour réussie ! La clé redémarre.",
+    statusOtaReconnecting: "Attente du redémarrage et reconnexion au réseau...",
+    statusOtaOnline: "La clé a redémarré avec succès et est en ligne !",
+    otaSuccessOnline: "Mise à jour OTA réussie ! La clé a redémarré et est de nouveau en ligne.",
 
     // Tabs
     tabDiscovery: "Détection Réseau",
@@ -144,6 +147,9 @@ export const translations = {
     statusOtaWaiting: "Waiting...",
     statusOtaSending: "Sending firmware over Wi-Fi...",
     statusOtaSuccess: "Update successful! The dongle is restarting.",
+    statusOtaReconnecting: "Waiting for restart and network reconnection...",
+    statusOtaOnline: "The dongle restarted successfully and is back online!",
+    otaSuccessOnline: "OTA update successful! The dongle restarted and is back online.",
 
     // Tabs
     tabDiscovery: "Network Scan",
@@ -274,6 +280,9 @@ export const translations = {
     statusOtaWaiting: "Warten...",
     statusOtaSending: "Firmware wird per WLAN übertragen...",
     statusOtaSuccess: "Update erfolgreich! Der Dongle startet neu.",
+    statusOtaReconnecting: "Warten auf Neustart und Wiederverbindung...",
+    statusOtaOnline: "Der Dongle wurde erfolgreich neu gestartet und ist wieder online!",
+    otaSuccessOnline: "OTA-Update erfolgreich! Der Dongle wurde neu gestartet und ist wieder online.",
 
     // Tabs
     tabDiscovery: "Netzwerk-Scan",
