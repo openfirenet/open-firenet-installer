@@ -18,7 +18,7 @@ use wifi_setup::WifiSetup;
 
 #[derive(Parser)]
 #[command(
-    name = "openfirenet-installer",
+    name = "open-firenet-installer",
     author = "Open-Firenet Community",
     version = "0.1.0",
     about = "Outil universel d'installation, flashage USB et mise à jour OTA pour Open-Firenet"

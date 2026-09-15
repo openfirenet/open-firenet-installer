@@ -38,7 +38,7 @@ Contrairement aux solutions WebSerial (ESP Web Tools) qui ne fonctionnent **ni s
 Lancez simplement l'application sans argument (ou double-cliquez sur l'exécutable sous Windows/Mac) :
 
 ```bash
-./openfirenet-installer
+./open-firenet-installer
 ```
 
 Un menu interactif s'affiche dans votre terminal :
@@ -67,28 +67,28 @@ Pour les scripts, l'automatisation ou les utilisateurs avancés :
 
 ```bash
 # Scanner le réseau local
-openfirenet-installer scan
+open-firenet-installer scan
 
 # Scanner un sous-réseau spécifique
-openfirenet-installer scan --subnet 192.168.1
+open-firenet-installer scan --subnet 192.168.1
 
 # Flasher en USB sur un port spécifique
-openfirenet-installer flash --port /dev/ttyACM0
+open-firenet-installer flash --port /dev/ttyACM0
 
 # Flasher un fichier binaire local spécifique
-openfirenet-installer flash --file ./open-firenet-factory.bin
+open-firenet-installer flash --file ./open-firenet-factory.bin
 
 # Mettre à jour via Wi-Fi (OTA) une clé à une IP donnée
-openfirenet-installer ota --ip 192.168.1.93
+open-firenet-installer ota --ip 192.168.1.93
 
 # Mettre à jour avec une version GitHub spécifique
-openfirenet-installer ota --ip 192.168.1.93 --release v2.0.0
+open-firenet-installer ota --ip 192.168.1.93 --release v2.0.0
 
 # Configurer le Wi-Fi par liaison série
-openfirenet-installer wifi-setup --port /dev/ttyACM0
+open-firenet-installer wifi-setup --port /dev/ttyACM0
 
 # Écouter les logs série (baudrate 115200)
-openfirenet-installer monitor --port /dev/ttyACM0
+open-firenet-installer monitor --port /dev/ttyACM0
 ```
 
 ---
@@ -99,14 +99,14 @@ Prérequis : [Rust et Cargo](https://rustup.rs/) ($\ge$ 1.85).
 
 ```bash
 # Cloner le dépôt
-git clone https://github.com/openfirenet/openfirenet-installer.git
-cd openfirenet-installer
+git clone https://github.com/openfirenet/open-firenet-installer.git
+cd open-firenet-installer
 
 # Compiler en mode release optimisé
 cargo build --release
 
-# L'exécutable se trouve dans target/release/openfirenet-installer
-./target/release/openfirenet-installer
+# L'exécutable se trouve dans target/release/open-firenet-installer
+./target/release/open-firenet-installer
 ```
 
 ---

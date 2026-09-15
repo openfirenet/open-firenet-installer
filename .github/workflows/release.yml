@@ -16,20 +16,20 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary_name: openfirenet-installer
-            asset_name: openfirenet-installer-linux-x86_64
+            binary_name: open-firenet-installer
+            asset_name: open-firenet-installer-linux-x86_64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary_name: openfirenet-installer.exe
-            asset_name: openfirenet-installer-windows-x86_64.exe
+            binary_name: open-firenet-installer.exe
+            asset_name: open-firenet-installer-windows-x86_64.exe
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary_name: openfirenet-installer
-            asset_name: openfirenet-installer-macos-arm64
+            binary_name: open-firenet-installer
+            asset_name: open-firenet-installer-macos-arm64
           - os: macos-13
             target: x86_64-apple-darwin
-            binary_name: openfirenet-installer
-            asset_name: openfirenet-installer-macos-x86_64
+            binary_name: open-firenet-installer
+            asset_name: open-firenet-installer-macos-x86_64
 
     steps:
       - name: Checkout repository
@@ -81,14 +81,14 @@ jobs:
         run: |
           cd dist
           mv */* . 2>/dev/null || true
-          rm -rf openfirenet-installer-*_* 2>/dev/null || true
-          sha256sum openfirenet-installer-* > SHA256SUMS
+          rm -rf open-firenet-installer-*_* 2>/dev/null || true
+          sha256sum open-firenet-installer-* > SHA256SUMS
           ls -la
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/openfirenet-installer-*
+            dist/open-firenet-installer-*
             dist/SHA256SUMS
           generate_release_notes: true
