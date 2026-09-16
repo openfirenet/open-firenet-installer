@@ -416,6 +416,20 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+.file-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-picker-name {
+  font-size: 13px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .input-with-action {
   display: flex;
   gap: 8px;

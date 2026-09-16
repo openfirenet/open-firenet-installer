@@ -58,6 +58,7 @@ export const translations = {
     labelOtaRelease: "Version du firmware à installer :",
     loadingReleases: "Chargement des versions officielles...",
     labelLocalFile: "Ou sélectionner un fichier binaire local (.bin) :",
+    btnBrowseFile: "Parcourir…",
     btnStartOta: "Lancer la mise à jour OTA",
     otaSuccessMsg: "Mise à jour réussie ! La clé redémarre.",
 
@@ -191,6 +192,7 @@ export const translations = {
     labelOtaRelease: "Firmware version to install:",
     loadingReleases: "Loading official releases...",
     labelLocalFile: "Or select a local binary file (.bin):",
+    btnBrowseFile: "Browse…",
     btnStartOta: "Start OTA Update",
     otaSuccessMsg: "Update successful! The dongle is restarting.",
 
@@ -324,6 +326,7 @@ export const translations = {
     labelOtaRelease: "Zu installierende Firmware-Version:",
     loadingReleases: "Offizielle Versionen werden geladen...",
     labelLocalFile: "Oder lokale Binärdatei (.bin) wählen:",
+    btnBrowseFile: "Durchsuchen…",
     btnStartOta: "WLAN-Update starten",
     otaSuccessMsg: "Update erfolgreich! Der Dongle startet neu.",
 
