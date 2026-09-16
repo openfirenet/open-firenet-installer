@@ -31,7 +31,7 @@ jobs:
             target: aarch64-apple-darwin
             binary_name: open-firenet-installer
             asset_name: open-firenet-installer-macos-arm64
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             binary_name: open-firenet-installer
             asset_name: open-firenet-installer-macos-x86_64
@@ -129,10 +129,12 @@ jobs:
           test "$SIZE" -ge 2000000 || { echo "::error::Binary abnormally small ($SIZE bytes)"; exit 1; }
           file "$BIN" | grep -i "Mach-O" || { echo "::error::Invalid Mach-O format"; exit 1; }
           chmod +x "$BIN"
-          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && [ "${{ matrix.os }}" = "macos-latest" ]; then
+          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ]; then
             "$BIN" --version
-          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && [ "${{ matrix.os }}" = "macos-13" ]; then
-            "$BIN" --version
+          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ]; then
+            # Cross-compiled on the arm64 runner; run through Rosetta 2 (preinstalled
+            # on GitHub-hosted macOS runners) since there's no native x86_64 runner left.
+            arch -x86_64 "$BIN" --version
           fi
 
       - name: Prepare binary asset
