@@ -168,9 +168,17 @@ jobs:
 
       - name: Flatten directory and compute checksums
         run: |
+          # Each artifact is a directory named after the asset, containing a single
+          # file with that SAME name (upload used name == path's basename). Moving
+          # it "up" one level collides with its own still-there parent directory
+          # (mv treats the existing same-named dir as a move-into target, so the
+          # file lands right back where it started) -- so flatten via a separate
+          # staging directory instead of moving files in place.
+          mkdir flat-assets
+          find release-dist -mindepth 2 -type f -exec cp -t flat-assets {} +
+          rm -rf release-dist
+          mv flat-assets release-dist
           cd release-dist
-          find . -mindepth 2 -type f -exec mv -t . {} +
-          find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
           shopt -s nullglob
           assets=(open-firenet-installer-*)
           if [ ${#assets[@]} -eq 0 ]; then
