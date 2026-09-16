@@ -91,7 +91,7 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             binary_name: open-firenet-installer
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             binary_name: open-firenet-installer
 
@@ -188,12 +188,14 @@ jobs:
 
           echo "=== 3. Smoke Test (--version & --help) ==="
           chmod +x "$BIN"
-          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ] && [ "${{ matrix.os }}" = "macos-latest" ]; then
+          if [ "${{ matrix.target }}" = "aarch64-apple-darwin" ]; then
             "$BIN" --version
             "$BIN" --help
-          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ] && [ "${{ matrix.os }}" = "macos-13" ]; then
-            "$BIN" --version
-            "$BIN" --help
+          elif [ "${{ matrix.target }}" = "x86_64-apple-darwin" ]; then
+            # Cross-compiled on the arm64 runner; run through Rosetta 2 (preinstalled
+            # on GitHub-hosted macOS runners) since there's no native x86_64 runner left.
+            arch -x86_64 "$BIN" --version
+            arch -x86_64 "$BIN" --help
           fi
 
           echo "=== 4. SHA256 Checksum ==="
