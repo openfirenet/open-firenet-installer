@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { t, setLanguage, getLang } from "./i18n.js";
 import { renderMarkdown } from "./markdown.js";
 
@@ -7,6 +8,12 @@ import { renderMarkdown } from "./markdown.js";
 let discoveredDevices = [];
 let availableReleases = [];
 let detectedPorts = [];
+let otaLocalFilePath = null;
+let usbLocalFilePath = null;
+
+function basename(path) {
+  return path.split(/[\\/]/).pop();
+}
 
 // DOM Elements
 const tabs = document.querySelectorAll(".tab-btn");
@@ -221,6 +228,11 @@ async function runScan() {
   try {
     discoveredDevices = await invoke("scan_network");
     renderDevices(discoveredDevices);
+    // Pre-fill the OTA IP field with the detected stove, but don't clobber
+    // anything the user already typed in there themselves.
+    if (discoveredDevices.length > 0 && !otaIpInput.value.trim()) {
+      otaIpInput.value = discoveredDevices[0].ip;
+    }
   } catch (err) {
     console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
@@ -580,8 +592,7 @@ btnUseDetectedIp.addEventListener("click", () => {
 async function doOtaUpdate() {
   const ip = otaIpInput.value.trim();
   const tag = otaReleaseSelect.value;
-  const localFileInput = document.getElementById("ota-file-input");
-  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+  const localFile = otaLocalFilePath;
 
   isOtaInProgress = true;
   btnStartOta.disabled = true;
@@ -607,6 +618,12 @@ async function doOtaUpdate() {
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    // Clear the local file selection so a subsequent attempt defaults back
+    // to the dropdown-selected release instead of being stuck reusing it
+    // (the local file always takes priority once set).
+    otaLocalFilePath = null;
+    const otaFileNameEl = document.getElementById("ota-file-name");
+    if (otaFileNameEl) otaFileNameEl.textContent = "";
     isOtaInProgress = false;
     btnStartOta.disabled = false;
   }
@@ -619,15 +636,16 @@ btnStartOta.addEventListener("click", () => {
     return;
   }
   const tag = otaReleaseSelect.value;
-  const localFileInput = document.getElementById("ota-file-input");
-  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+  const localFile = otaLocalFilePath;
 
   if (!tag && !localFile) {
     alert(t("alertSelectVersionOrFile"));
     return;
   }
 
-  const firmwareDisplay = tag ? `${tag} (OTA Update)` : localFile;
+  // A local file takes priority over the dropdown selection (matches the
+  // backend, which always uses customFile over releaseTag when both are set).
+  const firmwareDisplay = localFile ? basename(localFile) : `${tag} (OTA Update)`;
 
   openConfirmModal({
     icon: "📡",
@@ -643,12 +661,22 @@ btnStartOta.addEventListener("click", () => {
   });
 });
 
+document.getElementById("ota-file-browse").addEventListener("click", async () => {
+  const selected = await openFileDialog({
+    multiple: false,
+    filters: [{ name: "Firmware", extensions: ["bin"] }],
+  });
+  if (selected) {
+    otaLocalFilePath = selected;
+    document.getElementById("ota-file-name").textContent = basename(selected);
+  }
+});
+
 // Flash USB avec boîte de dialogue de confirmation préalable
 async function doUsbFlash() {
   const port = usbPortSelect.value;
   const tag = usbReleaseSelect.value;
-  const localFileInput = document.getElementById("usb-file-input");
-  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+  const localFile = usbLocalFilePath;
 
   isUsbFlashingInProgress = true;
   btnStartUsbFlash.disabled = true;
@@ -674,6 +702,12 @@ async function doUsbFlash() {
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    // Clear the local file selection so a subsequent attempt defaults back
+    // to the dropdown-selected release instead of being stuck reusing it
+    // (the local file always takes priority once set).
+    usbLocalFilePath = null;
+    const usbFileNameEl = document.getElementById("usb-file-name");
+    if (usbFileNameEl) usbFileNameEl.textContent = "";
     isUsbFlashingInProgress = false;
     btnStartUsbFlash.disabled = false;
   }
@@ -687,8 +721,7 @@ btnStartUsbFlash.addEventListener("click", () => {
   }
 
   const tag = usbReleaseSelect.value;
-  const localFileInput = document.getElementById("usb-file-input");
-  const localFile = localFileInput && localFileInput.files && localFileInput.files[0] ? localFileInput.files[0].name : null;
+  const localFile = usbLocalFilePath;
 
   if (!tag && !localFile) {
     alert(t("alertSelectVersionOrFile"));
@@ -696,7 +729,9 @@ btnStartUsbFlash.addEventListener("click", () => {
   }
 
   const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
-  const firmwareDisplay = tag ? `${tag} (${modeLabel})` : localFile;
+  // A local file takes priority over the dropdown selection (matches the
+  // backend, which always uses customFile over releaseTag when both are set).
+  const firmwareDisplay = localFile ? basename(localFile) : `${tag} (${modeLabel})`;
   const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
 
   openConfirmModal({
@@ -711,6 +746,17 @@ btnStartUsbFlash.addEventListener("click", () => {
     confirmLabelKey: "modalBtnConfirm",
     onConfirm: doUsbFlash,
   });
+});
+
+document.getElementById("usb-file-browse").addEventListener("click", async () => {
+  const selected = await openFileDialog({
+    multiple: false,
+    filters: [{ name: "Firmware", extensions: ["bin"] }],
+  });
+  if (selected) {
+    usbLocalFilePath = selected;
+    document.getElementById("usb-file-name").textContent = basename(selected);
+  }
 });
 
 btnSendWifi.addEventListener("click", async () => {

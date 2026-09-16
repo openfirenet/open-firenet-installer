@@ -120,7 +120,10 @@
 
           <div class="form-group">
             <label data-i18n="labelLocalFile">Ou sélectionner un fichier binaire local (.bin) :</label>
-            <input type="file" id="ota-file-input" accept=".bin" class="file-input" />
+            <div class="file-picker-row">
+              <button type="button" id="ota-file-browse" class="btn btn-secondary btn-sm" data-i18n="btnBrowseFile">Parcourir…</button>
+              <span id="ota-file-name" class="file-picker-name"></span>
+            </div>
           </div>
 
           <div class="action-row">
@@ -187,7 +190,10 @@
 
           <div class="form-group">
             <label data-i18n="labelUsbLocalFile">Ou binaire factory local (.bin) :</label>
-            <input type="file" id="usb-file-input" accept=".bin" class="file-input" />
+            <div class="file-picker-row">
+              <button type="button" id="usb-file-browse" class="btn btn-secondary btn-sm" data-i18n="btnBrowseFile">Parcourir…</button>
+              <span id="usb-file-name" class="file-picker-name"></span>
+            </div>
           </div>
 
           <div class="action-row">
