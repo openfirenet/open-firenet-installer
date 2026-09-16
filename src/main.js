@@ -613,6 +613,12 @@ async function doOtaUpdate() {
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    // Clear the local file selection so a subsequent attempt defaults back
+    // to the dropdown-selected release instead of being stuck reusing it
+    // (the local file always takes priority once set).
+    otaLocalFilePath = null;
+    const otaFileNameEl = document.getElementById("ota-file-name");
+    if (otaFileNameEl) otaFileNameEl.textContent = "";
     isOtaInProgress = false;
     btnStartOta.disabled = false;
   }
@@ -691,6 +697,12 @@ async function doUsbFlash() {
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
+    // Clear the local file selection so a subsequent attempt defaults back
+    // to the dropdown-selected release instead of being stuck reusing it
+    // (the local file always takes priority once set).
+    usbLocalFilePath = null;
+    const usbFileNameEl = document.getElementById("usb-file-name");
+    if (usbFileNameEl) usbFileNameEl.textContent = "";
     isUsbFlashingInProgress = false;
     btnStartUsbFlash.disabled = false;
   }
