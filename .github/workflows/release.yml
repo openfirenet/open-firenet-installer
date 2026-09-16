@@ -169,9 +169,16 @@ jobs:
       - name: Flatten directory and compute checksums
         run: |
           cd release-dist
-          mv */* . 2>/dev/null || true
-          rm -rf open-firenet-installer-*_* 2>/dev/null || true
-          sha256sum open-firenet-installer-* > SHA256SUMS
+          find . -mindepth 2 -type f -exec mv -t . {} +
+          find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
+          shopt -s nullglob
+          assets=(open-firenet-installer-*)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "::error::No release assets found in release-dist after flattening"
+            ls -la
+            exit 1
+          fi
+          sha256sum "${assets[@]}" > SHA256SUMS
           cat SHA256SUMS
 
       - name: Install Minisign
