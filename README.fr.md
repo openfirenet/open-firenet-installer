@@ -31,7 +31,27 @@ Contrairement aux solutions WebSerial (ESP Web Tools) qui ne fonctionnent **ni s
 
 ---
 
-## 🚀 Utilisation
+## 📥 Téléchargements & Versions
+
+Les binaires et paquets pré-compilés sont disponibles sur la page des [**Releases GitHub**](https://github.com/openfirenet/open-firenet-installer/releases) :
+
+| Système d'exploitation | Binaire / Paquet | Description |
+|---|---|---|
+| **Linux (Universel)** | `open-firenet-installer-linux-x86_64.AppImage` | AppImage tout-en-un (toutes distributions Linux, zéro dépendance) |
+| **Linux (Debian / Ubuntu / Mint)** | `open-firenet-installer-linux-amd64.deb` | Paquet Debian natif (intégration au menu des applications et icônes) |
+| **Linux (CLI / Binaire brut)** | `open-firenet-installer-linux-x86_64` | Exécutable ELF 64-bit autonome pour serveur / terminal |
+| **Windows (x86_64)** | `open-firenet-installer-windows-x86_64.exe` | Exécutable `.exe` autonome |
+| **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64` | Binaire autonome Mach-O arm64 |
+| **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64` | Binaire autonome Mach-O x86_64 |
+
+> [!TIP]
+> **Utilisateurs Linux** : Assurez-vous que votre compte appartient au groupe `dialout` ou `uucp` pour accéder aux ports USB série sans `sudo` :
+> ```bash
+> sudo usermod -aG dialout $USER
+> # Déconnectez-vous et reconnectez-vous pour que le changement prenne effet
+> ```
+
+---
 
 ### Mode Interface Graphique (GUI - Recommandé)
 

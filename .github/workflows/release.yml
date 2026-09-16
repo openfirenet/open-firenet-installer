@@ -88,13 +88,21 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libudev-dev pkg-config librsvg2-dev patchelf
 
-      - name: Build release binary
+      - name: Build release binary and packages (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          DISABLE_COPYRIGHT_FILES_DEPLOYMENT: '1'
+        run: |
+          npx tauri build --target ${{ matrix.target }} --bundles deb,appimage
+
+      - name: Build release binary (Non-Linux)
+        if: matrix.os != 'ubuntu-latest'
         run: cargo build --release --target ${{ matrix.target }}
 
-      # Validation stricte du binaire (Smoke Tests)
-      - name: Validate Linux Binary
+      # Validation stricte des binaires et paquets (Smoke Tests)
+      - name: Validate Linux Binary and Packages
         if: matrix.os == 'ubuntu-latest'
         run: |
           BIN="target/${{ matrix.target }}/release/${{ matrix.binary_name }}"
@@ -106,6 +114,15 @@ jobs:
           chmod +x "$BIN"
           "$BIN" --version
           "$BIN" --help
+
+          APPIMAGE=$(find target/${{ matrix.target }}/release/bundle/appimage -name "*.AppImage" | head -n 1)
+          test -f "$APPIMAGE" || { echo "::error::AppImage not found"; exit 1; }
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract-and-run --version
+
+          DEB=$(find target/${{ matrix.target }}/release/bundle/deb -name "*.deb" | head -n 1)
+          test -f "$DEB" || { echo "::error::DEB not found"; exit 1; }
+          dpkg-deb -I "$DEB"
 
       - name: Validate Windows Binary
         if: matrix.os == 'windows-latest'
@@ -137,18 +154,29 @@ jobs:
             arch -x86_64 "$BIN" --version
           fi
 
-      - name: Prepare binary asset
+      - name: Prepare release assets
         shell: bash
         run: |
           mkdir -p release-dist
           cp "target/${{ matrix.target }}/release/${{ matrix.binary_name }}" "release-dist/${{ matrix.asset_name }}"
           chmod +x "release-dist/${{ matrix.asset_name }}" || true
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            APPIMAGE=$(find target/${{ matrix.target }}/release/bundle/appimage -name "*.AppImage" | head -n 1)
+            if [ -n "$APPIMAGE" ]; then
+              cp "$APPIMAGE" "release-dist/open-firenet-installer-linux-x86_64.AppImage"
+              chmod +x "release-dist/open-firenet-installer-linux-x86_64.AppImage"
+            fi
+            DEB=$(find target/${{ matrix.target }}/release/bundle/deb -name "*.deb" | head -n 1)
+            if [ -n "$DEB" ]; then
+              cp "$DEB" "release-dist/open-firenet-installer-linux-amd64.deb"
+            fi
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.asset_name }}
-          path: release-dist/${{ matrix.asset_name }}
+          path: release-dist/
 
   release:
     name: Publish GitHub Release

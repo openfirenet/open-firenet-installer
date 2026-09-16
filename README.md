@@ -67,11 +67,13 @@ Browse official stable releases and pre-releases, download binaries automaticall
 
 ## 📥 Downloads & Releases
 
-Pre-compiled standalone binaries are available on the [**GitHub Releases**](https://github.com/openfirenet/open-firenet-installer/releases) page:
+Pre-compiled standalone binaries and packages are available on the [**GitHub Releases**](https://github.com/openfirenet/open-firenet-installer/releases) page:
 
-| Operating System & Architecture | Binary Name | Packaging |
+| Operating System & Architecture | Binary / Package Name | Description |
 |---|---|---|
-| **Linux (x86_64)** | `open-firenet-installer-linux-x86_64` | Standalone ELF 64-bit |
+| **Linux (Universal)** | `open-firenet-installer-linux-x86_64.AppImage` | Universal AppImage (All Linux distros, self-contained) |
+| **Linux (Debian / Ubuntu / Mint)** | `open-firenet-installer-linux-amd64.deb` | Native Debian package (Desktop integration & icons) |
+| **Linux (CLI / Raw ELF)** | `open-firenet-installer-linux-x86_64` | Standalone ELF 64-bit executable |
 | **Windows (x86_64)** | `open-firenet-installer-windows-x86_64.exe` | Standalone `.exe` executable |
 | **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64` | Standalone Mach-O arm64 |
 | **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64` | Standalone Mach-O x86_64 |
