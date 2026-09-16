@@ -66,7 +66,6 @@ jobs:
         run: |
           TAG_VER="${GITHUB_REF_NAME#v}"
           echo "Synchronizing project versions to $TAG_VER from tag $GITHUB_REF_NAME"
-          sed -i -E "s/^(version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$TAG_VER\"/" src-tauri/Cargo.toml
           node -e "
             const fs = require('fs');
             for (const f of ['package.json', 'src-tauri/tauri.conf.json']) {
@@ -76,6 +75,10 @@ jobs:
                 fs.writeFileSync(f, JSON.stringify(data, null, 2) + '\n');
               }
             }
+            const cargoPath = 'src-tauri/Cargo.toml';
+            const cargo = fs.readFileSync(cargoPath, 'utf8');
+            const updated = cargo.replace(/^version\s*=\s*\"[^\"]+\"/m, 'version = \"$TAG_VER\"');
+            fs.writeFileSync(cargoPath, updated);
           "
 
       - name: Build Frontend
