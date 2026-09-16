@@ -435,6 +435,16 @@ select option:checked, select option:hover {
   gap: 8px;
 }
 
+.input-with-action input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.input-with-action button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .action-row {
   margin-top: 10px;
 }

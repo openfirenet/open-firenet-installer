@@ -228,6 +228,11 @@ async function runScan() {
   try {
     discoveredDevices = await invoke("scan_network");
     renderDevices(discoveredDevices);
+    // Pre-fill the OTA IP field with the detected stove, but don't clobber
+    // anything the user already typed in there themselves.
+    if (discoveredDevices.length > 0 && !otaIpInput.value.trim()) {
+      otaIpInput.value = discoveredDevices[0].ip;
+    }
   } catch (err) {
     console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
