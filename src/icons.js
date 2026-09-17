@@ -39,7 +39,12 @@ const ICONS = {
 };
 
 export function icon(name) {
-  return ICONS[name] || "";
+  const svg = ICONS[name];
+  if (!svg) return "";
+  // Every icon here is decorative, always paired with a visible text label
+  // right next to it -- hide it from screen readers so they don't announce
+  // the icon name on top of that label.
+  return svg.replace("<svg", '<svg aria-hidden="true"');
 }
 
 // Populates every static `<... data-icon="name">` placeholder in the given
