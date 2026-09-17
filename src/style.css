@@ -30,6 +30,16 @@ svg.lucide {
   flex-shrink: 0;
 }
 
+/* Semantic icon colors: everything else stays neutral (inherits the
+   surrounding text/button color) -- only warning and success get tinted. */
+.mode-icon[data-icon="alert-triangle"] {
+  color: var(--danger-red);
+}
+
+.icon-success {
+  color: var(--success-green);
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);

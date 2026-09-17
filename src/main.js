@@ -611,7 +611,7 @@ async function doOtaUpdate() {
       customFile: localFile,
     });
     otaProgressBar.style.width = "100%";
-    otaStatusText.innerHTML = `${icon("check-circle")} ${t("statusOtaOnline")}`;
+    otaStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusOtaOnline")}`;
     setTimeout(() => {
       alert(t("otaSuccessOnline"));
       runScan();
@@ -696,7 +696,7 @@ async function doUsbFlash() {
       mode: selectedUsbMode,
     });
     usbProgressBar.style.width = "100%";
-    usbStatusText.innerHTML = `${icon("check-circle")} ${t("statusFlashingSuccess")}`;
+    usbStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusFlashingSuccess")}`;
     setTimeout(() => {
       alert(t("statusFlashingSuccess"));
     }, 400);
