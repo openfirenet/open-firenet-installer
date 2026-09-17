@@ -13,10 +13,54 @@ let availableReleases = [];
 let detectedPorts = [];
 let otaLocalFilePath = null;
 let usbLocalFilePath = null;
+let otaSource = "release"; // "release" | "file"
+let usbSource = "release"; // "release" | "file"
 
 function basename(path) {
   return path.split(/[\\/]/).pop();
 }
+
+// Wires a release/local-file segmented toggle: shows only the relevant
+// form group and clears the other source's state so it can't linger and
+// get picked up by mistake after switching back.
+function setupSourceToggle({ prefix, onSwitch }) {
+  const releaseBtn = document.getElementById(`${prefix}-source-release`);
+  const fileBtn = document.getElementById(`${prefix}-source-file`);
+  const releaseGroup = document.getElementById(`${prefix}-release-group`);
+  const fileGroup = document.getElementById(`${prefix}-file-group`);
+
+  function select(source) {
+    releaseBtn.classList.toggle("active", source === "release");
+    fileBtn.classList.toggle("active", source === "file");
+    releaseGroup.classList.toggle("hidden", source !== "release");
+    fileGroup.classList.toggle("hidden", source !== "file");
+    onSwitch(source);
+  }
+
+  releaseBtn.addEventListener("click", () => select("release"));
+  fileBtn.addEventListener("click", () => select("file"));
+  return select;
+}
+
+const selectOtaSource = setupSourceToggle({
+  prefix: "ota",
+  onSwitch: (source) => {
+    otaSource = source;
+    otaLocalFilePath = null;
+    const el = document.getElementById("ota-file-name");
+    if (el) el.textContent = "";
+  },
+});
+
+const selectUsbSource = setupSourceToggle({
+  prefix: "usb",
+  onSwitch: (source) => {
+    usbSource = source;
+    usbLocalFilePath = null;
+    const el = document.getElementById("usb-file-name");
+    if (el) el.textContent = "";
+  },
+});
 
 // DOM Elements
 const tabs = document.querySelectorAll(".tab-btn");
@@ -523,6 +567,7 @@ function renderReleasesList(releases) {
     const btnOta = card.querySelector(".btn-quick-ota");
     if (btnOta) {
       btnOta.addEventListener("click", () => {
+        selectOtaSource("release");
         otaReleaseSelect.value = r.tag_name;
         const otaTabBtn = document.querySelector('[data-tab="tab-ota"]');
         if (otaTabBtn) otaTabBtn.click();
@@ -532,6 +577,7 @@ function renderReleasesList(releases) {
     const btnUsb = card.querySelector(".btn-quick-usb");
     if (btnUsb) {
       btnUsb.addEventListener("click", () => {
+        selectUsbSource("release");
         usbReleaseSelect.value = r.tag_name;
         const usbTabBtn = document.querySelector('[data-tab="tab-usb"]');
         if (usbTabBtn) usbTabBtn.click();
@@ -594,8 +640,8 @@ btnUseDetectedIp.addEventListener("click", () => {
 
 async function doOtaUpdate() {
   const ip = otaIpInput.value.trim();
-  const tag = otaReleaseSelect.value;
-  const localFile = otaLocalFilePath;
+  const tag = otaSource === "release" ? otaReleaseSelect.value : null;
+  const localFile = otaSource === "file" ? otaLocalFilePath : null;
 
   isOtaInProgress = true;
   btnStartOta.disabled = true;
@@ -621,9 +667,8 @@ async function doOtaUpdate() {
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
-    // Clear the local file selection so a subsequent attempt defaults back
-    // to the dropdown-selected release instead of being stuck reusing it
-    // (the local file always takes priority once set).
+    // Clear the picked file so a later attempt in "file" mode doesn't
+    // silently reuse a stale path.
     otaLocalFilePath = null;
     const otaFileNameEl = document.getElementById("ota-file-name");
     if (otaFileNameEl) otaFileNameEl.textContent = "";
@@ -638,17 +683,19 @@ btnStartOta.addEventListener("click", () => {
     alert(t("alertFillIp"));
     return;
   }
-  const tag = otaReleaseSelect.value;
-  const localFile = otaLocalFilePath;
+  const tag = otaSource === "release" ? otaReleaseSelect.value : null;
+  const localFile = otaSource === "file" ? otaLocalFilePath : null;
 
-  if (!tag && !localFile) {
+  if (otaSource === "release" && !tag) {
+    alert(t("alertSelectVersionOrFile"));
+    return;
+  }
+  if (otaSource === "file" && !localFile) {
     alert(t("alertSelectVersionOrFile"));
     return;
   }
 
-  // A local file takes priority over the dropdown selection (matches the
-  // backend, which always uses customFile over releaseTag when both are set).
-  const firmwareDisplay = localFile ? basename(localFile) : `${tag} (OTA Update)`;
+  const firmwareDisplay = otaSource === "file" ? basename(localFile) : `${tag} (OTA Update)`;
 
   openConfirmModal({
     iconName: "radio",
@@ -678,8 +725,8 @@ document.getElementById("ota-file-browse").addEventListener("click", async () =>
 // Flash USB avec boîte de dialogue de confirmation préalable
 async function doUsbFlash() {
   const port = usbPortSelect.value;
-  const tag = usbReleaseSelect.value;
-  const localFile = usbLocalFilePath;
+  const tag = usbSource === "release" ? usbReleaseSelect.value : null;
+  const localFile = usbSource === "file" ? usbLocalFilePath : null;
 
   isUsbFlashingInProgress = true;
   btnStartUsbFlash.disabled = true;
@@ -705,9 +752,8 @@ async function doUsbFlash() {
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
-    // Clear the local file selection so a subsequent attempt defaults back
-    // to the dropdown-selected release instead of being stuck reusing it
-    // (the local file always takes priority once set).
+    // Clear the picked file so a later attempt in "file" mode doesn't
+    // silently reuse a stale path.
     usbLocalFilePath = null;
     const usbFileNameEl = document.getElementById("usb-file-name");
     if (usbFileNameEl) usbFileNameEl.textContent = "";
@@ -723,18 +769,20 @@ btnStartUsbFlash.addEventListener("click", () => {
     return;
   }
 
-  const tag = usbReleaseSelect.value;
-  const localFile = usbLocalFilePath;
+  const tag = usbSource === "release" ? usbReleaseSelect.value : null;
+  const localFile = usbSource === "file" ? usbLocalFilePath : null;
 
-  if (!tag && !localFile) {
+  if (usbSource === "release" && !tag) {
+    alert(t("alertSelectVersionOrFile"));
+    return;
+  }
+  if (usbSource === "file" && !localFile) {
     alert(t("alertSelectVersionOrFile"));
     return;
   }
 
   const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
-  // A local file takes priority over the dropdown selection (matches the
-  // backend, which always uses customFile over releaseTag when both are set).
-  const firmwareDisplay = localFile ? basename(localFile) : `${tag} (${modeLabel})`;
+  const firmwareDisplay = usbSource === "file" ? basename(localFile) : `${tag} (${modeLabel})`;
   const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
 
   openConfirmModal({

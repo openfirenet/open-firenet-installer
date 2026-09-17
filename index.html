@@ -112,14 +112,26 @@
           </div>
 
           <div class="form-group">
+            <label data-i18n="labelFirmwareSource">Source du firmware :</label>
+            <div class="source-toggle" role="group">
+              <button type="button" id="ota-source-release" class="source-toggle-btn active" data-source="release">
+                <span data-i18n="sourceRelease">Release officielle</span>
+              </button>
+              <button type="button" id="ota-source-file" class="source-toggle-btn" data-source="file">
+                <span data-i18n="sourceLocalFile">Fichier local</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" id="ota-release-group">
             <label for="ota-release-select" data-i18n="labelOtaRelease">Version du firmware à installer :</label>
             <select id="ota-release-select">
               <option value="" data-i18n="loadingReleases">Chargement des versions officielles...</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label data-i18n="labelLocalFile">Ou sélectionner un fichier binaire local (.bin) :</label>
+          <div class="form-group hidden" id="ota-file-group">
+            <label data-i18n="labelLocalFile">Fichier binaire local (.bin) :</label>
             <div class="file-picker-row">
               <button type="button" id="ota-file-browse" class="btn btn-secondary btn-sm" data-i18n="btnBrowseFile">Parcourir…</button>
               <span id="ota-file-name" class="file-picker-name"></span>
@@ -182,14 +194,26 @@
           </div>
 
           <div class="form-group">
+            <label data-i18n="labelFirmwareSource">Source du firmware :</label>
+            <div class="source-toggle" role="group">
+              <button type="button" id="usb-source-release" class="source-toggle-btn active" data-source="release">
+                <span data-i18n="sourceRelease">Release officielle</span>
+              </button>
+              <button type="button" id="usb-source-file" class="source-toggle-btn" data-source="file">
+                <span data-i18n="sourceLocalFile">Fichier local</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" id="usb-release-group">
             <label for="usb-release-select" data-i18n="labelUsbRelease">Version du firmware :</label>
             <select id="usb-release-select">
               <option value="" data-i18n="loadingReleases">Chargement des versions officielles...</option>
             </select>
           </div>
 
-          <div class="form-group">
-            <label data-i18n="labelUsbLocalFile">Ou binaire factory local (.bin) :</label>
+          <div class="form-group hidden" id="usb-file-group">
+            <label data-i18n="labelUsbLocalFile">Binaire factory local (.bin) :</label>
             <div class="file-picker-row">
               <button type="button" id="usb-file-browse" class="btn btn-secondary btn-sm" data-i18n="btnBrowseFile">Parcourir…</button>
               <span id="usb-file-name" class="file-picker-name"></span>
