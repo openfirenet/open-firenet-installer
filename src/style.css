@@ -21,6 +21,15 @@
   padding: 0;
 }
 
+/* Inline Lucide icons: size to the surrounding text and inherit its color,
+   the same way the emoji they replaced used to behave. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);

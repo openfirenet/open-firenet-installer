@@ -3,6 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { t, setLanguage, getLang } from "./i18n.js";
 import { renderMarkdown } from "./markdown.js";
+import { icon, hydrateIcons } from "./icons.js";
+
+hydrateIcons();
 
 // State
 let discoveredDevices = [];
@@ -78,19 +81,19 @@ const modalConfirmLabel = document.getElementById("modal-confirm-label");
 let currentConfirmAction = null;
 
 function openConfirmModal({
-  icon = "⚡",
+  iconName = "zap",
   titleKey = "modalConfirmTitle",
   descKey = "modalConfirmDesc",
   targetLabelKey = "modalTargetPort",
   targetValue = "-",
   firmwareValue = "-",
   warningKey = "modalConfirmWarning",
-  confirmIcon = "⚡",
+  confirmIconName = "zap",
   confirmLabelKey = "modalBtnConfirm",
   onConfirm = null,
 }) {
   currentConfirmAction = onConfirm;
-  if (modalIcon) modalIcon.textContent = icon;
+  if (modalIcon) modalIcon.innerHTML = icon(iconName);
   if (modalTitle) {
     modalTitle.setAttribute("data-i18n", titleKey);
     modalTitle.textContent = t(titleKey);
@@ -109,7 +112,7 @@ function openConfirmModal({
     modalWarningText.setAttribute("data-i18n", warningKey);
     modalWarningText.textContent = t(warningKey);
   }
-  if (modalConfirmIcon) modalConfirmIcon.textContent = confirmIcon;
+  if (modalConfirmIcon) modalConfirmIcon.innerHTML = icon(confirmIconName);
   if (modalConfirmLabel) {
     modalConfirmLabel.setAttribute("data-i18n", confirmLabelKey);
     modalConfirmLabel.textContent = t(confirmLabelKey);
@@ -220,7 +223,7 @@ async function runScan() {
 
   btnScan.disabled = true;
   if (emptyBtnRetry) emptyBtnRetry.disabled = true;
-  btnScan.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
+  btnScan.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
   scanLoading.classList.remove("hidden");
   emptyDevices.classList.add("hidden");
   devicesContainer.innerHTML = "";
@@ -240,7 +243,7 @@ async function runScan() {
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
     if (emptyBtnRetry) emptyBtnRetry.disabled = false;
-    btnScan.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
+    btnScan.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
     isScanning = false;
   }
 }
@@ -278,7 +281,7 @@ function renderDevices(devices) {
   card.innerHTML = `
     <div class="stove-card-header">
       <div class="stove-title-row">
-        <span class="stove-flame-icon">🔥</span>
+        <span class="stove-flame-icon">${icon("flame")}</span>
         <div>
           <h2 class="stove-model-title">${modelName}</h2>
           <span class="stove-network-name">${d.hostname || "openfirenet.local"}</span>
@@ -294,14 +297,14 @@ function renderDevices(devices) {
       <div class="info-tile">
         <span class="info-label">${t("labelIp")}</span>
         <a href="http://${d.ip}/" target="_blank" class="info-value info-link" title="http://${d.ip}/">
-          ${d.ip} <span class="external-icon">↗</span>
+          ${d.ip} <span class="external-icon">${icon("external-link")}</span>
         </a>
       </div>
 
       <div class="info-tile">
         <span class="info-label">${t("labelHostname")}</span>
         <a href="http://${d.hostname || "openfirenet.local"}/" target="_blank" class="info-value info-link" title="http://${d.hostname || "openfirenet.local"}/">
-          ${d.hostname || "openfirenet.local"} <span class="external-icon">↗</span>
+          ${d.hostname || "openfirenet.local"} <span class="external-icon">${icon("external-link")}</span>
         </a>
       </div>
 
@@ -313,17 +316,17 @@ function renderDevices(devices) {
       <div class="info-tile">
         <span class="info-label">${t("labelWifiSignal")}</span>
         <span class="info-value signal-value">
-          <span class="wifi-icon">📶</span> ${d.wifi_rssi || "-62 dBm"}
+          <span class="wifi-icon">${icon("wifi")}</span> ${d.wifi_rssi || "-62 dBm"}
         </span>
       </div>
     </div>
 
     <div class="stove-actions-row">
       <button class="btn btn-primary btn-lg btn-open-web" data-ip="${d.ip}">
-        <span class="btn-icon">🌐</span> ${t("btnOpenWeb")}
+        <span class="btn-icon">${icon("globe")}</span> ${t("btnOpenWeb")}
       </button>
       <button class="btn btn-secondary btn-lg btn-update-this" data-ip="${d.ip}">
-        <span class="btn-icon">📡</span> ${t("btnUpdateOta")}
+        <span class="btn-icon">${icon("radio")}</span> ${t("btnUpdateOta")}
       </button>
     </div>
   `;
@@ -380,7 +383,7 @@ async function loadReleases() {
     renderReleasesList([]);
   } finally {
     btnRefreshReleases.disabled = false;
-    btnRefreshReleases.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshReleases">${t("btnRefreshReleases")}</span>`;
+    btnRefreshReleases.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnRefreshReleases">${t("btnRefreshReleases")}</span>`;
   }
 }
 
@@ -424,12 +427,12 @@ function formatBytes(bytes) {
 }
 
 function getAssetIcon(name) {
-  if (name.endsWith(".minisig")) return "🔐";
-  if (name.includes("factory") || name.includes("merged")) return "⚡";
-  if (name.includes("ota")) return "📡";
-  if (name.includes("SHA256") || name.includes("sha256")) return "📄";
-  if (name.endsWith(".bin")) return "💾";
-  return "📦";
+  if (name.endsWith(".minisig")) return icon("lock");
+  if (name.includes("factory") || name.includes("merged")) return icon("zap");
+  if (name.includes("ota")) return icon("radio");
+  if (name.includes("SHA256") || name.includes("sha256")) return icon("file-text");
+  if (name.endsWith(".bin")) return icon("hard-drive");
+  return icon("package");
 }
 
 function renderReleasesList(releases) {
@@ -437,7 +440,7 @@ function renderReleasesList(releases) {
   if (!releases || releases.length === 0) {
     releasesList.innerHTML = `
       <div class="empty-state">
-        <div class="empty-icon">📦</div>
+        <div class="empty-icon">${icon("package")}</div>
         <h3>${t("noReleaseTitle")}</h3>
         <p>${t("noReleaseDesc")}</p>
       </div>
@@ -459,7 +462,7 @@ function renderReleasesList(releases) {
       ? `
         <div class="release-assets-section">
           <div class="release-assets-title">
-            <span>📁</span> <span>${t("availableFiles")}</span>
+            <span>${icon("folder-open")}</span> <span>${t("availableFiles")}</span>
           </div>
           <div class="release-assets-grid">
             ${r.assets.map((a) => `
@@ -467,7 +470,7 @@ function renderReleasesList(releases) {
                 <span class="asset-icon">${getAssetIcon(a.name)}</span>
                 <span class="asset-name">${a.name}</span>
                 ${a.size ? `<span class="asset-size">(${formatBytes(a.size)})</span>` : ""}
-                <span class="ext-icon">↗</span>
+                <span class="ext-icon">${icon("external-link")}</span>
               </a>
             `).join("")}
           </div>
@@ -482,12 +485,12 @@ function renderReleasesList(releases) {
       <div class="release-actions-row">
         ${hasOta ? `
           <button class="btn btn-secondary btn-sm btn-quick-ota" data-tag="${r.tag_name}">
-            <span class="btn-icon">📡</span> ${t("useForOta")}
+            <span class="btn-icon">${icon("radio")}</span> ${t("useForOta")}
           </button>
         ` : ""}
         ${hasFactory ? `
           <button class="btn btn-secondary btn-sm btn-quick-usb" data-tag="${r.tag_name}">
-            <span class="btn-icon">⚡</span> ${t("useForUsb")}
+            <span class="btn-icon">${icon("zap")}</span> ${t("useForUsb")}
           </button>
         ` : ""}
       </div>
@@ -502,7 +505,7 @@ function renderReleasesList(releases) {
         <div class="release-badges-row">
           <span class="release-type-badge ${badgeClass}">${badgeText}</span>
           <a href="${githubReleaseUrl}" class="github-link external-link" title="${t("viewOnGithub")}">
-            GitHub <span class="ext-icon">↗</span>
+            GitHub <span class="ext-icon">${icon("external-link")}</span>
           </a>
         </div>
       </div>
@@ -572,7 +575,7 @@ async function refreshPorts() {
     wifiPortSelect.innerHTML = `<option value=''>${t("alertErrorPrefix")} USB</option>`;
   } finally {
     btnRefreshPorts.disabled = false;
-    btnRefreshPorts.innerHTML = `<span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshPorts">${t("btnRefreshPorts")}</span>`;
+    btnRefreshPorts.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnRefreshPorts">${t("btnRefreshPorts")}</span>`;
   }
 }
 
@@ -608,7 +611,7 @@ async function doOtaUpdate() {
       customFile: localFile,
     });
     otaProgressBar.style.width = "100%";
-    otaStatusText.textContent = `✔ ${t("statusOtaOnline")}`;
+    otaStatusText.innerHTML = `${icon("check-circle")} ${t("statusOtaOnline")}`;
     setTimeout(() => {
       alert(t("otaSuccessOnline"));
       runScan();
@@ -648,14 +651,14 @@ btnStartOta.addEventListener("click", () => {
   const firmwareDisplay = localFile ? basename(localFile) : `${tag} (OTA Update)`;
 
   openConfirmModal({
-    icon: "📡",
+    iconName: "radio",
     titleKey: "modalOtaConfirmTitle",
     descKey: "modalOtaConfirmDesc",
     targetLabelKey: "modalTargetIp",
     targetValue: ip,
     firmwareValue: firmwareDisplay,
     warningKey: "modalOtaConfirmWarning",
-    confirmIcon: "📡",
+    confirmIconName: "radio",
     confirmLabelKey: "modalOtaBtnConfirm",
     onConfirm: doOtaUpdate,
   });
@@ -693,7 +696,7 @@ async function doUsbFlash() {
       mode: selectedUsbMode,
     });
     usbProgressBar.style.width = "100%";
-    usbStatusText.textContent = `✔ ${t("statusFlashingSuccess")}`;
+    usbStatusText.innerHTML = `${icon("check-circle")} ${t("statusFlashingSuccess")}`;
     setTimeout(() => {
       alert(t("statusFlashingSuccess"));
     }, 400);
@@ -735,14 +738,14 @@ btnStartUsbFlash.addEventListener("click", () => {
   const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
 
   openConfirmModal({
-    icon: "⚡",
+    iconName: "zap",
     titleKey: "modalConfirmTitle",
     descKey: "modalConfirmDesc",
     targetLabelKey: "modalTargetPort",
     targetValue: port,
     firmwareValue: firmwareDisplay,
     warningKey: warningKey,
-    confirmIcon: "⚡",
+    confirmIconName: "zap",
     confirmLabelKey: "modalBtnConfirm",
     onConfirm: doUsbFlash,
   });

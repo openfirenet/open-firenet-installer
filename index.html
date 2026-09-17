@@ -30,23 +30,23 @@
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
       <button class="tab-btn active" data-tab="tab-discovery">
-        <span class="tab-icon">🔍</span>
+        <span class="tab-icon" data-icon="search"></span>
         <span data-i18n="tabDiscovery">Détection Réseau</span>
       </button>
       <button class="tab-btn" data-tab="tab-ota">
-        <span class="tab-icon">📡</span>
+        <span class="tab-icon" data-icon="radio"></span>
         <span data-i18n="tabOta">Mise à jour Wi-Fi</span>
       </button>
       <button class="tab-btn" data-tab="tab-usb">
-        <span class="tab-icon">⚡</span>
+        <span class="tab-icon" data-icon="zap"></span>
         <span data-i18n="tabUsb">Flash USB</span>
       </button>
       <button class="tab-btn" data-tab="tab-wifi">
-        <span class="tab-icon">📶</span>
+        <span class="tab-icon" data-icon="wifi"></span>
         <span data-i18n="tabWifi">Config Wi-Fi</span>
       </button>
       <button class="tab-btn" data-tab="tab-releases">
-        <span class="tab-icon">📦</span>
+        <span class="tab-icon" data-icon="package"></span>
         <span data-i18n="tabReleases">Releases</span>
       </button>
     </nav>
@@ -79,15 +79,15 @@
         </div>
 
         <div id="empty-devices" class="empty-state hidden">
-          <div class="empty-icon">🔍</div>
+          <div class="empty-icon" data-icon="search"></div>
           <h3 data-i18n="emptyDevicesTitle">Aucun poêle Open-Firenet détecté</h3>
           <p data-i18n="emptyDevicesDesc">Vérifiez que votre clé est allumée et connectée au même réseau Wi-Fi que cet ordinateur.</p>
           <div class="empty-actions">
             <button id="empty-btn-retry" class="btn btn-primary">
-              <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="emptyBtnRetryScan">Relancer la recherche</span>
+              <span class="btn-icon" data-icon="refresh-cw"></span> <span class="btn-label" data-i18n="emptyBtnRetryScan">Relancer la recherche</span>
             </button>
             <button id="empty-btn-wifi" class="btn btn-secondary">
-              <span class="btn-icon">📶</span> <span data-i18n="emptyBtnWifiSetup">Configurer le Wi-Fi via USB</span>
+              <span class="btn-icon" data-icon="wifi"></span> <span data-i18n="emptyBtnWifiSetup">Configurer le Wi-Fi via USB</span>
             </button>
           </div>
         </div>
@@ -128,7 +128,7 @@
 
           <div class="action-row">
             <button id="btn-start-ota" class="btn btn-primary btn-lg">
-              <span class="btn-icon">🚀</span> <span data-i18n="btnStartOta">Lancer la mise à jour OTA</span>
+              <span class="btn-icon" data-icon="rocket"></span> <span data-i18n="btnStartOta">Lancer la mise à jour OTA</span>
             </button>
           </div>
 
@@ -149,7 +149,7 @@
             <p data-i18n="usbDesc">Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
           </div>
           <button id="btn-refresh-ports" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshPorts">Actualiser les ports</span>
+            <span class="btn-icon" data-icon="refresh-cw"></span> <span class="btn-label" data-i18n="btnRefreshPorts">Actualiser les ports</span>
           </button>
         </div>
 
@@ -165,14 +165,14 @@
             <label data-i18n="labelUsbMode">Type d'opération USB :</label>
             <div class="mode-toggle-group">
               <button type="button" id="usb-mode-update" class="mode-btn active" data-mode="update">
-                <span class="mode-icon">🔄</span>
+                <span class="mode-icon" data-icon="refresh-cw"></span>
                 <div class="mode-text">
                   <span class="mode-title" data-i18n="usbModeUpdateTitle">Mise à jour (Conserver la config)</span>
                   <span class="mode-desc" data-i18n="usbModeUpdateDesc">Préserve vos identifiants Wi-Fi et paramètres NVS</span>
                 </div>
               </button>
               <button type="button" id="usb-mode-factory" class="mode-btn" data-mode="factory">
-                <span class="mode-icon">⚠️</span>
+                <span class="mode-icon" data-icon="alert-triangle"></span>
                 <div class="mode-text">
                   <span class="mode-title" data-i18n="usbModeFactoryTitle">Reset complet (Image Usine)</span>
                   <span class="mode-desc" data-i18n="usbModeFactoryDesc">Écrase toute la mémoire flash (reconfiguration requise)</span>
@@ -198,7 +198,7 @@
 
           <div class="action-row">
             <button id="btn-start-usb-flash" class="btn btn-primary btn-lg">
-              <span class="btn-icon">⚡</span> <span data-i18n="btnStartUsbFlash">Flasher la clé USB</span>
+              <span class="btn-icon" data-icon="zap"></span> <span data-i18n="btnStartUsbFlash">Flasher la clé USB</span>
             </button>
           </div>
 
@@ -240,7 +240,7 @@
 
           <div class="action-row">
             <button id="btn-send-wifi" class="btn btn-primary btn-lg">
-              <span class="btn-icon">💾</span> <span data-i18n="btnSendWifi">Enregistrer le Wi-Fi dans la clé</span>
+              <span class="btn-icon" data-icon="save"></span> <span data-i18n="btnSendWifi">Enregistrer le Wi-Fi dans la clé</span>
             </button>
           </div>
           <p id="wifi-status-text" class="status-msg mt-3"></p>
@@ -255,7 +255,7 @@
             <p data-i18n="releasesDesc">Historique des publications officielles sur GitHub vérifiées par Minisign.</p>
           </div>
           <button id="btn-refresh-releases" class="btn btn-secondary">
-            <span class="btn-icon">🔄</span> <span class="btn-label" data-i18n="btnRefreshReleases">Recharger</span>
+            <span class="btn-icon" data-icon="refresh-cw"></span> <span class="btn-label" data-i18n="btnRefreshReleases">Recharger</span>
           </button>
         </div>
 
@@ -276,7 +276,7 @@
   <div id="confirm-modal" class="modal-overlay hidden">
     <div class="card modal-dialog">
       <div class="modal-header">
-        <span id="modal-icon" class="modal-icon">⚡</span>
+        <span id="modal-icon" class="modal-icon" data-icon="zap"></span>
         <h3 id="modal-title" data-i18n="modalConfirmTitle">Confirmation du flashage USB</h3>
       </div>
       <div class="modal-body">
@@ -298,7 +298,7 @@
       <div class="modal-actions">
         <button id="modal-btn-cancel" class="btn btn-secondary" data-i18n="modalBtnCancel">Annuler</button>
         <button id="modal-btn-confirm" class="btn btn-primary">
-          <span id="modal-confirm-icon" class="btn-icon">⚡</span> <span id="modal-confirm-label" data-i18n="modalBtnConfirm">Confirmer et flasher</span>
+          <span id="modal-confirm-icon" class="btn-icon" data-icon="zap"></span> <span id="modal-confirm-label" data-i18n="modalBtnConfirm">Confirmer et flasher</span>
         </button>
       </div>
     </div>
