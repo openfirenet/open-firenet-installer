@@ -21,6 +21,25 @@
   padding: 0;
 }
 
+/* Inline Lucide icons: size to the surrounding text and inherit its color,
+   the same way the emoji they replaced used to behave. */
+svg.lucide {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+
+/* Semantic icon colors: everything else stays neutral (inherits the
+   surrounding text/button color) -- only warning and success get tinted. */
+.mode-icon[data-icon="alert-triangle"] {
+  color: var(--danger-red);
+}
+
+.icon-success {
+  color: var(--success-green);
+}
+
 body {
   background-color: var(--bg-dark);
   color: var(--text-main);
@@ -447,6 +466,40 @@ select option:checked, select option:hover {
 
 .action-row {
   margin-top: 10px;
+}
+
+/* Firmware source toggle (release vs local file) -- compact segmented
+   control, same active/hover language as .tab-btn / .mode-btn. */
+.source-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.source-toggle-btn {
+  flex: 1;
+  padding: 8px 16px;
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.source-toggle-btn:hover {
+  background: #111827;
+  border-color: rgba(249, 115, 22, 0.4);
+  color: var(--text-main);
+}
+
+.source-toggle-btn.active {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: var(--primary-orange);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.15);
 }
 
 /* USB Mode Toggle Buttons */
