@@ -349,7 +349,18 @@ async function main() {
 
     for (const item of captures) {
       if (item.prepare) {
-        await sendCdp('Runtime.evaluate', { expression: item.prepare });
+        // Wrapped in an IIFE: Runtime.evaluate runs against the page's real
+        // global scope, and separate evaluate calls share that scope -- a
+        // bare `const tab = ...` in each prepare script collides with the
+        // previous capture's `const tab`, throwing a silent SyntaxError that
+        // skips the whole script (tab never switches, next screenshot is a
+        // byte-for-byte duplicate of the previous one).
+        const result = await sendCdp('Runtime.evaluate', {
+          expression: `(() => {\n${item.prepare}\n})()`,
+        });
+        if (result && result.exceptionDetails) {
+          console.error(`  ⚠ prepare script failed for ${item.name}:`, result.exceptionDetails.text);
+        }
         await new Promise((r) => setTimeout(r, 500));
       }
 
