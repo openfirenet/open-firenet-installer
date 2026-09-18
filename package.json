@@ -1,12 +1,13 @@
 {
   "name": "open-firenet-installer",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "screenshots": "node scripts/generate_screenshots.js",
     "tauri": "tauri"
   },
   "dependencies": {
