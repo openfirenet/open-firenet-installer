@@ -205,13 +205,16 @@ ok "src-tauri/Cargo.toml synchronisé (${CLEAN_VER})."
 
 # 7.4 Rebuild frontend & synchronisation Cargo.lock
 info "Reconstruction du frontend et synchronisation Cargo.lock..."
-npm run build >/dev/null
+npm run build >/dev/null || fatal "Le build frontend (npm run build) a échoué après le bump de version !"
 (cd src-tauri && cargo check --quiet 2>/dev/null || true)
 ok "Build frontend et Cargo.lock synchronisés."
 
 # 7.5 Commit automatique du bump de version
 info "Commit automatique de la version ${TARGET_VERSION}..."
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml Cargo.lock src-tauri/Cargo.lock dist/ 2>/dev/null || true
+# Note: Cargo.lock lives at the repo root (not src-tauri/), and dist/ is gitignored
+# (build output, not versioned) — do not add either, a single unmatched pathspec
+# makes `git add` stage nothing at all, silently skipping the commit below.
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml Cargo.lock
 if ! git diff --cached --quiet; then
   git commit -m "chore(release): bump version to ${TARGET_VERSION}" --author="openfirenet <openfirenet@lestang.net>"
   info "Push du commit sur origin/${CURRENT_BRANCH}..."
