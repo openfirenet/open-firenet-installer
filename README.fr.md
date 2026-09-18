@@ -1,6 +1,6 @@
 # 🔥 Open-Firenet Installer
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-green.svg)](#)
 [![Rust](https://img.shields.io/badge/language-Rust-orange.svg)](https://www.rust-lang.org/)
 
@@ -150,4 +150,4 @@ cargo build --release
 
 ## 📄 Licence
 
-Distribué sous licence **Apache-2.0**. Voir [LICENSE](LICENSE) pour plus de détails.
+Distribué sous licence **GNU Affero General Public License v3.0 (AGPL-3.0)**. Voir [LICENSE](LICENSE) pour plus de détails.
