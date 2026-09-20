@@ -829,7 +829,7 @@ btnSendWifi.addEventListener("click", async () => {
   wifiStatusText.textContent = t("statusSearching");
 
   try {
-    await invoke("configure_wifi", { port, ssid, pass });
+    await invoke("configure_wifi", { port, ssid, password: pass });
     wifiStatusText.textContent = t("wifiConfigSuccess");
     alert(t("wifiConfigSuccess"));
   } catch (err) {
