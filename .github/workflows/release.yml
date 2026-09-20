@@ -84,6 +84,13 @@ jobs:
       - name: Build Frontend
         run: npm run build
 
+      - name: Cache APT packages
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-release-${{ runner.os }}
+
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
