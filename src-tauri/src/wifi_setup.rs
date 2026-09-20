@@ -33,7 +33,7 @@ impl WifiSetup {
             .open()
             .context("Impossible d'ouvrir le port série")?;
 
-        let cmd = format!("WIFI_SET:ssid={};pass={};\n", ssid, password);
+        let cmd = format!("SETWIFI:{}:{}\n", ssid, password);
         port.write_all(cmd.as_bytes())?;
         port.flush()?;
         Ok(())
