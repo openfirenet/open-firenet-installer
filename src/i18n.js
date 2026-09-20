@@ -81,6 +81,8 @@ export const translations = {
     labelUsbLocalFile: "Binaire factory local (.bin) :",
     btnStartUsbFlash: "Flasher la clé USB",
     flashingInProgress: "Flashage en cours...",
+    usbNativeHintTitle: "Cartes à USB natif (M5Stamp S3, XIAO ESP32-S3) :",
+    usbNativeHintDesc: "Si la connexion échoue, maintenez le bouton BOOT enfoncé lors du branchement USB. Après le flashage, appuyez sur le bouton RESET pour démarrer.",
 
     // Wi-Fi Config Tab
     wifiTitle: "Configuration Wi-Fi de la clé",
@@ -91,6 +93,8 @@ export const translations = {
     labelWifiPass: "Mot de passe Wi-Fi :",
     btnSendWifi: "Enregistrer le Wi-Fi dans la clé",
     wifiConfigSuccess: "Identifiants Wi-Fi envoyés ! La clé tente la connexion...",
+    wifiNativeHintTitle: "Astuce Wi-Fi :",
+    wifiNativeHintDesc: "Sur les cartes sans puce UART dédiée, vous pouvez aussi configurer le Wi-Fi en vous connectant au point d'accès « Open-Firenet-Setup » (192.168.4.1).",
 
     // Releases Tab
     releasesTitle: "Versions officielles Open-Firenet",
@@ -218,6 +222,8 @@ export const translations = {
     labelUsbLocalFile: "Local factory binary (.bin):",
     btnStartUsbFlash: "Flash USB Dongle",
     flashingInProgress: "Flashing in progress...",
+    usbNativeHintTitle: "Native USB boards (M5Stamp S3, XIAO ESP32-S3):",
+    usbNativeHintDesc: "If connection fails, hold down the BOOT button while plugging in the USB cable. After flashing, press the RESET button to start.",
 
     // Wi-Fi Config Tab
     wifiTitle: "Dongle Wi-Fi Configuration",
@@ -228,6 +234,8 @@ export const translations = {
     labelWifiPass: "Wi-Fi Password:",
     btnSendWifi: "Save Wi-Fi to Dongle",
     wifiConfigSuccess: "Wi-Fi credentials sent! The dongle is attempting to connect...",
+    wifiNativeHintTitle: "Wi-Fi Tip:",
+    wifiNativeHintDesc: "On boards without a dedicated UART chip, you can also configure Wi-Fi by connecting to the \"Open-Firenet-Setup\" access point (192.168.4.1).",
 
     // Releases Tab
     releasesTitle: "Official Open-Firenet Releases",
@@ -355,6 +363,8 @@ export const translations = {
     labelUsbLocalFile: "Lokale Factory-Binärdatei (.bin):",
     btnStartUsbFlash: "USB-Dongle flashen",
     flashingInProgress: "Flashvorgang läuft...",
+    usbNativeHintTitle: "Boards mit nativem USB (M5Stamp S3, XIAO ESP32-S3):",
+    usbNativeHintDesc: "Falls die Verbindung fehlschlägt, halten Sie beim Einstecken des USB-Kabels die BOOT-Taste gedrückt. Drücken Sie nach dem Flashen die RESET-Taste zum Starten.",
 
     // Wi-Fi Config Tab
     wifiTitle: "WLAN-Konfiguration des Dongles",
@@ -365,6 +375,8 @@ export const translations = {
     labelWifiPass: "WLAN-Passwort:",
     btnSendWifi: "WLAN auf Dongle speichern",
     wifiConfigSuccess: "WLAN-Daten gesendet! Der Dongle verbindet sich...",
+    wifiNativeHintTitle: "WLAN-Tipp:",
+    wifiNativeHintDesc: "Auf Boards ohne dedizierten UART-Chip können Sie das WLAN auch über den Access Point „Open-Firenet-Setup“ (192.168.4.1) konfigurieren.",
 
     // Releases Tab
     releasesTitle: "Offizielle Open-Firenet Releases",

@@ -218,6 +218,22 @@ impl CliLang {
         }
     }
 
+    pub fn usb_native_hint(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "💡 Cartes à USB natif (M5Stamp S3, XIAO ESP32-S3) : si la connexion échoue, maintenez le bouton BOOT enfoncé lors du branchement USB.",
+            CliLang::En => "💡 Native USB boards (M5Stamp S3, XIAO ESP32-S3): if connection fails, hold down the BOOT button while plugging in the USB cable.",
+            CliLang::De => "💡 Boards mit nativem USB (M5Stamp S3, XIAO ESP32-S3): falls Verbindung fehlschlägt, halten Sie beim Einstecken die BOOT-Taste gedrückt.",
+        }
+    }
+
+    pub fn usb_post_flash_hint(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "💡 Note : Sur les cartes à USB natif, appuyez sur le bouton RESET pour lancer le nouveau firmware.",
+            CliLang::En => "💡 Note: On native USB boards, press the RESET button to start the new firmware.",
+            CliLang::De => "💡 Hinweis: Drücken Sie bei Boards mit nativem USB die RESET-Taste, um die neue Firmware zu starten.",
+        }
+    }
+
     pub fn ota_updating_to(&self, ip: &str) -> String {
         match self {
             CliLang::Fr => format!("📡 Mise à jour Wi-Fi (OTA) vers {}", ip),
@@ -343,6 +359,14 @@ impl CliLang {
             CliLang::Fr => "Ces informations permettront à la clé de se connecter à votre réseau local.",
             CliLang::En => "This information will allow the dongle to connect to your local network.",
             CliLang::De => "Diese Daten ermöglichen dem Dongle die Verbindung mit Ihrem lokalen Netzwerk.",
+        }
+    }
+
+    pub fn wifi_native_hint(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "💡 Astuce : Sur les cartes sans puce UART dédiée, vous pouvez aussi vous connecter au point d'accès Wi-Fi « Open-Firenet-Setup » (192.168.4.1) pour configurer le réseau.",
+            CliLang::En => "💡 Tip: On boards without a dedicated UART chip, you can also connect to the \"Open-Firenet-Setup\" Wi-Fi access point (192.168.4.1) to configure the network.",
+            CliLang::De => "💡 Tipp: Auf Boards ohne dedizierten UART-Chip können Sie das Netzwerk auch über den WLAN-Access-Point „Open-Firenet-Setup“ (192.168.4.1) einrichten.",
         }
     }
 
