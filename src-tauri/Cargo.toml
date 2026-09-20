@@ -25,3 +25,4 @@ hex = "0.4"
 serialport = "4.3"
 minisign-verify = "0.2.5"
 md-5 = "0.11.0"
+espflash = { version = "=3.3.0", default-features = false, features = ["serialport"] }

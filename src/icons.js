@@ -17,6 +17,7 @@ import globe from "lucide-static/icons/globe.svg?raw";
 import lock from "lucide-static/icons/lock.svg?raw";
 import fileText from "lucide-static/icons/file-text.svg?raw";
 import folderOpen from "lucide-static/icons/folder-open.svg?raw";
+import info from "lucide-static/icons/info.svg?raw";
 
 const ICONS = {
   search,
@@ -36,6 +37,7 @@ const ICONS = {
   lock,
   "file-text": fileText,
   "folder-open": folderOpen,
+  info,
 };
 
 export function icon(name) {

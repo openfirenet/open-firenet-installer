@@ -1315,3 +1315,45 @@ select option:checked, select option:hover {
   margin-top: 6px;
 }
 
+/* Callout hint box */
+.hint-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(249, 115, 22, 0.07);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.hint-box .hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-orange);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hint-box .hint-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.hint-box .hint-text {
+  flex: 1;
+}
+
+.hint-box strong {
+  color: #fff;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.hint-box span {
+  color: var(--text-muted);
+}
+

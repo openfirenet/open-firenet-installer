@@ -225,6 +225,7 @@ fn cmd_scan(subnet: Option<String>, lang: CliLang) -> Result<()> {
 
 fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String>, lang: CliLang) -> Result<()> {
     println!("{}", lang.flash_usb_title().bold());
+    println!("{}\n", lang.usb_native_hint().dimmed());
 
     let selected_port = choose_serial_port(port, lang)?;
     let bin_path = if let Some(f) = file {
@@ -234,6 +235,7 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     };
 
     SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, |_pct, _msg| {})?;
+    println!("\n{}", lang.usb_post_flash_hint().cyan());
     Ok(())
 }
 
@@ -261,7 +263,7 @@ fn choose_serial_port(explicit: Option<String>, lang: CliLang) -> Result<String>
     }
     let ports = SerialFlasher::list_ports()?;
     if ports.is_empty() {
-        anyhow::bail!("{}", lang.no_serial_port_found());
+        anyhow::bail!("{}\n{}", lang.no_serial_port_found(), lang.usb_native_hint().dimmed());
     }
 
     let port_items: Vec<String> = ports.iter()

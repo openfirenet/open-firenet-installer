@@ -51,6 +51,12 @@ Les binaires et paquets pré-compilés sont disponibles sur la page des [**Relea
 > # Déconnectez-vous et reconnectez-vous pour que le changement prenne effet
 > ```
 
+> [!NOTE]
+> **Cartes à USB natif (M5Stamp S3, Seeed Studio XIAO ESP32-S3)** :
+> - **Passage en mode bootloader** : Si la connexion au port série échoue, maintenez enfoncé le bouton physique **BOOT** tout en branchant le câble USB.
+> - **Redémarrage après flash** : Les cartes sans pont USB-UART dédié ne redémarrent pas automatiquement via DTR/RTS. Appuyez sur le bouton physique **RESET** de la carte une fois le flashage terminé pour démarrer Open-Firenet.
+> - **Configuration Wi-Fi alternative** : Sur les cartes sans puce UART dédiée, vous pouvez aussi configurer le Wi-Fi en vous connectant directement au point d'accès de secours **`Open-Firenet-Setup`** (`192.168.4.1`).
+
 ---
 
 ### Mode Interface Graphique (GUI - Recommandé)

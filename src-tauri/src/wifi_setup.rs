@@ -11,6 +11,7 @@ impl WifiSetup {
     pub fn prompt_and_configure(port_name: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
         println!("\n{}", lang.wifi_setup_title().cyan().bold());
         println!("{}", lang.wifi_setup_desc());
+        println!("{}\n", lang.wifi_native_hint().dimmed());
 
         let ssid: String = Input::new()
             .with_prompt(lang.wifi_ssid_prompt())
