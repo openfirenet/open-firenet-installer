@@ -495,9 +495,15 @@ macro_rules! tr {
 /// Texts of the flashing, download and discovery code. They are shown by the command line and, through the
 /// progress and error messages, by the window: both pass the user's language.
 impl CliLang {
-    /// Language chosen in the window ("fr", "en", "de", "it"); French when it is missing or unknown.
+    /// Language chosen in the window ("fr", "en", "de", "it"). A language the window has but this file does not
+    /// have yet gets English.
     pub fn from_window(lang: Option<&str>) -> Self {
-        lang.map(Self::from_str).unwrap_or_default()
+        match lang.map(|l| l.trim().to_lowercase()).as_deref() {
+            Some("fr") => CliLang::Fr,
+            Some("de") => CliLang::De,
+            Some("it") => CliLang::It,
+            _ => CliLang::En,
+        }
     }
 
     // --- files -------------------------------------------------------------------------------------------------
@@ -1095,7 +1101,9 @@ mod tests {
         assert_eq!(CliLang::from_str("en"), CliLang::En);
         assert_eq!(CliLang::from_str("xx"), CliLang::Fr);
         assert_eq!(CliLang::from_window(Some("it")), CliLang::It);
-        assert_eq!(CliLang::from_window(None), CliLang::Fr);
+        assert_eq!(CliLang::from_window(Some("fr")), CliLang::Fr);
+        assert_eq!(CliLang::from_window(Some("es")), CliLang::En);
+        assert_eq!(CliLang::from_window(None), CliLang::En);
     }
 
     #[test]
