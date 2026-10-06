@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
-import { t, setLanguage, getLang, errorText } from "./i18n.js";
+import { t, setLanguage, getLang } from "./i18n.js";
 import { renderMarkdown } from "./markdown.js";
 import { icon, hydrateIcons } from "./icons.js";
 
@@ -273,7 +273,7 @@ async function runScan() {
   devicesContainer.innerHTML = "";
 
   try {
-    discoveredDevices = await invoke("scan_network");
+    discoveredDevices = await invoke("scan_network", { lang: getLang() });
     renderDevices(discoveredDevices);
     // Pre-fill the OTA IP field with the detected stove, but don't clobber
     // anything the user already typed in there themselves.
@@ -386,7 +386,7 @@ function renderDevices(devices) {
   card.querySelector(".btn-open-web").addEventListener("click", async () => {
     const url = `http://${d.ip}/`;
     try {
-      await invoke("open_browser_url", { url });
+      await invoke("open_browser_url", { url, lang: getLang() });
     } catch (err) {
       window.open(url, "_blank");
     }
@@ -418,7 +418,7 @@ async function loadReleases() {
   `;
 
   try {
-    availableReleases = await invoke("get_releases");
+    availableReleases = await invoke("get_releases", { lang: getLang() });
     populateReleaseDropdowns(availableReleases);
     renderReleasesList(availableReleases);
   } catch (err) {
@@ -616,7 +616,7 @@ async function refreshPorts() {
   wifiPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
 
   try {
-    detectedPorts = await invoke("list_serial_ports");
+    detectedPorts = await invoke("list_serial_ports", { lang: getLang() });
     usbPortSelect.innerHTML = "";
     wifiPortSelect.innerHTML = "";
 
@@ -677,6 +677,7 @@ async function doOtaUpdate() {
       ip,
       releaseTag: tag || null,
       customFile: localFile,
+      lang: getLang(),
     });
     otaProgressBar.style.width = "100%";
     otaStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusOtaOnline")}`;
@@ -686,8 +687,8 @@ async function doOtaUpdate() {
     }, 400);
   } catch (err) {
     console.error("Erreur OTA :", err);
-    otaStatusText.textContent = `${t("alertErrorPrefix")} ${errorText(err)}`;
-    alert(`${t("alertErrorPrefix")} ${errorText(err)}`);
+    otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
+    alert(`${t("alertErrorPrefix")} ${err}`);
   } finally {
     // Clear the picked file so a later attempt in "file" mode doesn't
     // silently reuse a stale path.
@@ -763,6 +764,7 @@ async function doUsbFlash() {
       releaseTag: tag || null,
       customFile: localFile,
       mode: selectedUsbMode,
+      lang: getLang(),
     });
     usbProgressBar.style.width = "100%";
     usbStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusFlashingSuccess")}`;
@@ -851,7 +853,7 @@ btnSendWifi.addEventListener("click", async () => {
   wifiStatusText.textContent = t("statusSearching");
 
   try {
-    await invoke("configure_wifi", { port, ssid, password: pass });
+    await invoke("configure_wifi", { port, ssid, password: pass, lang: getLang() });
     wifiStatusText.textContent = t("wifiConfigSuccess");
     alert(t("wifiConfigSuccess"));
   } catch (err) {
@@ -909,7 +911,7 @@ document.addEventListener("click", async (e) => {
     if (url.startsWith("http://") || url.startsWith("https://")) {
       e.preventDefault();
       try {
-        await invoke("open_browser_url", { url });
+        await invoke("open_browser_url", { url, lang: getLang() });
       } catch (err) {
         console.error("Erreur ouverture navigateur natif :", err);
         window.open(url, "_blank");

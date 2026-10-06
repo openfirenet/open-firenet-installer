@@ -1,9 +1,5 @@
-mod cli_i18n;
-mod discovery;
-mod flasher_ota;
-mod flasher_serial;
-mod github;
-mod wifi_setup;
+// The modules live in the library, which the window uses too: declaring them here again would compile them twice.
+use open_firenet_installer::{cli_i18n, discovery, flasher_ota, flasher_serial, github, wifi_setup};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -29,27 +25,27 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// Lancer l'interface graphique (GUI) / Launch Graphical User Interface
+    /// Open the window
     #[arg(long)]
     gui: bool,
 
-    /// Forcer le mode menu interactif dans le terminal / Force interactive CLI terminal menu
+    /// Use the interactive menu in the terminal
     #[arg(long)]
     cli: bool,
 
-    /// Langue de la CLI / CLI Language (fr, en, de)
+    /// Language of the texts: fr, en, de or it (default: the system's, else French)
     #[arg(short, long)]
     lang: Option<String>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Scanner le réseau local pour détecter la clé Open Firenet
+    /// Scan the local network for Open Firenet dongles
     Scan {
         #[arg(short, long)]
         subnet: Option<String>,
     },
-    /// Flasher la clé en USB série (ROM bootloader)
+    /// Flash the dongle over USB (first flash or reinstall)
     Flash {
         #[arg(short, long)]
         port: Option<String>,
@@ -58,7 +54,7 @@ enum Commands {
         #[arg(short, long)]
         release: Option<String>,
     },
-    /// Mettre à jour la clé via Wi-Fi (OTA)
+    /// Update the dongle over Wi-Fi
     Ota {
         #[arg(short, long)]
         ip: String,
@@ -67,14 +63,14 @@ enum Commands {
         #[arg(short, long)]
         release: Option<String>,
     },
-    /// Configurer les identifiants Wi-Fi via le port USB
+    /// Set the dongle's Wi-Fi over USB
     WifiSetup {
         #[arg(short, long)]
         port: Option<String>,
     },
-    /// Lister les versions officielles sur GitHub
+    /// List the releases published on GitHub
     ListReleases,
-    /// Ouvrir le moniteur série
+    /// Open the serial monitor
     Monitor {
         #[arg(short, long)]
         port: Option<String>,
@@ -118,14 +114,6 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Puts a wireless update failure in the user's language; any other error is kept as it is.
-fn localize_ota_error(error: anyhow::Error, lang: CliLang) -> anyhow::Error {
-    match error.downcast_ref::<flasher_ota::OtaFailure>() {
-        Some(failure) => anyhow::anyhow!(lang.ota_failure(failure)),
-        None => error,
-    }
-}
-
 /// In the menu, a failed action is shown and the menu stays: returning the error would end the program, and on
 /// Windows the window closes before the message can be read.
 fn report_menu_error(result: Result<()>) {
@@ -139,11 +127,7 @@ fn run_interactive_menu(mut lang: CliLang) -> Result<()> {
         print_banner(lang);
 
         let choices = lang.menu_choices();
-        let lang_switch_opt = match lang {
-            CliLang::Fr => "🌐 8. Changer de langue / Switch Language",
-            CliLang::En => "🌐 8. Switch Language / Changer de langue",
-            CliLang::De => "🌐 8. Sprache wechseln / Switch Language",
-        };
+        let lang_switch_opt = lang.switch_language_choice();
 
         let mut menu_items = choices.to_vec();
         menu_items.push(lang_switch_opt);
@@ -168,20 +152,22 @@ fn run_interactive_menu(mut lang: CliLang) -> Result<()> {
                 break;
             }
             7 => {
-                let lang_opts = &["🇫🇷 Français", "🇬🇧 English", "🇩🇪 Deutsch"];
+                let lang_opts = &["🇫🇷 Français", "🇬🇧 English", "🇩🇪 Deutsch", "🇮🇹 Italiano"];
                 let chosen = Select::new()
-                    .with_prompt("Choisir la langue / Select language / Sprache wählen :")
+                    .with_prompt("Choisir la langue / Select language / Sprache wählen / Scegli la lingua:")
                     .items(lang_opts)
                     .default(match lang {
                         CliLang::Fr => 0,
                         CliLang::En => 1,
                         CliLang::De => 2,
+                        CliLang::It => 3,
                     })
                     .interact()?;
                 lang = match chosen {
                     0 => CliLang::Fr,
                     1 => CliLang::En,
                     2 => CliLang::De,
+                    3 => CliLang::It,
                     _ => CliLang::Fr,
                 };
                 continue;
@@ -202,7 +188,7 @@ fn cmd_scan(subnet: Option<String>, lang: CliLang) -> Result<()> {
     println!("{}", lang.scan_searching().bold());
 
     // 1. Essai mDNS
-    let mut found = NetworkScanner::probe_mdns_hosts();
+    let mut found = NetworkScanner::probe_mdns_hosts(lang);
 
     // 2. Essai subnet si non trouvé ou demandé
     if found.is_empty() {
@@ -213,7 +199,7 @@ fn cmd_scan(subnet: Option<String>, lang: CliLang) -> Result<()> {
         };
 
         for prefix in prefixes {
-            let res = NetworkScanner::scan_subnet(&prefix);
+            let res = NetworkScanner::scan_subnet(&prefix, lang);
             found.extend(res);
             if !found.is_empty() { break; }
         }
@@ -250,7 +236,7 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
         choose_or_download_firmware(true, release, lang)?
     };
 
-    SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, |_pct, _msg| {})?;
+    SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, lang, |_pct, _msg| {})?;
     println!("\n{}", lang.usb_post_flash_hint().cyan());
     Ok(())
 }
@@ -264,7 +250,7 @@ fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, lang: CliLa
         choose_or_download_firmware(false, release, lang)?
     };
 
-    OtaFlasher::flash_arduino_ota(ip, &bin_path, |_pct, _msg| {}).map_err(|e| localize_ota_error(e, lang))?;
+    OtaFlasher::flash_arduino_ota(ip, &bin_path, lang, |_pct, _msg| {})?;
     Ok(())
 }
 
@@ -277,7 +263,7 @@ fn choose_serial_port(explicit: Option<String>, lang: CliLang) -> Result<String>
     if let Some(p) = explicit {
         return Ok(p);
     }
-    let ports = SerialFlasher::list_ports()?;
+    let ports = SerialFlasher::list_ports(lang)?;
     if ports.is_empty() {
         anyhow::bail!("{}\n{}", lang.no_serial_port_found(), lang.usb_native_hint().dimmed());
     }
@@ -296,17 +282,17 @@ fn choose_serial_port(explicit: Option<String>, lang: CliLang) -> Result<String>
 }
 
 fn interactive_ota(lang: CliLang) -> Result<()> {
-    let mut found = NetworkScanner::probe_mdns_hosts();
+    let mut found = NetworkScanner::probe_mdns_hosts(lang);
     if found.is_empty() {
         for prefix in NetworkScanner::detect_local_prefixes() {
-            found.extend(NetworkScanner::scan_subnet(&prefix));
+            found.extend(NetworkScanner::scan_subnet(&prefix, lang));
             if !found.is_empty() { break; }
         }
     }
 
     let ip = if !found.is_empty() {
         let items: Vec<String> = found.iter()
-            .map(|d| format!("{} (Poêle {}, Version {})", d.ip, d.stove_model, d.firmware_version))
+            .map(|d| lang.dongle_summary(&d.ip, &d.stove_model, &d.firmware_version))
             .collect();
         let idx = Select::new()
             .with_prompt(lang.select_dongle_to_update())
@@ -324,14 +310,14 @@ fn interactive_ota(lang: CliLang) -> Result<()> {
 }
 
 fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang: CliLang) -> Result<PathBuf> {
-    let gh = GitHubClient::new();
+    let gh = GitHubClient::new(lang);
     let cache_dir = GitHubClient::cache_dir();
     std::fs::create_dir_all(&cache_dir)?;
 
     let rel = if let Some(tag) = release_tag {
         let releases = gh.list_releases()?;
         releases.into_iter().find(|r| r.tag_name == tag)
-            .ok_or_else(|| anyhow::anyhow!("Version {} introuvable sur GitHub", tag))?
+            .ok_or_else(|| anyhow::anyhow!(lang.release_not_found(&tag)))?
     } else {
         println!("{}", lang.fetching_releases().dimmed());
         let releases = gh.list_releases().unwrap_or_default();
@@ -388,7 +374,7 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang:
 }
 
 fn cmd_list_releases(lang: CliLang) -> Result<()> {
-    let gh = GitHubClient::new();
+    let gh = GitHubClient::new(lang);
     println!("{}", lang.releases_title().bold());
 
     match gh.list_releases() {
@@ -397,16 +383,16 @@ fn cmd_list_releases(lang: CliLang) -> Result<()> {
         }
         Ok(releases) => {
             for r in releases {
-                let badge = if r.prerelease { "[BÊTA/TEST]".yellow() } else { "[STABLE]".green() };
+                let badge = if r.prerelease { lang.badge_beta().yellow() } else { lang.badge_stable_tag().green() };
                 println!("\n  {} {} - {}", badge, r.tag_name.bold(), r.name.unwrap_or_default());
                 for a in r.assets {
                     let size_mb = a.size as f64 / (1024.0 * 1024.0);
-                    println!("    • {} ({:.2} Mo)", a.name.dimmed(), size_mb);
+                    println!("    • {} ({:.2} {})", a.name.dimmed(), size_mb, lang.megabyte_unit());
                 }
             }
         }
         Err(e) => {
-            println!("{} Impossible de contacter l'API GitHub : {}", "❌".red(), e);
+            println!("{} {}", "❌".red(), lang.github_unreachable(&e.to_string()));
         }
     }
     Ok(())
