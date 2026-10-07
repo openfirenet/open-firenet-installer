@@ -6,6 +6,8 @@ use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+use crate::cli_i18n::CliLang;
+
 const GITHUB_REPO: &str = "openfirenet/open-firenet";
 const USER_AGENT: &str = "OpenFirenet-Installer/0.1.0";
 
@@ -51,11 +53,14 @@ impl Release {
 
 pub struct GitHubClient {
     agent: ureq::Agent,
+    lang: CliLang,
 }
 
 impl GitHubClient {
-    pub fn new() -> Self {
+    /// `lang`: language of the error and progress texts.
+    pub fn new(lang: CliLang) -> Self {
         Self {
+            lang,
             agent: ureq::builder()
                 .user_agent(USER_AGENT)
                 .timeout(std::time::Duration::from_secs(15))
@@ -69,10 +74,10 @@ impl GitHubClient {
         let resp = self.agent.get(&url)
             .set("Accept", "application/vnd.github.v3+json")
             .call()
-            .context("Échec de la requête vers l'API GitHub")?;
+            .context(self.lang.github_request_failed())?;
 
         let releases: Vec<Release> = resp.into_json()
-            .context("Impossible de décoder les releases GitHub")?;
+            .context(self.lang.github_decode_failed())?;
         Ok(releases)
     }
 
@@ -80,7 +85,7 @@ impl GitHubClient {
     pub fn get_latest_release(&self) -> Result<Release> {
         let releases = self.list_releases()?;
         releases.into_iter().find(|r| !r.prerelease)
-            .ok_or_else(|| anyhow!("Aucune release stable trouvée"))
+            .ok_or_else(|| anyhow!(self.lang.no_stable_release()))
     }
 
     #[allow(dead_code)]
@@ -89,12 +94,12 @@ impl GitHubClient {
         let resp = self.agent.get(&url)
             .set("Accept", "application/vnd.github.v3+json")
             .call()
-            .context("Échec de la récupération des branches GitHub")?;
+            .context(self.lang.github_request_failed())?;
 
         #[derive(Deserialize)]
         struct Branch { name: String }
         let branches: Vec<Branch> = resp.into_json()
-            .context("Impossible de parser les branches GitHub")?;
+            .context(self.lang.github_decode_failed())?;
         Ok(branches.into_iter().map(|b| b.name).collect())
     }
 
@@ -105,7 +110,7 @@ impl GitHubClient {
         }
 
         let resp = self.agent.get(url).call()
-            .map_err(|e| anyhow!("Erreur lors du téléchargement de {} : {}", url, e))?;
+            .map_err(|e| anyhow!(self.lang.download_error(url, &e.to_string())))?;
 
         let total_size = resp.header("Content-Length")
             .and_then(|s| s.parse::<u64>().ok())
@@ -118,7 +123,7 @@ impl GitHubClient {
 
         let mut reader = resp.into_reader();
         let mut file = File::create(dest_path)
-            .context("Impossible de créer le fichier de destination")?;
+            .context(self.lang.cannot_create_file())?;
 
         let mut buffer = [0u8; 8192];
         let mut downloaded: u64 = 0;
@@ -131,16 +136,16 @@ impl GitHubClient {
             pb.set_position(downloaded);
         }
 
-        pb.finish_with_message("Téléchargement terminé");
+        pb.finish_with_message(self.lang.download_done());
         Ok(())
     }
 
     /// Télécharge un contenu texte distant (ex: SHA256SUMS ou .minisig)
     pub fn download_string(&self, url: &str) -> Result<String> {
         let resp = self.agent.get(url).call()
-            .map_err(|e| anyhow!("Erreur lors du téléchargement de {} : {}", url, e))?;
+            .map_err(|e| anyhow!(self.lang.download_error(url, &e.to_string())))?;
         resp.into_string()
-            .context("Impossible de lire le contenu texte de la réponse")
+            .context(self.lang.github_decode_failed())
     }
 
     /// Télécharge et valide cryptographiquement l'intégrité et la signature d'un asset
@@ -155,20 +160,20 @@ impl GitHubClient {
         // 2. Si SHA256SUMS est disponible dans la release, vérifier l'intégrité
         if let Some(sha_asset) = release.sha256_asset() {
             let sha256_sums = self.download_string(&sha_asset.browser_download_url)
-                .context("Impossible de télécharger le fichier SHA256SUMS")?;
+                .context(self.lang.checksums_download_failed())?;
 
             // 2a. Si la signature Minisign est présente, vérifier son authenticité
             if let Some(sig_asset) = release.minisig_asset() {
                 let sig_content = self.download_string(&sig_asset.browser_download_url)
-                    .context("Impossible de télécharger la signature SHA256SUMS.minisig")?;
+                    .context(self.lang.signature_download_failed())?;
 
                 let pk = minisign_verify::PublicKey::from_base64(OFFICIAL_PUBLIC_KEY)
-                    .map_err(|e| anyhow!("Clé publique Minisign invalide: {:?}", e))?;
+                    .map_err(|e| anyhow!(self.lang.invalid_public_key(&format!("{:?}", e))))?;
                 let signature = minisign_verify::Signature::decode(&sig_content)
-                    .map_err(|e| anyhow!("Format de signature Minisign invalide: {:?}", e))?;
+                    .map_err(|e| anyhow!(self.lang.invalid_signature(&format!("{:?}", e))))?;
 
                 pk.verify(sha256_sums.as_bytes(), &signature, false)
-                    .map_err(|e| anyhow!("Échec de vérification cryptographique Minisign pour la release {}: {:?}", release.tag_name, e))?;
+                    .map_err(|e| anyhow!(self.lang.signature_check_failed(&release.tag_name, &format!("{:?}", e))))?;
             }
 
             // 2b. Vérifier que le SHA256 du fichier téléchargé correspond bien à la table
@@ -187,10 +192,7 @@ impl GitHubClient {
 
             if !matched {
                 fs::remove_file(&dest).ok();
-                return Err(anyhow!(
-                    "Échec de validation SHA256 ! Le fichier téléchargé ne correspond pas à la somme de contrôle officielle ({})",
-                    computed_hash
-                ));
+                return Err(anyhow!(self.lang.checksum_mismatch(&computed_hash)));
             }
         }
 

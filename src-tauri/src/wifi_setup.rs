@@ -22,17 +22,17 @@ impl WifiSetup {
             .interact()?;
 
         println!("\n{}", lang.wifi_sending(port_name).yellow());
-        Self::send_credentials(port_name, &ssid, &password)?;
+        Self::send_credentials(port_name, &ssid, &password, lang)?;
         println!("{} {}", "✔".green().bold(), lang.wifi_sent_success());
         Ok(())
     }
 
     /// Envoie directement les identifiants Wi-Fi sur le port série
-    pub fn send_credentials(port_name: &str, ssid: &str, password: &str) -> Result<()> {
+    pub fn send_credentials(port_name: &str, ssid: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
         let mut port = serialport::new(port_name, 115200)
             .timeout(Duration::from_millis(500))
             .open()
-            .context("Impossible d'ouvrir le port série")?;
+            .context(lang.cannot_open_serial())?;
 
         let cmd = format!("SETWIFI:{}:{}\n", ssid, password);
         port.write_all(cmd.as_bytes())?;
@@ -47,7 +47,7 @@ impl WifiSetup {
         let mut port = serialport::new(port_name, baud_rate)
             .timeout(Duration::from_millis(100))
             .open()
-            .context("Impossible d'ouvrir le port série")?;
+            .context(lang.cannot_open_serial())?;
 
         let mut buffer = [0u8; 1024];
         loop {

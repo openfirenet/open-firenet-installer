@@ -7,6 +7,8 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
 
+use crate::cli_i18n::CliLang;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DetectedPort {
     pub port_name: String,
@@ -18,19 +20,19 @@ pub struct SerialFlasher;
 
 impl SerialFlasher {
     /// Liste tous les ports séries disponibles et met en évidence les puces Espressif
-    pub fn list_ports() -> Result<Vec<DetectedPort>> {
+    pub fn list_ports(lang: CliLang) -> Result<Vec<DetectedPort>> {
         let ports = serialport::available_ports()
-            .context("Impossible d'énumérer les ports série")?;
+            .context(lang.cannot_list_ports())?;
 
         let mut results = Vec::new();
 
         for p in ports {
-            let mut desc = "Port série générique".to_string();
+            let mut desc = lang.port_generic().to_string();
             let mut is_esp = false;
 
             if let SerialPortType::UsbPort(UsbPortInfo { vid, pid, product, manufacturer, .. }) = &p.port_type {
-                let prod = product.as_deref().unwrap_or("Inconnu");
-                let mfg = manufacturer.as_deref().unwrap_or("Inconnu");
+                let prod = product.as_deref().unwrap_or(lang.unknown());
+                let mfg = manufacturer.as_deref().unwrap_or(lang.unknown());
                 desc = format!("USB: {} ({}) [VID: {:04x}, PID: {:04x}]", prod, mfg, vid, pid);
 
                 // 0x303a = Espressif Systems
@@ -40,7 +42,7 @@ impl SerialFlasher {
                 } else if *vid == 0x1a86 || *vid == 0x10c4 || *vid == 0x0403 {
                     // Adaptateurs USB-Série classiques (CH340, CP2102, FTDI)
                     is_esp = true;
-                    desc = format!("⚡ Adaptateur Série/USB ({})", prod);
+                    desc = lang.port_serial_adapter(prod);
                 }
             }
 
@@ -71,58 +73,54 @@ impl SerialFlasher {
 
     /// Flashe un binaire USB avec l'adresse mémoire offset spécifiée en pur Rust (espflash)
     /// (0x0000 pour factory, 0x10000 pour app update)
-    pub fn flash_usb_bin<F>(port: &str, bin_path: &Path, offset: &str, baud_rate: u32, on_progress: F) -> Result<()>
+    pub fn flash_usb_bin<F>(port: &str, bin_path: &Path, offset: &str, baud_rate: u32, lang: CliLang, on_progress: F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
         if !bin_path.exists() {
-            return Err(anyhow!("Le fichier binaire n'existe pas : {:?}", bin_path));
+            return Err(anyhow!(lang.file_not_found(bin_path)));
         }
 
         let addr = if offset.starts_with("0x") || offset.starts_with("0X") {
             u32::from_str_radix(&offset[2..], 16)
-                .with_context(|| format!("Adresse offset hexadécimale invalide : {}", offset))?
+                .with_context(|| lang.invalid_offset(offset))?
         } else {
             offset.parse::<u32>()
-                .with_context(|| format!("Adresse offset invalide : {}", offset))?
+                .with_context(|| lang.invalid_offset(offset))?
         };
 
         let bin_data = std::fs::read(bin_path)
-            .with_context(|| format!("Impossible de lire le fichier firmware : {:?}", bin_path))?;
+            .with_context(|| lang.cannot_read_firmware(bin_path))?;
 
-        println!("\n{} Début du flashage USB (Rust natif / espflash) sur {} à {} bauds (offset {})...",
-            "🚀".bold(), port.yellow(), baud_rate, offset.magenta());
+        println!("\n{} {}", "🚀".bold(), lang.usb_flash_start(port, baud_rate, offset));
 
-        on_progress(5, "Connexion à la puce ESP32-S3 (Bootloader)...");
+        on_progress(5, lang.usb_connecting_chip());
 
         // 1. Tenter le flashage en pur Rust via espflash
-        match Self::flash_via_espflash(port, addr, &bin_data, baud_rate, &on_progress) {
+        match Self::flash_via_espflash(port, addr, &bin_data, baud_rate, lang, &on_progress) {
             Ok(()) => {
-                println!("{} Flashage USB terminé avec succès via espflash natif !", "✔".green().bold());
-                on_progress(100, "Flashage terminé avec succès !");
+                println!("{} {}", "✔".green().bold(), lang.usb_done());
+                on_progress(100, lang.usb_done());
                 return Ok(());
             }
             Err(e) => {
-                println!("{} Échec du flashage natif espflash : {}", "⚠".yellow(), e);
+                println!("{} {}", "⚠".yellow(), lang.usb_native_failed(&e.to_string()));
 
                 // 2. Si esptool externe est installé sur le système, tenter comme secours
                 if let Some(tool_name) = Self::check_esptool() {
                     let cmd = if tool_name.starts_with("esptool.py") { "esptool.py" } else { "esptool" };
-                    println!("{} Tentative de secours via {}...", "ℹ".blue(), cmd);
-                    on_progress(10, "Tentative de secours via esptool...");
-                    return Self::flash_via_esptool_fallback(cmd, port, bin_path, offset, baud_rate, on_progress);
+                    println!("{} {}", "ℹ".blue(), lang.usb_fallback(cmd));
+                    on_progress(10, &lang.usb_fallback(cmd));
+                    return Self::flash_via_esptool_fallback(cmd, port, bin_path, offset, baud_rate, lang, on_progress);
                 }
 
-                Err(anyhow!(
-                    "Échec du flashage USB : {}\n\nAstuce : Sur les cartes à USB natif (M5Stamp S3, XIAO ESP32-S3), maintenez le bouton BOOT enfoncé lors du branchement USB pour forcer le mode ROM Bootloader.",
-                    e
-                ))
+                Err(anyhow!(lang.usb_flash_failed(&e.to_string())))
             }
         }
     }
 
     /// Flashage pur Rust via la bibliothèque officielle Espressif espflash
-    fn flash_via_espflash<F>(port_name: &str, addr: u32, bin_data: &[u8], baud_rate: u32, on_progress: &F) -> Result<()>
+    fn flash_via_espflash<F>(port_name: &str, addr: u32, bin_data: &[u8], baud_rate: u32, lang: CliLang, on_progress: &F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
@@ -154,7 +152,7 @@ impl SerialFlasher {
         let serial_port = serialport::new(port_name, 115_200)
             .flow_control(serialport::FlowControl::None)
             .open_native()
-            .map_err(|e| anyhow!("Impossible d'ouvrir le port série {} : {}", port_name, e))?;
+            .map_err(|e| anyhow!(lang.cannot_open_port(port_name, &e.to_string())))?;
 
         let is_usb_jtag = port_info.pid == 0x1001;
         let before_reset = if is_usb_jtag {
@@ -163,7 +161,7 @@ impl SerialFlasher {
             ResetBeforeOperation::DefaultReset
         };
 
-        on_progress(10, "Connexion et synchronisation avec la ROM ESP32-S3...");
+        on_progress(10, lang.usb_syncing());
 
         let mut flasher = Flasher::connect(
             serial_port,
@@ -175,13 +173,14 @@ impl SerialFlasher {
             Some(Chip::Esp32s3),
             ResetAfterOperation::HardReset,
             before_reset,
-        ).map_err(|e| anyhow!("Connexion au bootloader impossible ({:?})", e))?;
+        ).map_err(|e| anyhow!(lang.bootloader_connect_failed(&format!("{:?}", e))))?;
 
-        on_progress(20, "ESP32-S3 synchronisé. Écriture en mémoire flash...");
+        on_progress(20, lang.usb_synced_writing());
 
         struct ProgressAdapter<'a, CB> {
             callback: &'a CB,
             total: usize,
+            lang: CliLang,
         }
 
         impl<'a, CB> ProgressCallbacks for ProgressAdapter<'a, CB>
@@ -190,34 +189,35 @@ impl SerialFlasher {
         {
             fn init(&mut self, _addr: u32, total: usize) {
                 self.total = total;
-                (self.callback)(20, "Préparation de la mémoire flash...");
+                (self.callback)(20, self.lang.usb_preparing_flash());
             }
             fn update(&mut self, current: usize) {
                 if self.total > 0 {
                     let pct = ((current as f64 / self.total as f64) * 100.0) as u32;
                     let scaled = 20 + (pct * 78 / 100);
-                    let msg = format!("Écriture flash USB : {}%", pct);
+                    let msg = self.lang.usb_write_progress(pct);
                     (self.callback)(scaled.min(98), &msg);
                 }
             }
             fn finish(&mut self) {
-                (self.callback)(99, "Vérification de l'intégrité MD5... OK");
+                (self.callback)(99, self.lang.integrity_ok());
             }
         }
 
         let mut adapter = ProgressAdapter {
             callback: on_progress,
             total: bin_data.len(),
+            lang,
         };
 
         flasher.write_bin_to_flash(addr, bin_data, Some(&mut adapter))
-            .map_err(|e| anyhow!("Erreur lors de l'écriture flash : {:?}", e))?;
+            .map_err(|e| anyhow!(lang.usb_write_error(&format!("{:?}", e))))?;
 
         Ok(())
     }
 
     /// Secours via esptool externe si installé
-    fn flash_via_esptool_fallback<F>(tool_name: &str, port: &str, bin_path: &Path, offset: &str, baud_rate: u32, on_progress: F) -> Result<()>
+    fn flash_via_esptool_fallback<F>(tool_name: &str, port: &str, bin_path: &Path, offset: &str, baud_rate: u32, lang: CliLang, on_progress: F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
@@ -225,7 +225,7 @@ impl SerialFlasher {
         pb.set_style(ProgressStyle::default_spinner()
             .template("{spinner:.green} {msg}")?);
         pb.enable_steady_tick(std::time::Duration::from_millis(100));
-        pb.set_message("Connexion à l'ESP32-S3 via esptool...");
+        pb.set_message(lang.usb_connecting_chip());
 
         let mut child = Command::new(tool_name)
             .args([
@@ -243,26 +243,26 @@ impl SerialFlasher {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .context("Échec du lancement d'esptool")?;
+            .context(lang.esptool_launch_failed())?;
 
         if let Some(stdout) = child.stdout.take() {
             let reader = BufReader::new(stdout);
             for line in reader.lines().flatten() {
                 if line.contains("Connecting") {
-                    pb.set_message("Connexion à la puce ESP32-S3...");
-                    on_progress(10, "Connexion à la puce ESP32-S3...");
+                    pb.set_message(lang.usb_connecting_chip());
+                    on_progress(10, lang.usb_connecting_chip());
                 } else if line.contains("Writing at") {
                     if let Some(pct) = line.split('(').nth(1).and_then(|s| s.split('%').next()) {
                         if let Ok(pct_val) = pct.trim().parse::<u32>() {
                             let scaled_pct = 20 + (pct_val * 75 / 100);
-                            let msg = format!("Écriture flash USB : {}%", pct_val);
+                            let msg = lang.usb_write_progress(pct_val);
                             pb.set_message(msg.clone());
                             on_progress(scaled_pct.min(98), &msg);
                         }
                     }
                 } else if line.contains("Hash of data verified") {
-                    pb.set_message("Vérification de l'intégrité MD5... OK");
-                    on_progress(99, "Vérification de l'intégrité MD5... OK");
+                    pb.set_message(lang.integrity_ok());
+                    on_progress(99, lang.integrity_ok());
                 }
             }
         }
@@ -271,19 +271,19 @@ impl SerialFlasher {
         pb.finish_and_clear();
 
         if status.success() {
-            println!("{} Flashage USB terminé avec succès via esptool !", "✔".green().bold());
-            on_progress(100, "Flashage terminé avec succès !");
+            println!("{} {}", "✔".green().bold(), lang.usb_done());
+            on_progress(100, lang.usb_done());
             Ok(())
         } else {
-            Err(anyhow!("Le flashage esptool a échoué (code de sortie {})", status))
+            Err(anyhow!(lang.esptool_failed(&status.to_string())))
         }
     }
 
     /// Flashe un binaire complet (factory.bin) à l'adresse 0x0000 sur le port sélectionné
-    pub fn flash_factory_bin<F>(port: &str, bin_path: &Path, baud_rate: u32, on_progress: F) -> Result<()>
+    pub fn flash_factory_bin<F>(port: &str, bin_path: &Path, baud_rate: u32, lang: CliLang, on_progress: F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
-        Self::flash_usb_bin(port, bin_path, "0x0000", baud_rate, on_progress)
+        Self::flash_usb_bin(port, bin_path, "0x0000", baud_rate, lang, on_progress)
     }
 }

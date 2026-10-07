@@ -5,6 +5,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+use crate::cli_i18n::CliLang;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveredDongle {
     pub ip: String,
@@ -49,7 +51,7 @@ pub struct NetworkScanner;
 
 impl NetworkScanner {
     /// Tente de contacter Open Firenet via les noms mDNS par défaut
-    pub fn probe_mdns_hosts() -> Vec<DiscoveredDongle> {
+    pub fn probe_mdns_hosts(lang: CliLang) -> Vec<DiscoveredDongle> {
         let mut results = Vec::new();
         let candidates = ["openfirenet.local:80", "open-firenet.local:80"];
 
@@ -57,7 +59,7 @@ impl NetworkScanner {
             if let Ok(mut addrs) = target.to_socket_addrs() {
                 if let Some(addr) = addrs.next() {
                     let ip = addr.ip().to_string();
-                    if let Some(dongle) = Self::probe_ip(&ip) {
+                    if let Some(dongle) = Self::probe_ip(&ip, lang) {
                         results.push(dongle);
                     }
                 }
@@ -67,7 +69,7 @@ impl NetworkScanner {
     }
 
     /// Sonde une adresse IP spécifique pour vérifier si c'est un dongle Open Firenet
-    pub fn probe_ip(ip: &str) -> Option<DiscoveredDongle> {
+    pub fn probe_ip(ip: &str, lang: CliLang) -> Option<DiscoveredDongle> {
         let socket_addr: SocketAddr = format!("{}:80", ip).parse().ok()?;
         if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(600)).is_err() {
             return None;
@@ -95,7 +97,7 @@ impl NetworkScanner {
                     }
                 }
 
-                let fw_ver_str = fw_ver.unwrap_or_else(|| "Inconnue".to_string());
+                let fw_ver_str = fw_ver.unwrap_or_else(|| lang.version_unknown().to_string());
                 
                 let model = state.model_name
                     .or_else(|| state.stove.as_ref().and_then(|s| s.model_name.clone()))
@@ -103,15 +105,7 @@ impl NetworkScanner {
 
                 let st = state.stove.as_ref()
                     .and_then(|s| s.main_state)
-                    .map(|code| match code {
-                        0 => "Standby",
-                        1 => "Allumage",
-                        2 => "Démarrage",
-                        3 => "Régulation",
-                        4 => "Nettoyage",
-                        5 => "Arrêt",
-                        _ => "Inconnu"
-                    }.to_string())
+                    .map(|code| lang.stove_state(code as i64).to_string())
                     .unwrap_or_else(|| "--".to_string());
 
                 let rssi = state.device.as_ref()
@@ -133,11 +127,11 @@ impl NetworkScanner {
     }
 
     /// Effectue un scan rapide en parallèle sur le sous-réseau local (ex: 192.168.1.1..254)
-    pub fn scan_subnet(base_prefix: &str) -> Vec<DiscoveredDongle> {
+    pub fn scan_subnet(base_prefix: &str, lang: CliLang) -> Vec<DiscoveredDongle> {
         let results = Arc::new(Mutex::new(Vec::new()));
         let mut handles = Vec::new();
 
-        println!("{} {}", "🔍 Scan du sous-réseau :".cyan().bold(), format!("{}.1 - {}.254", base_prefix, base_prefix).yellow());
+        println!("{} {}", lang.scanning_subnet().cyan().bold(), format!("{}.1 - {}.254", base_prefix, base_prefix).yellow());
 
         for i in 1..=254 {
             let ip = format!("{}.{}", base_prefix, i);
@@ -149,7 +143,7 @@ impl NetworkScanner {
                     Err(_) => return,
                 };
                 if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(300)).is_ok() {
-                    if let Some(dongle) = NetworkScanner::probe_ip(&ip) {
+                    if let Some(dongle) = NetworkScanner::probe_ip(&ip, lang) {
                         let mut r = results_clone.lock().unwrap();
                         r.push(dongle);
                     }
