@@ -593,12 +593,69 @@ impl CliLang {
             "Verbindung zum Dongle über WLAN...",
             "Connessione al dongle tramite Wi-Fi...")
     }
-    pub fn ota_auth_required(&self) -> &'static str {
+    pub fn ota_password_required(&self) -> &'static str {
         tr!(self,
-            "La clé a demandé une authentification par mot de passe",
-            "The dongle asked for password authentication",
-            "Der Dongle verlangt eine Passwort-Authentifizierung",
-            "Il dongle ha richiesto un'autenticazione con password")
+            "Cette clé demande son mot de passe de mise à jour.",
+            "This dongle asks for its update password.",
+            "Dieser Dongle verlangt sein Update-Passwort.",
+            "Questo dongle richiede la sua password di aggiornamento.")
+    }
+    pub fn ota_password_wrong(&self) -> &'static str {
+        tr!(self,
+            "Mot de passe de mise à jour refusé par la clé. Si vous l'avez oublié, un flash USB en mode « Reset complet » le supprime.",
+            "The dongle refused the update password. If you forgot it, a USB flash in \"Full Reset\" mode removes it.",
+            "Der Dongle hat das Update-Passwort abgelehnt. Wenn Sie es vergessen haben, entfernt ein USB-Flash im Modus „Kompletter Reset“ es.",
+            "Il dongle ha rifiutato la password di aggiornamento. Se l'hai dimenticata, un flash USB in modalità «Ripristino completo» la rimuove.")
+    }
+    pub fn ota_auth_unsupported(&self) -> &'static str {
+        tr!(self,
+            "Cette clé utilise une ancienne forme d'authentification que l'installeur ne gère pas. Mettez-la à jour par USB.",
+            "This dongle uses an older form of authentication the installer does not handle. Update it over USB.",
+            "Dieser Dongle verwendet eine ältere Authentifizierung, die der Installer nicht unterstützt. Aktualisieren Sie ihn per USB.",
+            "Questo dongle usa una vecchia forma di autenticazione che l'installer non gestisce. Aggiornalo tramite USB.")
+    }
+    pub fn ota_checking_password(&self) -> &'static str {
+        tr!(self,
+            "Vérification du mot de passe par la clé...",
+            "The dongle is checking the password...",
+            "Der Dongle prüft das Passwort...",
+            "Il dongle sta verificando la password...")
+    }
+    pub fn ota_password_prompt(&self) -> &'static str {
+        tr!(self,
+            "Mot de passe de mise à jour de la clé",
+            "Update password of the dongle",
+            "Update-Passwort des Dongles",
+            "Password di aggiornamento del dongle")
+    }
+    pub fn ota_password_set_prompt(&self) -> &'static str {
+        tr!(self,
+            "Nouveau mot de passe de mise à jour (vide pour le retirer)",
+            "New update password (empty to remove it)",
+            "Neues Update-Passwort (leer, um es zu entfernen)",
+            "Nuova password di aggiornamento (vuota per rimuoverla)")
+    }
+    pub fn ota_password_not_confirmed(&self) -> &'static str {
+        tr!(self,
+            "La clé n'a pas confirmé le mot de passe de mise à jour : rien n'a été changé. Vérifiez que le câble est sur le port UART/COM de la carte et que son firmware est en version 4.0 ou plus, puis réessayez.",
+            "The dongle did not confirm the update password: nothing was changed. Check that the cable is on the board's UART/COM port and that its firmware is version 4.0 or later, then try again.",
+            "Der Dongle hat das Update-Passwort nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel am UART/COM-Anschluss der Platine steckt und die Firmware Version 4.0 oder neuer ist, und versuchen Sie es erneut.",
+            "Il dongle non ha confermato la password di aggiornamento: non è stato modificato nulla. Verifica che il cavo sia sulla porta UART/COM della scheda e che il firmware sia in versione 4.0 o successiva, poi riprova.")
+    }
+    pub fn ota_password_sent(&self, removed: bool) -> &'static str {
+        if removed {
+            tr!(self,
+                "Mot de passe de mise à jour retiré. La clé redémarre.",
+                "Update password removed. The dongle is restarting.",
+                "Update-Passwort entfernt. Der Dongle startet neu.",
+                "Password di aggiornamento rimossa. Il dongle si sta riavviando.")
+        } else {
+            tr!(self,
+                "Mot de passe de mise à jour enregistré. La clé redémarre. Il sera demandé à chaque mise à jour sans fil.",
+                "Update password saved. The dongle is restarting. It will be asked at each wireless update.",
+                "Update-Passwort gespeichert. Der Dongle startet neu. Es wird bei jedem drahtlosen Update abgefragt.",
+                "Password di aggiornamento salvata. Il dongle si sta riavviando. Verrà richiesta a ogni aggiornamento tramite Wi-Fi.")
+        }
     }
     pub fn ota_waiting_reply(&self, attempt: u32, of: u32) -> String {
         tr!(self,

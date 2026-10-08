@@ -107,6 +107,7 @@ async fn update_ota_device(
     ip: String,
     release_tag: Option<String>,
     custom_file: Option<String>,
+    password: Option<String>,
     lang: Option<String>,
 ) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
@@ -132,7 +133,7 @@ async fn update_ota_device(
             "percent": 5,
             "message": lang.ota_sending_wifi()
         }));
-        flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path, lang, move |pct, msg| {
+        flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path, password.as_deref(), lang, move |pct, msg| {
             let _ = app_handle.emit("ota-progress", serde_json::json!({
                 "percent": pct,
                 "message": msg
@@ -160,6 +161,21 @@ fn configure_wifi(
     let lang = CliLang::from_window(lang.as_deref());
     wifi_setup::WifiSetup::send_credentials(&port, &ssid, &password, lang).map_err(|e| e.to_string())?;
     Ok(lang.wifi_config_sent().to_string())
+}
+
+/// Whether the bridge at this address asks for an update password; `None` when it could not be asked. The window
+/// shows its password field on `Some(true)` and on `None`.
+#[tauri::command(async)]
+fn ota_password_needed(ip: String) -> Option<bool> {
+    flasher_ota::OtaFlasher::password_state(ip.trim())
+}
+
+/// Sets (or, with an empty text, removes) the password asked for wireless updates, over the serial port.
+#[tauri::command]
+fn set_ota_password(port: String, password: String, lang: Option<String>) -> Result<String, String> {
+    let lang = CliLang::from_window(lang.as_deref());
+    wifi_setup::WifiSetup::send_ota_password(&port, &password, lang).map_err(|e| e.to_string())?;
+    Ok(lang.ota_password_sent(password.is_empty()).to_string())
 }
 
 #[tauri::command]
@@ -200,6 +216,8 @@ pub fn run() {
             flash_usb_device,
             update_ota_device,
             configure_wifi,
+            set_ota_password,
+            ota_password_needed,
             open_browser_url,
             get_app_version
         ])

@@ -62,6 +62,14 @@ enum Commands {
         file: Option<PathBuf>,
         #[arg(short, long)]
         release: Option<String>,
+        /// Update password of the dongle, if one was set (asked for when left out)
+        #[arg(long)]
+        password: Option<String>,
+    },
+    /// Set or remove the password asked for wireless updates (over USB)
+    OtaPassword {
+        #[arg(short, long)]
+        port: Option<String>,
     },
     /// Set the dongle's Wi-Fi over USB
     WifiSetup {
@@ -98,7 +106,8 @@ fn main() -> Result<()> {
     match cli.command {
         Some(Commands::Scan { subnet }) => cmd_scan(subnet, lang)?,
         Some(Commands::Flash { port, file, release }) => cmd_flash(port, file, release, lang)?,
-        Some(Commands::Ota { ip, file, release }) => cmd_ota(&ip, file, release, lang)?,
+        Some(Commands::Ota { ip, file, release, password }) => cmd_ota(&ip, file, release, password, lang)?,
+        Some(Commands::OtaPassword { port }) => cmd_ota_password(port, lang)?,
         Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port, lang)?,
         Some(Commands::ListReleases) => cmd_list_releases(lang)?,
         Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud, lang)?,
@@ -241,7 +250,18 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     Ok(())
 }
 
-fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, lang: CliLang) -> Result<()> {
+fn cmd_ota_password(port: Option<String>, lang: CliLang) -> Result<()> {
+    let selected_port = choose_serial_port(port, lang)?;
+    let password = dialoguer::Password::new()
+        .with_prompt(lang.ota_password_set_prompt())
+        .allow_empty_password(true)
+        .interact()?;
+    WifiSetup::send_ota_password(&selected_port, &password, lang)?;
+    println!("{} {}", "✔".green().bold(), lang.ota_password_sent(password.is_empty()));
+    Ok(())
+}
+
+fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, password: Option<String>, lang: CliLang) -> Result<()> {
     println!("{}", lang.ota_updating_to(ip).bold());
 
     let bin_path = if let Some(f) = file {
@@ -250,7 +270,13 @@ fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, lang: CliLa
         choose_or_download_firmware(false, release, lang)?
     };
 
-    OtaFlasher::flash_arduino_ota(ip, &bin_path, lang, |_pct, _msg| {})?;
+    // The bridge tells whether it asks for a password; it is then typed here, never stored.
+    let password = match password {
+        Some(p) => Some(p),
+        None if OtaFlasher::password_is_set(ip) => Some(dialoguer::Password::new().with_prompt(lang.ota_password_prompt()).interact()?),
+        None => None,
+    };
+    OtaFlasher::flash_arduino_ota(ip, &bin_path, password.as_deref(), lang, |_pct, _msg| {})?;
     Ok(())
 }
 
@@ -306,7 +332,7 @@ fn interactive_ota(lang: CliLang) -> Result<()> {
             .interact_text()?
     };
 
-    cmd_ota(&ip, None, None, lang)
+    cmd_ota(&ip, None, None, None, lang)
 }
 
 fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang: CliLang) -> Result<PathBuf> {

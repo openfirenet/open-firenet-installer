@@ -74,6 +74,31 @@ const emptyBtnWifi = document.getElementById("empty-btn-wifi");
 const footerDongleSummary = document.getElementById("footer-dongle-summary");
 
 const otaIpInput = document.getElementById("ota-ip");
+
+// The update password field is shown only for a bridge that says it has one, or that could not be asked (so a
+// password can still be given). It is asked again each time the address changes.
+let otaPasswordCheck = 0;
+async function refreshOtaPasswordField() {
+  const group = document.getElementById("ota-password-group");
+  const ip = otaIpInput.value.trim();
+  const check = ++otaPasswordCheck;
+  let needed = false;
+  if (ip) {
+    try {
+      needed = (await invoke("ota_password_needed", { ip })) !== false;
+    } catch (err) {
+      needed = true;
+    }
+  }
+  if (check !== otaPasswordCheck) return; // the address changed meanwhile
+  group.classList.toggle("hidden", !needed);
+  if (!needed) document.getElementById("ota-password").value = "";
+}
+let otaPasswordTimer = null;
+otaIpInput.addEventListener("input", () => {
+  clearTimeout(otaPasswordTimer);
+  otaPasswordTimer = setTimeout(refreshOtaPasswordField, 600);
+});
 const btnUseDetectedIp = document.getElementById("btn-use-detected-ip");
 const otaReleaseSelect = document.getElementById("ota-release-select");
 const btnStartOta = document.getElementById("btn-start-ota");
@@ -279,6 +304,7 @@ async function runScan() {
     // anything the user already typed in there themselves.
     if (discoveredDevices.length > 0 && !otaIpInput.value.trim()) {
       otaIpInput.value = discoveredDevices[0].ip;
+      refreshOtaPasswordField();
     }
   } catch (err) {
     console.error("Erreur lors du scan réseau :", err);
@@ -380,6 +406,7 @@ function renderDevices(devices) {
   // Événements boutons de la carte
   card.querySelector(".btn-update-this").addEventListener("click", () => {
     otaIpInput.value = d.ip;
+    refreshOtaPasswordField();
     document.querySelector('[data-tab="tab-ota"]').click();
   });
 
@@ -655,6 +682,7 @@ btnRefreshReleases.addEventListener("click", loadReleases);
 btnUseDetectedIp.addEventListener("click", () => {
   if (discoveredDevices.length > 0) {
     otaIpInput.value = discoveredDevices[0].ip;
+    refreshOtaPasswordField();
   } else {
     alert(t("alertNoStoveDetected"));
   }
@@ -678,6 +706,7 @@ async function doOtaUpdate() {
       releaseTag: tag || null,
       customFile: localFile,
       lang: getLang(),
+      password: document.getElementById("ota-password").value || null,
     });
     otaProgressBar.style.width = "100%";
     otaStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusOtaOnline")}`;
@@ -689,6 +718,7 @@ async function doOtaUpdate() {
     console.error("Erreur OTA :", err);
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
     alert(`${t("alertErrorPrefix")} ${err}`);
+    refreshOtaPasswordField();
   } finally {
     // Clear the picked file so a later attempt in "file" mode doesn't
     // silently reuse a stale path.
@@ -944,3 +974,17 @@ window.addEventListener("DOMContentLoaded", () => {
   loadReleases();
 });
 
+
+// Update password of the dongle: set or removed over USB only (the dongle refuses it over the network).
+document.getElementById("btn-set-otapass")?.addEventListener("click", async () => {
+  const status = document.getElementById("otapass-status-text");
+  const port = wifiPortSelect.value;
+  if (!port) { status.textContent = `${t("alertErrorPrefix")} USB`; return; }
+  status.textContent = t("statusSearching");
+  try {
+    status.textContent = await invoke("set_ota_password", { port, password: document.getElementById("ota-newpass").value, lang: getLang() });
+    document.getElementById("ota-newpass").value = "";
+  } catch (err) {
+    status.textContent = `${t("alertErrorPrefix")} ${err}`;
+  }
+});

@@ -139,6 +139,10 @@ export const translations = {
     alertSelectWifiPort: "Veuillez sélectionner le port USB de la clé.",
     alertFillSsid: "Veuillez saisir le nom de votre réseau Wi-Fi (SSID).",
     alertNoStoveDetected: "Aucun poêle détecté sur le réseau pour le moment. Lancez une recherche d'abord.",
+    labelOtaPassword: "Mot de passe de mise à jour de la clé :",
+    labelOtaNewPass: "Mot de passe de mise à jour (optionnel) :",
+    otaNewPassDesc: "Demandé ensuite à chaque mise à jour sans fil. Laissez vide et validez pour le retirer. Il ne se règle que par USB.",
+    btnSetOtaPass: "Enregistrer le mot de passe de mise à jour",
     alertErrorPrefix: "Erreur :"
   },
 
@@ -282,6 +286,10 @@ export const translations = {
     alertSelectWifiPort: "Please select the dongle USB port.",
     alertFillSsid: "Please enter your Wi-Fi network name (SSID).",
     alertNoStoveDetected: "No stove detected on the network yet. Run a search first.",
+    labelOtaPassword: "Update password of the dongle:",
+    labelOtaNewPass: "Update password (optional):",
+    otaNewPassDesc: "Then asked at each wireless update. Leave empty and save to remove it. It can only be set over USB.",
+    btnSetOtaPass: "Save the update password",
     alertErrorPrefix: "Error:"
   },
 
@@ -405,6 +413,10 @@ export const translations = {
     "alertSelectWifiPort": "Seleziona la porta USB del dongle.",
     "alertFillSsid": "Inserisci il nome della rete Wi-Fi (SSID).",
     "alertNoStoveDetected": "Nessuna stufa ancora rilevata nella rete. Avvia prima una ricerca.",
+    "labelOtaPassword": "Password di aggiornamento del dongle:",
+    "labelOtaNewPass": "Password di aggiornamento (opzionale):",
+    "otaNewPassDesc": "Verrà poi richiesta a ogni aggiornamento tramite Wi-Fi. Lascia vuoto e salva per rimuoverla. Si imposta solo tramite USB.",
+    "btnSetOtaPass": "Salva la password di aggiornamento",
     "alertErrorPrefix": "Errore:"
   },
 
@@ -548,6 +560,10 @@ export const translations = {
     alertSelectWifiPort: "Bitte wählen Sie den USB-Port des Dongles aus.",
     alertFillSsid: "Bitte geben Sie den Namen Ihres WLAN-Netzwerks (SSID) ein.",
     alertNoStoveDetected: "Bisher kein Ofen im Netzwerk erkannt. Bitte zuerst einen Scan starten.",
+    labelOtaPassword: "Update-Passwort des Dongles:",
+    labelOtaNewPass: "Update-Passwort (optional):",
+    otaNewPassDesc: "Wird danach bei jedem drahtlosen Update abgefragt. Leer lassen und speichern, um es zu entfernen. Es lässt sich nur per USB setzen.",
+    btnSetOtaPass: "Update-Passwort speichern",
     alertErrorPrefix: "Fehler:"
   }
 };
