@@ -63,3 +63,5 @@ Pour créer et publier une release de l'installeur, lancez simplement :
 ./scripts/release.sh minor   # ex: v0.1.0 -> v0.2.0
 ./scripts/release.sh major   # ex: v0.1.0 -> v1.0.0
 ```
+
+Le tag poussé lance le workflow de release, qui crée la release GitHub **en brouillon** avec les binaires signés. Dernière étape, à la main : ouvrir le brouillon sur GitHub, ajuster le titre et les notes, puis cliquer sur **Publish release**. Tant qu'elle est en brouillon, la release n'est pas vue comme la dernière version.
