@@ -139,6 +139,11 @@
             </div>
           </div>
 
+          <div class="form-group hidden" id="ota-password-group">
+            <label for="ota-password" data-i18n="labelOtaPassword">Mot de passe de mise à jour de la clé :</label>
+            <input type="password" id="ota-password" autocomplete="off" />
+          </div>
+
           <div class="action-row">
             <button id="btn-start-ota" class="btn btn-primary btn-lg">
               <span class="btn-icon" data-icon="rocket"></span> <span data-i18n="btnStartOta">Lancer la mise à jour OTA</span>
@@ -277,6 +282,19 @@
             </button>
           </div>
           <p id="wifi-status-text" class="status-msg mt-3"></p>
+
+          <hr style="margin:24px 0;border:0;border-top:1px solid rgba(148,163,184,0.25)" />
+          <div class="form-group">
+            <label for="ota-newpass" data-i18n="labelOtaNewPass">Mot de passe de mise à jour (optionnel) :</label>
+            <input type="password" id="ota-newpass" autocomplete="new-password" />
+            <p class="status-msg" data-i18n="otaNewPassDesc">Demandé ensuite à chaque mise à jour sans fil. Laissez vide et validez pour le retirer. Il ne se règle que par USB.</p>
+          </div>
+          <div class="action-row">
+            <button id="btn-set-otapass" class="btn btn-secondary">
+              <span class="btn-icon" data-icon="save"></span> <span data-i18n="btnSetOtaPass">Enregistrer le mot de passe de mise à jour</span>
+            </button>
+          </div>
+          <p id="otapass-status-text" class="status-msg mt-3"></p>
 
           <div class="hint-box">
             <span class="hint-icon" data-icon="info"></span>

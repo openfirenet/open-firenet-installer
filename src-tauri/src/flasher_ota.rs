@@ -25,9 +25,39 @@ impl OtaFlasher {
         if slot == 0 { None } else { Some(slot as usize) }
     }
 
+    /// Answer to the bridge's password challenge, as the update library of the ESP32 Arduino core 3.3 expects it
+    /// (same computation as its espota.py): `cnonce` = SHA-256 of a text unique to this transfer; key = PBKDF2-HMAC-
+    /// SHA256 of the SHA-256 of the password, salted with "nonce:cnonce", 10000 rounds; response = SHA-256 of
+    /// "key:nonce:cnonce". All values are lowercase hexadecimal texts.
+    pub fn auth_response(password: &str, nonce: &str, file_name: &str, content_size: usize, file_md5: &str, ip: &str) -> (String, String) {
+        use sha2::{Digest as _, Sha256};
+        let sha256_hex = |text: &str| hex::encode(Sha256::digest(text.as_bytes()));
+        let cnonce = sha256_hex(&format!("{}{}{}{}", file_name, content_size, file_md5, ip));
+        let password_hash = sha256_hex(password);
+        let salt = format!("{}:{}", nonce, cnonce);
+        let mut key = [0u8; 32];
+        pbkdf2::pbkdf2_hmac::<Sha256>(password_hash.as_bytes(), salt.as_bytes(), 10_000, &mut key);
+        let response = sha256_hex(&format!("{}:{}:{}", hex::encode(key), nonce, cnonce));
+        (cnonce, response)
+    }
+
+    /// Whether the bridge says a password is asked for wireless updates (`device.ota_password_set`, firmware 4.0).
+    pub fn password_is_set(ip: &str) -> bool {
+        Self::password_state(ip).unwrap_or(false)
+    }
+
+    /// The same, telling apart a bridge that could not be asked (`None`) from one that answered. A bridge whose
+    /// firmware is older than 4.0 answers without the field: it has no password.
+    pub fn password_state(ip: &str) -> Option<bool> {
+        let url = format!("http://{}/api/state", ip);
+        let state = ureq::get(&url).timeout(Duration::from_millis(1500)).call().ok()?
+            .into_json::<serde_json::Value>().ok()?;
+        Some(state.get("device").and_then(|d| d.get("ota_password_set")).and_then(|v| v.as_bool()).unwrap_or(false))
+    }
+
     /// Effectue la mise à jour sans fil via le protocole ArduinoOTA en 100% Rust natif
     /// (UDP 3232 pour l'invitation + TCP local pour le streaming du firmware)
-    pub fn flash_arduino_ota<F>(ip: &str, bin_path: &Path, lang: CliLang, on_progress: F) -> Result<()>
+    pub fn flash_arduino_ota<F>(ip: &str, bin_path: &Path, password: Option<&str>, lang: CliLang, on_progress: F) -> Result<()>
     where
         F: Fn(u32, &str) + Send + Sync,
     {
@@ -91,8 +121,33 @@ impl OtaFlasher {
                     if resp.contains("OK") {
                         ack_ok = true;
                         break;
-                    } else if resp.contains("AUTH") {
-                        return Err(anyhow!(lang.ota_auth_required()));
+                    } else if resp.starts_with("AUTH") {
+                        // The bridge asks for its update password: answer its challenge, then wait for its verdict
+                        // (the bridge needs a few seconds to check it).
+                        let nonce = resp.split_whitespace().nth(1).unwrap_or("").to_string();
+                        let password = match password {
+                            Some(p) if !p.is_empty() => p,
+                            _ => return Err(anyhow!(lang.ota_password_required())),
+                        };
+                        if nonce.len() != 64 {
+                            return Err(anyhow!(lang.ota_auth_unsupported()));
+                        }
+                        let file_name = bin_path.to_string_lossy();
+                        let (cnonce, response) = Self::auth_response(password, &nonce, &file_name, content_size, &file_md5, ip);
+                        pb.set_message(lang.ota_checking_password());
+                        on_progress(8, lang.ota_checking_password());
+                        udp_socket.send_to(format!("200 {} {}\n", cnonce, response).as_bytes(), esp_udp_addr)?;
+                        udp_socket.set_read_timeout(Some(Duration::from_secs(12)))?;
+                        let verdict = match udp_socket.recv_from(&mut rx_buf) {
+                            Ok((n, _)) => String::from_utf8_lossy(&rx_buf[..n]).to_string(),
+                            Err(_) => String::new(),
+                        };
+                        udp_socket.set_read_timeout(Some(Duration::from_millis(1500)))?;
+                        if verdict.contains("OK") {
+                            ack_ok = true;
+                            break;
+                        }
+                        return Err(anyhow!(lang.ota_password_wrong()));
                     }
                 }
                 Err(_) => {
@@ -217,5 +272,27 @@ impl OtaFlasher {
         println!("{} {}", "ℹ".yellow(), lang.reconnect_slow());
         on_progress(100, lang.reconnect_slow());
         false
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::OtaFlasher;
+
+    /// Reference values computed with the algorithm of espota.py (ESP32 Arduino core 3.3.11).
+    #[test]
+    fn auth_response_matches_the_reference_client() {
+        let nonce = "272e7733cf2cf0366831fb61101a4e2911a47e5856f8b8051b576b9cc5f1e371";
+        let (cnonce, response) = OtaFlasher::auth_response("correct horse", nonce, "fw.bin", 1_348_720, "cf3e6b8e9d1edf15458ab372b7ab5afc", "192.168.1.93");
+        assert_eq!(cnonce, "12cf54267c312c96b01a9e22a40a213e4a4564ad12909ed0b13bdacf68d767e7");
+        assert_eq!(response, "716588bf93258cbea35062037d16cff0b3be156343e148341750ef7cd28cef65");
+    }
+
+    #[test]
+    fn another_password_gives_another_response() {
+        let nonce = "272e7733cf2cf0366831fb61101a4e2911a47e5856f8b8051b576b9cc5f1e371";
+        let good = OtaFlasher::auth_response("correct horse", nonce, "fw.bin", 1, "x", "1.2.3.4").1;
+        let bad = OtaFlasher::auth_response("correct horsf", nonce, "fw.bin", 1, "x", "1.2.3.4").1;
+        assert_ne!(good, bad);
     }
 }
