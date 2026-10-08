@@ -635,6 +635,13 @@ impl CliLang {
             "Neues Update-Passwort (leer, um es zu entfernen)",
             "Nuova password di aggiornamento (vuota per rimuoverla)")
     }
+    pub fn wifi_not_confirmed(&self) -> &'static str {
+        tr!(self,
+            "La clé n'a pas confirmé la réception du Wi-Fi : rien n'a été changé. Vérifiez que le câble est sur le bon port de la carte et que la clé a bien son firmware, puis réessayez.",
+            "The dongle did not confirm it received the Wi-Fi settings: nothing was changed. Check that the cable is on the right port of the board and that the dongle has its firmware, then try again.",
+            "Der Dongle hat den Empfang der WLAN-Daten nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel am richtigen Anschluss der Platine steckt und der Dongle seine Firmware hat, und versuchen Sie es erneut.",
+            "Il dongle non ha confermato la ricezione del Wi-Fi: non è stato modificato nulla. Verifica che il cavo sia sulla porta giusta della scheda e che il dongle abbia il suo firmware, poi riprova.")
+    }
     pub fn ota_password_not_confirmed(&self) -> &'static str {
         tr!(self,
             "La clé n'a pas confirmé le mot de passe de mise à jour : rien n'a été changé. Vérifiez que le câble est sur le port UART/COM de la carte et que son firmware est en version 4.0 ou plus, puis réessayez.",

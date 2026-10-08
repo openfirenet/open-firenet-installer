@@ -27,30 +27,16 @@ impl WifiSetup {
         Ok(())
     }
 
-    /// Envoie directement les identifiants Wi-Fi sur le port série
-    pub fn send_credentials(port_name: &str, ssid: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
+    /// Sends a command over the serial port until the bridge answers that it has taken it, and tells whether it did.
+    ///
+    /// Opening the port restarts many boards (the serial adapter's DTR/RTS lines drive the reset pin), and a command
+    /// sent while the bridge starts is lost. So the command is sent again, for 15 seconds at most, and nothing is
+    /// reported as done without the bridge's answer.
+    fn send_until_confirmed(port_name: &str, command: &str, confirmation: &str, lang: crate::cli_i18n::CliLang) -> Result<bool> {
         let mut port = serialport::new(port_name, 115200)
             .timeout(Duration::from_millis(500))
             .open()
             .context(lang.cannot_open_serial())?;
-
-        let cmd = format!("SETWIFI:{}:{}\n", ssid, password);
-        port.write_all(cmd.as_bytes())?;
-        port.flush()?;
-        Ok(())
-    }
-
-    /// Sets the password asked for wireless updates, over the serial port; an empty password removes it. The
-    /// bridge only accepts this over USB, never over the network.
-    pub fn send_ota_password(port_name: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
-        let mut port = serialport::new(port_name, 115200)
-            .timeout(Duration::from_millis(500))
-            .open()
-            .context(lang.cannot_open_serial())?;
-        // Opening the port restarts many boards (the serial adapter's DTR/RTS lines drive the reset pin), and a
-        // command sent while the bridge starts is lost. So the command is sent again until the bridge answers
-        // that it has taken it, and nothing is reported as done without that answer.
-        let command = format!("SETOTAPASS:{}\n", password);
         let deadline = Instant::now() + Duration::from_secs(15);
         let mut heard = String::new();
         let mut buffer = [0u8; 512];
@@ -65,12 +51,33 @@ impl WifiSetup {
                     Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
                     Err(e) => return Err(e.into()),
                 }
-                if heard.contains("SETOTAPASS OK") {
-                    return Ok(());
+                if heard.contains(confirmation) {
+                    return Ok(true);
                 }
             }
         }
-        Err(anyhow!(lang.ota_password_not_confirmed()))
+        Ok(false)
+    }
+
+    /// Sends the Wi-Fi name and password over the serial port; the bridge saves them and restarts.
+    pub fn send_credentials(port_name: &str, ssid: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
+        let command = format!("SETWIFI:{}:{}\n", ssid, password);
+        if Self::send_until_confirmed(port_name, &command, "SETWIFI OK", lang)? {
+            Ok(())
+        } else {
+            Err(anyhow!(lang.wifi_not_confirmed()))
+        }
+    }
+
+    /// Sets the password asked for wireless updates, over the serial port; an empty password removes it. The
+    /// bridge only accepts this over USB, never over the network.
+    pub fn send_ota_password(port_name: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
+        let command = format!("SETOTAPASS:{}\n", password);
+        if Self::send_until_confirmed(port_name, &command, "SETOTAPASS OK", lang)? {
+            Ok(())
+        } else {
+            Err(anyhow!(lang.ota_password_not_confirmed()))
+        }
     }
 
     /// Moniteur série pour observer les logs du dongle en temps réel
