@@ -56,9 +56,10 @@ Browse official stable releases and pre-releases, download binaries automaticall
   - **Update Mode** (offset `0x10000`): Updates application firmware while preserving your stored Wi-Fi credentials and configuration.
   - **Full Reset / Factory Mode** (offset `0x0000`): Flashes a complete factory image onto new ESP32-S3 chips or for clean reinstalls.
 - **🔒 Cryptographic Integrity & Security**: Official firmware binaries are verified using **Minisign** digital signatures against the official Open Firenet community public key before flashing.
-- **📶 Guided USB Wi-Fi Setup**: Provision Wi-Fi credentials over serial with a single click or terminal command.
+- **📶 Guided USB Wi-Fi Setup**: Provision Wi-Fi credentials over serial with a single click or terminal command. The installer waits for the dongle's confirmation.
+- **🔑 Update Password** (dongle firmware 4.0 or later): set or remove, over USB, a password that the dongle then asks for at each wireless update. The installer asks for it when the dongle has one.
 - **📟 Embedded Serial Monitor**: Monitor live stove UART dialogue frames and boot logs directly inside your terminal.
-- **🌐 Multilingual**: Built-in support for **English**, **French**, and **German**.
+- **🌐 Multilingual**: Built-in support for **English**, **French**, **German** and **Italian**.
 - **🖥️ Dual Mode (GUI & CLI)**: Automatically launches a sleek, modern Tauri graphical interface in desktop environments, or falls back to an interactive menu / command-line tool in headless/SSH setups.
 
 ---
@@ -155,8 +156,14 @@ open-firenet-installer ota --ip 192.168.1.93
 # Wirelessly update specifying an official GitHub release
 open-firenet-installer ota --ip 192.168.1.93 --release v2.0.1
 
+# Wirelessly update a dongle that has an update password (asked for when left out)
+open-firenet-installer ota --ip 192.168.1.93 --password <password>
+
 # Configure Wi-Fi credentials over USB serial
 open-firenet-installer wifi-setup --port /dev/ttyACM0
+
+# Set or remove the dongle's update password over USB serial (an empty password removes it)
+open-firenet-installer ota-password --port /dev/ttyACM0
 
 # Launch serial monitor at 115200 baud
 open-firenet-installer monitor --port /dev/ttyACM0
