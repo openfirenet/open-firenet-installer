@@ -112,15 +112,56 @@ fn main() -> Result<()> {
         Some(Commands::ListReleases) => cmd_list_releases(lang)?,
         Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud, lang)?,
         None => {
-            if cli.cli || (std::env::var("DISPLAY").is_err() && std::env::var("WAYLAND_DISPLAY").is_err()) {
-                run_interactive_menu(lang)?;
-            } else {
+            let has = |name: &str| std::env::var_os(name).is_some();
+            let window = opens_window(
+                cli.cli,
+                cli.gui,
+                cfg!(target_os = "linux"),
+                has("DISPLAY") || has("WAYLAND_DISPLAY"),
+                has("SSH_CONNECTION") || has("SSH_TTY"),
+            );
+            if window {
+                // Windows gives a double-clicked program a console window of its own: close it, the window is enough.
+                #[cfg(windows)]
+                hide_own_console();
                 open_firenet_installer::run();
+            } else {
+                run_interactive_menu(lang)?;
             }
         }
     }
 
     Ok(())
+}
+
+/// Without a command, whether the window opens (true) or the menu in the terminal (false).
+///
+/// `--cli` and `--gui` decide when given. Otherwise the window is the default, except where there is no screen to
+/// show it on: a Linux session without a display server, or a session opened over SSH. The display variables only
+/// exist on Linux: testing them on every system sent Windows and macOS to the terminal menu.
+fn opens_window(cli_flag: bool, gui_flag: bool, linux: bool, has_display: bool, over_ssh: bool) -> bool {
+    if cli_flag {
+        return false;
+    }
+    if gui_flag {
+        return true;
+    }
+    if over_ssh {
+        return false;
+    }
+    !linux || has_display
+}
+
+/// Detaches the program from its console. Started by a double click, the console belongs to this program alone
+/// and its window closes; started from a terminal, that terminal is left as it is.
+#[cfg(windows)]
+fn hide_own_console() {
+    extern "system" {
+        fn FreeConsole() -> i32;
+    }
+    unsafe {
+        FreeConsole();
+    }
 }
 
 /// In the menu, a failed action is shown and the menu stays: returning the error would end the program, and on
@@ -427,4 +468,36 @@ fn cmd_list_releases(lang: CliLang) -> Result<()> {
 fn cmd_monitor(port: Option<String>, baud: u32, lang: CliLang) -> Result<()> {
     let selected_port = choose_serial_port(port, lang)?;
     WifiSetup::monitor_serial(&selected_port, baud, lang)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::opens_window;
+
+    #[test]
+    fn window_is_the_default_on_windows_and_macos() {
+        // (cli, gui, linux, has_display, over_ssh)
+        assert!(opens_window(false, false, false, false, false));
+    }
+
+    #[test]
+    fn linux_needs_a_display() {
+        assert!(opens_window(false, false, true, true, false));
+        assert!(!opens_window(false, false, true, false, false));
+    }
+
+    #[test]
+    fn a_session_over_ssh_gets_the_menu() {
+        assert!(!opens_window(false, false, false, false, true));
+        assert!(!opens_window(false, false, true, true, true));
+    }
+
+    #[test]
+    fn the_flags_decide() {
+        assert!(!opens_window(true, false, false, false, false)); // --cli on Windows
+        assert!(opens_window(false, true, true, false, false)); // --gui without a display: the user asked
+        assert!(opens_window(false, true, false, false, true)); // --gui over SSH
+        assert!(!opens_window(true, true, true, true, false)); // both: --cli wins
+    }
 }
