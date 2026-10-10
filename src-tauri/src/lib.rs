@@ -151,6 +151,18 @@ fn get_app_version(app: tauri::AppHandle) -> String {
     app.package_info().version.to_string()
 }
 
+/// A newer published version of the installer, if any. Silent when GitHub cannot be reached: the window must
+/// not complain about it at every start without a network.
+#[tauri::command]
+async fn check_installer_update(app: tauri::AppHandle, lang: Option<String>) -> Option<github::InstallerUpdate> {
+    let lang = CliLang::from_window(lang.as_deref());
+    let current = app.package_info().version.to_string();
+    tauri::async_runtime::spawn_blocking(move || GitHubClient::new(lang).newer_installer(&current).ok().flatten())
+        .await
+        .ok()
+        .flatten()
+}
+
 #[tauri::command]
 fn configure_wifi(
     port: String,
@@ -219,7 +231,8 @@ pub fn run() {
             set_ota_password,
             ota_password_needed,
             open_browser_url,
-            get_app_version
+            get_app_version,
+            check_installer_update
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the window");

@@ -10,6 +10,38 @@ use crate::cli_i18n::CliLang;
 
 const GITHUB_REPO: &str = "openfirenet/open-firenet";
 const USER_AGENT: &str = "OpenFirenet-Installer/0.1.0";
+const INSTALLER_REPO: &str = "openfirenet/open-firenet-installer";
+
+/// A published version of the installer newer than the one running.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct InstallerUpdate {
+    pub version: String,
+    pub url: String,
+}
+
+/// "v1.8.1" or "1.8.1" as numbers; None for anything else (a pre-release suffix, a malformed tag).
+fn parse_version(text: &str) -> Option<(u64, u64, u64)> {
+    let mut parts = text.trim().trim_start_matches('v').split('.');
+    let version = (parts.next()?.parse().ok()?, parts.next()?.parse().ok()?, parts.next()?.parse().ok()?);
+    if parts.next().is_some() {
+        return None;
+    }
+    Some(version)
+}
+
+/// The update to offer when `latest_tag` is a version newer than `current`. The page address is built from the
+/// tag once it is known to be a plain version, never taken from the answer of the network.
+pub fn installer_update(latest_tag: &str, current: &str) -> Option<InstallerUpdate> {
+    let latest = parse_version(latest_tag)?;
+    if latest <= parse_version(current)? {
+        return None;
+    }
+    let version = format!("{}.{}.{}", latest.0, latest.1, latest.2);
+    Some(InstallerUpdate {
+        url: format!("https://github.com/{}/releases/tag/v{}", INSTALLER_REPO, version),
+        version,
+    })
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReleaseAsset {
@@ -79,6 +111,23 @@ impl GitHubClient {
         let releases: Vec<Release> = resp.into_json()
             .context(self.lang.github_decode_failed())?;
         Ok(releases)
+    }
+
+    /// The newest published version of the installer when it is newer than `current`. GitHub's "latest" leaves out
+    /// drafts and pre-releases.
+    pub fn newer_installer(&self, current: &str) -> Result<Option<InstallerUpdate>> {
+        #[derive(Deserialize)]
+        struct Latest {
+            tag_name: String,
+        }
+        let url = format!("https://api.github.com/repos/{}/releases/latest", INSTALLER_REPO);
+        let latest: Latest = self.agent.get(&url)
+            .set("Accept", "application/vnd.github.v3+json")
+            .call()
+            .context(self.lang.github_request_failed())?
+            .into_json()
+            .context(self.lang.github_decode_failed())?;
+        Ok(installer_update(&latest.tag_name, current))
     }
 
     #[allow(dead_code)]
@@ -241,5 +290,38 @@ mod tests {
             let result = pk.verify(b"tampered content", &signature, false);
             assert!(result.is_err(), "Verification should fail on tampered content");
         }
+    }
+}
+
+#[cfg(test)]
+mod update_tests {
+    use super::{installer_update, InstallerUpdate};
+
+    #[test]
+    fn a_newer_version_is_offered_with_its_page() {
+        assert_eq!(
+            installer_update("v1.9.0", "1.8.1"),
+            Some(InstallerUpdate {
+                version: "1.9.0".into(),
+                url: "https://github.com/openfirenet/open-firenet-installer/releases/tag/v1.9.0".into(),
+            })
+        );
+        assert!(installer_update("v1.10.0", "1.9.3").is_some()); // numbers, not text: 10 > 9
+        assert!(installer_update("v2.0.0", "1.99.99").is_some());
+    }
+
+    #[test]
+    fn the_same_or_an_older_version_is_not() {
+        assert_eq!(installer_update("v1.8.1", "1.8.1"), None);
+        assert_eq!(installer_update("v1.8.0", "1.8.1"), None);
+        assert_eq!(installer_update("v1.8.1", "v1.8.1"), None);
+    }
+
+    #[test]
+    fn a_tag_that_is_not_a_plain_version_is_ignored() {
+        assert_eq!(installer_update("v2.0.0-rc1", "1.8.1"), None);
+        assert_eq!(installer_update("latest", "1.8.1"), None);
+        assert_eq!(installer_update("v2.0", "1.8.1"), None);
+        assert_eq!(installer_update("v2.0.0/../../evil", "1.8.1"), None);
     }
 }
