@@ -926,6 +926,21 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+/* A newer version of the installer is available */
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--primary-amber);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  font-size: 13px;
+}
+.update-banner.hidden { display: none; }
+
 /* Footer */
 .app-footer {
   padding: 12px 24px;

@@ -246,7 +246,25 @@ function resetTransientUi() {
   }
 }
 
+// Banner "a newer version of the installer is available": filled once GitHub has answered, and again when the
+// language changes.
+let installerUpdate = null;
+let installerVersion = "";
+function renderUpdateBanner() {
+  const banner = document.getElementById("update-banner");
+  if (!banner) return;
+  banner.classList.toggle("hidden", !installerUpdate);
+  if (!installerUpdate) return;
+  document.getElementById("update-banner-text").textContent = t("updateAvailable")
+    .replace("{latest}", installerUpdate.version)
+    .replace("{current}", installerVersion);
+  const button = document.getElementById("update-banner-btn");
+  button.textContent = t("btnGetUpdate");
+  button.onclick = () => invoke("open_browser_url", { url: installerUpdate.url, lang: getLang() }).catch(() => {});
+}
+
 function updateDynamicButtons() {
+  renderUpdateBanner();
   const scanLabel = btnScan ? btnScan.querySelector(".btn-label") : null;
   if (scanLabel) scanLabel.textContent = t("btnScan");
   const portsLabel = btnRefreshPorts ? btnRefreshPorts.querySelector(".btn-label") : null;
@@ -956,6 +974,14 @@ window.addEventListener("DOMContentLoaded", () => {
   setLanguage(getLang());
   updateDynamicButtons();
 
+  // Tell when a newer version of the installer is published (silent without a network).
+  invoke("check_installer_update", { lang: getLang() })
+    .then((update) => {
+      installerUpdate = update || null;
+      renderUpdateBanner();
+    })
+    .catch(() => {});
+
   // Afficher la version de l'application
   invoke("get_app_version")
     .then((ver) => {
@@ -963,6 +989,8 @@ window.addEventListener("DOMContentLoaded", () => {
       if (appVersionEl && ver) {
         appVersionEl.textContent = `v${ver}`;
       }
+      installerVersion = ver || "";
+      renderUpdateBanner();
     })
     .catch((err) => {
       console.warn("Version de l'application non disponible :", err);
