@@ -77,6 +77,13 @@ Pre-compiled standalone binaries and packages are available on the [**GitHub Rel
 | **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64` | Standalone Mach-O arm64 |
 | **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64` | Standalone Mach-O x86_64 |
 
+> [!IMPORTANT]
+> **Your computer may warn you at the first start.** The installer is not signed with a paid publisher certificate, so Windows and macOS do not know it. This is expected.
+> - **Windows**: on the blue "Windows protected your PC" screen (Microsoft Defender SmartScreen), click **More info**, then **Run anyway**.
+> - **macOS**: the file is a plain program. In the Terminal, make it executable (`chmod +x open-firenet-installer-macos-arm64`), then start it. If macOS says it cannot be opened or that its developer cannot be verified, open **System Settings > Privacy & Security** and click **Open Anyway**.
+>
+> To check that the file is the genuine one, compare its SHA-256 with the `SHA256SUMS` file published with each release.
+
 > [!TIP]
 > **Linux users**: Ensure your user belongs to the `dialout` or `uucp` group to access USB serial ports:
 > ```bash
