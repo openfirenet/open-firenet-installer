@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
+pub mod board_probe;
 pub mod cli_i18n;
 pub mod discovery;
 pub mod flasher_ota;
@@ -164,6 +165,16 @@ async fn check_installer_update(app: tauri::AppHandle, lang: Option<String>) -> 
         .flatten()
 }
 
+/// What the board on this port is, read without writing to it: chip, flash size, partition table, and from them
+/// whether it needs the first installation or can be updated.
+#[tauri::command]
+async fn probe_board(port: String, lang: Option<String>) -> Result<board_probe::BoardReport, String> {
+    let lang = CliLang::from_window(lang.as_deref());
+    tauri::async_runtime::spawn_blocking(move || board_probe::probe(&port, lang).map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// The recording in progress, if any: how to stop it and how to hand it a note.
 struct Recording {
     stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
@@ -236,7 +247,8 @@ fn stop_recording() {
     }
 }
 
-#[tauri::command]
+// Waits up to 15 s for the dongle's answer: run off the window's thread, which it froze.
+#[tauri::command(async)]
 fn configure_wifi(
     port: String,
     ssid: String,
@@ -256,7 +268,7 @@ fn ota_password_needed(ip: String) -> Option<bool> {
 }
 
 /// Sets (or, with an empty text, removes) the password asked for wireless updates, over the serial port.
-#[tauri::command]
+#[tauri::command(async)]
 fn set_ota_password(port: String, password: String, lang: Option<String>) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
     wifi_setup::WifiSetup::send_ota_password(&port, &password, lang).map_err(|e| e.to_string())?;
@@ -338,7 +350,8 @@ pub fn run() {
             check_installer_update,
             start_recording,
             add_recording_note,
-            stop_recording
+            stop_recording,
+            probe_board
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the window");

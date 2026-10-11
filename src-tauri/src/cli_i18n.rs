@@ -686,17 +686,17 @@ impl CliLang {
     }
     pub fn wifi_not_confirmed(&self) -> &'static str {
         tr!(self,
-            "La clé n'a pas confirmé la réception du Wi-Fi : rien n'a été changé. Vérifiez que le câble est sur le bon port de la carte et que la clé a bien son firmware, puis réessayez.",
-            "The dongle did not confirm it received the Wi-Fi settings: nothing was changed. Check that the cable is on the right port of the board and that the dongle has its firmware, then try again.",
-            "Der Dongle hat den Empfang der WLAN-Daten nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel am richtigen Anschluss der Platine steckt und der Dongle seine Firmware hat, und versuchen Sie es erneut.",
-            "Il dongle non ha confermato la ricezione del Wi-Fi: non è stato modificato nulla. Verifica che il cavo sia sulla porta giusta della scheda e che il dongle abbia il suo firmware, poi riprova.")
+            "La clé n'a pas confirmé la réception du Wi-Fi : rien n'a été changé. Vérifiez que le câble est sur le bon port de la clé et qu'elle a bien son firmware, puis réessayez.",
+            "The dongle did not confirm it received the Wi-Fi settings: nothing was changed. Check that the cable is on its right port and that it has its firmware, then try again.",
+            "Der Dongle hat den Empfang der WLAN-Daten nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel an seinem richtigen Anschluss steckt und er seine Firmware hat, und versuchen Sie es erneut.",
+            "Il dongle non ha confermato la ricezione del Wi-Fi: non è stato modificato nulla. Verifica che il cavo sia sulla sua porta giusta e che abbia il suo firmware, poi riprova.")
     }
     pub fn ota_password_not_confirmed(&self) -> &'static str {
         tr!(self,
-            "La clé n'a pas confirmé le mot de passe de mise à jour : rien n'a été changé. Vérifiez que le câble est sur le port UART/COM de la carte et que son firmware est en version 4.0 ou plus, puis réessayez.",
-            "The dongle did not confirm the update password: nothing was changed. Check that the cable is on the board's UART/COM port and that its firmware is version 4.0 or later, then try again.",
-            "Der Dongle hat das Update-Passwort nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel am UART/COM-Anschluss der Platine steckt und die Firmware Version 4.0 oder neuer ist, und versuchen Sie es erneut.",
-            "Il dongle non ha confermato la password di aggiornamento: non è stato modificato nulla. Verifica che il cavo sia sulla porta UART/COM della scheda e che il firmware sia in versione 4.0 o successiva, poi riprova.")
+            "La clé n'a pas confirmé le mot de passe de mise à jour : rien n'a été changé. Vérifiez que le câble est sur le port UART/COM de la clé et que son firmware est en version 4.0 ou plus, puis réessayez.",
+            "The dongle did not confirm the update password: nothing was changed. Check that the cable is on the dongle's UART/COM port and that its firmware is version 4.0 or later, then try again.",
+            "Der Dongle hat das Update-Passwort nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel am UART/COM-Anschluss des Dongles steckt und die Firmware Version 4.0 oder neuer ist, und versuchen Sie es erneut.",
+            "Il dongle non ha confermato la password di aggiornamento: non è stato modificato nulla. Verifica che il cavo sia sulla porta UART/COM del dongle e che il firmware sia in versione 4.0 o successiva, poi riprova.")
     }
     pub fn ota_password_sent(&self, removed: bool) -> &'static str {
         if removed {
@@ -846,6 +846,14 @@ impl CliLang {
     }
     pub fn unknown(&self) -> &'static str {
         tr!(self, "Inconnu", "Unknown", "Unbekannt", "Sconosciuto")
+    }
+    pub fn port_open_firenet(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "🔥 Clé Open Firenet (déjà installée)",
+            CliLang::En => "🔥 Open Firenet dongle (already installed)",
+            CliLang::De => "🔥 Open-Firenet-Dongle (bereits installiert)",
+            CliLang::It => "🔥 Dongle Open Firenet (già installato)",
+        }
     }
     pub fn port_serial_adapter(&self, product: &str) -> String {
         tr!(self,

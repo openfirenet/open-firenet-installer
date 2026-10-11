@@ -177,7 +177,7 @@
             <p data-i18n="usbDesc">Idéal pour le premier flash d'un ESP32-S3 neuf ou une réinstallation complète.</p>
           </div>
           <button id="btn-refresh-ports" class="btn btn-secondary">
-            <span class="btn-icon" data-icon="refresh-cw"></span> <span class="btn-label" data-i18n="btnRefreshPorts">Actualiser les ports</span>
+            <span class="btn-icon" data-icon="refresh-cw"></span> <span class="btn-label" data-i18n="btnRefreshPorts">Actualiser</span>
           </button>
         </div>
 
@@ -187,23 +187,25 @@
             <select id="usb-port-select">
               <option value="" data-i18n="detectingPorts">Détection des ports en cours...</option>
             </select>
+            <p class="status-msg" id="usb-board-status"></p>
+            <div><button type="button" class="btn btn-secondary btn-sm hidden" id="btn-check-board" data-i18n="btnCheckBoard">Vérifier la clé</button></div>
           </div>
 
           <div class="form-group">
             <label data-i18n="labelUsbMode">Type d'opération USB :</label>
             <div class="mode-toggle-group">
-              <button type="button" id="usb-mode-update" class="mode-btn active" data-mode="update">
-                <span class="mode-icon" data-icon="refresh-cw"></span>
+              <button type="button" id="usb-mode-factory" class="mode-btn active" data-mode="factory">
+                <span class="mode-icon" data-icon="rocket"></span>
                 <div class="mode-text">
-                  <span class="mode-title" data-i18n="usbModeUpdateTitle">Mise à jour (Conserver la config)</span>
-                  <span class="mode-desc" data-i18n="usbModeUpdateDesc">Préserve vos identifiants Wi-Fi et paramètres NVS</span>
+                  <span class="mode-title" data-i18n="usbModeFactoryTitle">Première installation</span>
+                  <span class="mode-desc" data-i18n="usbModeFactoryDesc">Clé neuve ou réinstallation complète. Le Wi-Fi sera à saisir.</span>
                 </div>
               </button>
-              <button type="button" id="usb-mode-factory" class="mode-btn" data-mode="factory">
-                <span class="mode-icon" data-icon="alert-triangle"></span>
+              <button type="button" id="usb-mode-update" class="mode-btn" data-mode="update">
+                <span class="mode-icon" data-icon="refresh-cw"></span>
                 <div class="mode-text">
-                  <span class="mode-title" data-i18n="usbModeFactoryTitle">Reset complet (Image Usine)</span>
-                  <span class="mode-desc" data-i18n="usbModeFactoryDesc">Écrase toute la mémoire flash (reconfiguration requise)</span>
+                  <span class="mode-title" data-i18n="usbModeUpdateTitle">Mise à jour</span>
+                  <span class="mode-desc" data-i18n="usbModeUpdateDesc">La clé fonctionne déjà. Le Wi-Fi et les réglages sont conservés.</span>
                 </div>
               </button>
             </div>
@@ -269,6 +271,7 @@
         </div>
 
         <div class="card form-card">
+          <p class="status-msg install-next hidden" id="wifi-install-next"></p>
           <div class="form-group">
             <label for="wifi-port-select" data-i18n="labelWifiPort">Port USB de la clé :</label>
             <select id="wifi-port-select">
@@ -402,6 +405,23 @@
         <button id="modal-btn-confirm" class="btn btn-primary">
           <span id="modal-confirm-icon" class="btn-icon" data-icon="zap"></span> <span id="modal-confirm-label" data-i18n="modalBtnConfirm">Confirmer et flasher</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- A board was plugged in over USB -->
+  <div id="board-modal" class="modal-overlay hidden">
+    <div class="card modal-dialog">
+      <div class="modal-header">
+        <span class="modal-icon" data-icon="zap"></span>
+        <h3 id="board-modal-title"></h3>
+      </div>
+      <div class="modal-body">
+        <p id="board-modal-text"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="board-modal-later" class="btn btn-secondary" data-i18n="btnBoardLater">Plus tard</button>
+        <button id="board-modal-go" class="btn btn-primary"></button>
       </div>
     </div>
   </div>
