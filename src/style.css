@@ -926,6 +926,25 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+/* Recording of a heating cycle */
+.record-actions {
+  display: flex;
+  gap: 10px;
+}
+.record-actions + .status-msg { margin-top: 0; }
+.record-log {
+  max-height: 260px;
+  overflow: auto;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.record-log:empty { display: none; }
+
 /* A newer version of the installer is available */
 .update-banner {
   display: flex;

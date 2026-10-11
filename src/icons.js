@@ -19,6 +19,7 @@ import fileText from "lucide-static/icons/file-text.svg?raw";
 import folderOpen from "lucide-static/icons/folder-open.svg?raw";
 import info from "lucide-static/icons/info.svg?raw";
 import chevronDown from "lucide-static/icons/chevron-down.svg?raw";
+import activity from "lucide-static/icons/activity.svg?raw";
 
 const ICONS = {
   search,
@@ -40,6 +41,7 @@ const ICONS = {
   "folder-open": folderOpen,
   info,
   "chevron-down": chevronDown,
+  activity,
 };
 
 export function icon(name) {

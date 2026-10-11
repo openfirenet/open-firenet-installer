@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
 pub mod cli_i18n;
@@ -6,6 +6,7 @@ pub mod discovery;
 pub mod flasher_ota;
 pub mod flasher_serial;
 pub mod github;
+pub mod recorder;
 pub mod wifi_setup;
 
 use cli_i18n::CliLang;
@@ -163,6 +164,78 @@ async fn check_installer_update(app: tauri::AppHandle, lang: Option<String>) -> 
         .flatten()
 }
 
+/// The recording in progress, if any: how to stop it and how to hand it a note.
+struct Recording {
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    notes: std::sync::mpsc::Sender<String>,
+}
+static RECORDING: std::sync::Mutex<Option<Recording>> = std::sync::Mutex::new(None);
+
+/// Starts recording a heating cycle in the background and returns the file it writes. Lines go to the window as
+/// "record-line" events; "record-done" (changes, file) or "record-error" ends it. The stove is only read.
+#[tauri::command]
+fn start_recording(app: AppHandle, ip: String, minutes: u64, lang: Option<String>) -> Result<String, String> {
+    let lang = CliLang::from_window(lang.as_deref());
+    let mut current = RECORDING.lock().map_err(|e| e.to_string())?;
+    if current.is_some() {
+        return Err(lang.record_already_running().to_string());
+    }
+    let folder = app.path().document_dir().or_else(|_| app.path().home_dir()).unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let path = folder.join(recorder::default_path());
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let (send, notes) = std::sync::mpsc::channel::<String>();
+    *current = Some(Recording { stop: stop.clone(), notes: send });
+
+    let ip = ip.trim().to_string();
+    let file = path.clone();
+    std::thread::spawn(move || {
+        let result = recorder::record(
+            &ip,
+            &file,
+            std::time::Duration::from_secs(minutes.clamp(1, 24 * 60) * 60),
+            std::time::Duration::from_secs(2),
+            &notes,
+            &|| stop.load(std::sync::atomic::Ordering::Relaxed),
+            lang,
+            |progress| {
+                if let recorder::Progress::Line(line) = progress {
+                    if !line.contains(" START ") {
+                        let _ = app.emit("record-line", line);
+                    }
+                }
+            },
+        );
+        if let Ok(mut current) = RECORDING.lock() {
+            *current = None;
+        }
+        match result {
+            Ok(changes) => {
+                let _ = app.emit("record-done", serde_json::json!({ "changes": changes, "file": file.display().to_string() }));
+            }
+            Err(e) => {
+                let _ = app.emit("record-error", e.to_string());
+            }
+        }
+    });
+    Ok(path.display().to_string())
+}
+
+/// Adds a note typed by the user to the recording in progress.
+#[tauri::command]
+fn add_recording_note(note: String) -> bool {
+    RECORDING.lock().ok().and_then(|r| r.as_ref().map(|r| r.notes.send(note).is_ok())).unwrap_or(false)
+}
+
+/// Asks the recording in progress to end; "record-done" follows within a few seconds.
+#[tauri::command]
+fn stop_recording() {
+    if let Ok(current) = RECORDING.lock() {
+        if let Some(recording) = current.as_ref() {
+            recording.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+        }
+    }
+}
+
 #[tauri::command]
 fn configure_wifi(
     port: String,
@@ -232,7 +305,10 @@ pub fn run() {
             ota_password_needed,
             open_browser_url,
             get_app_version,
-            check_installer_update
+            check_installer_update,
+            start_recording,
+            add_recording_note,
+            stop_recording
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the window");
