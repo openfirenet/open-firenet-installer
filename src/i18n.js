@@ -42,7 +42,7 @@ export const translations = {
 
     // Discovery Tab
     discoveryTitle: "Détection automatique de votre poêle",
-    discoveryDesc: "Recherche votre poêle Open Firenet via mDNS (openfirenet.local) et sur votre réseau local.",
+    discoveryDesc: "Recherche votre poêle Open Firenet via mDNS (open-firenet.local) et sur votre réseau local.",
     btnScanInProgress: "Recherche en cours...",
     btnScan: "Rechercher",
     scanLoadingTitle: "Recherche du poêle sur le réseau local...",
@@ -69,7 +69,7 @@ export const translations = {
     otaDesc: "Mettez à jour le firmware de votre poêle à distance via votre réseau Wi-Fi.",
     labelOtaIp: "Adresse IP du poêle :",
     btnUseDetectedIp: "Utiliser l'IP détectée",
-    placeholderOtaIp: "Ex: 192.168.1.93 ou openfirenet.local",
+    placeholderOtaIp: "Ex: 192.168.1.93 ou open-firenet.local",
     labelOtaRelease: "Version du firmware à installer :",
     loadingReleases: "Chargement des versions officielles...",
     labelLocalFile: "Fichier binaire local (.bin) :",
@@ -204,7 +204,7 @@ export const translations = {
 
     // Discovery Tab
     discoveryTitle: "Automatic Stove Discovery",
-    discoveryDesc: "Discovers your Open Firenet stove via mDNS (openfirenet.local) and your local network subnet.",
+    discoveryDesc: "Discovers your Open Firenet stove via mDNS (open-firenet.local) and your local network subnet.",
     btnScanInProgress: "Scanning...",
     btnScan: "Search",
     scanLoadingTitle: "Searching for stove on local network...",
@@ -231,7 +231,7 @@ export const translations = {
     otaDesc: "Remotely update your stove firmware over your local Wi-Fi network.",
     labelOtaIp: "Stove IP Address:",
     btnUseDetectedIp: "Use Detected IP",
-    placeholderOtaIp: "E.g., 192.168.1.93 or openfirenet.local",
+    placeholderOtaIp: "E.g., 192.168.1.93 or open-firenet.local",
     labelOtaRelease: "Firmware version to install:",
     loadingReleases: "Loading official releases...",
     labelLocalFile: "Local binary file (.bin):",
@@ -361,7 +361,7 @@ export const translations = {
     "recordNeedIp": "Inserisci l'indirizzo del dongle.",
     "tabReleases": "Versioni",
     "discoveryTitle": "Rilevamento automatico della stufa",
-    "discoveryDesc": "Rileva la tua stufa Open Firenet tramite mDNS (openfirenet.local) e la sottorete locale.",
+    "discoveryDesc": "Rileva la tua stufa Open Firenet tramite mDNS (open-firenet.local) e la sottorete locale.",
     "btnScanInProgress": "Ricerca...",
     "btnScan": "Cerca",
     "scanLoadingTitle": "Ricerca della stufa nella rete locale...",
@@ -384,7 +384,7 @@ export const translations = {
     "otaDesc": "Aggiorna da remoto il firmware della tua stufa tramite la rete Wi-Fi locale.",
     "labelOtaIp": "Indirizzo IP della stufa:",
     "btnUseDetectedIp": "Usa IP rilevato",
-    "placeholderOtaIp": "Es. 192.168.1.93 o openfirenet.local",
+    "placeholderOtaIp": "Es. 192.168.1.93 o open-firenet.local",
     "labelOtaRelease": "Versione firmware da installare:",
     "loadingReleases": "Caricamento delle versioni ufficiali...",
     "labelLocalFile": "File binario locale (.bin):",
@@ -508,7 +508,7 @@ export const translations = {
 
     // Discovery Tab
     discoveryTitle: "Automatische Pelletofen-Erkennung",
-    discoveryDesc: "Findet Ihren Open Firenet-Ofen via mDNS (openfirenet.local) und im lokalen Netzwerk.",
+    discoveryDesc: "Findet Ihren Open Firenet-Ofen via mDNS (open-firenet.local) und im lokalen Netzwerk.",
     btnScanInProgress: "Suche läuft...",
     btnScan: "Suchen",
     scanLoadingTitle: "Pelletofen wird im lokalen Netzwerk gesucht...",
@@ -535,7 +535,7 @@ export const translations = {
     otaDesc: "Aktualisieren Sie die Firmware Ihres Ofens drahtlos über Ihr lokales WLAN.",
     labelOtaIp: "IP-Adresse des Ofens:",
     btnUseDetectedIp: "Erkannte IP verwenden",
-    placeholderOtaIp: "Z.B. 192.168.1.93 oder openfirenet.local",
+    placeholderOtaIp: "Z.B. 192.168.1.93 oder open-firenet.local",
     labelOtaRelease: "Zu installierende Firmware-Version:",
     loadingReleases: "Offizielle Versionen werden geladen...",
     labelLocalFile: "Lokale Binärdatei (.bin):",

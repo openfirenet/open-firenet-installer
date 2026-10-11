@@ -372,7 +372,7 @@ function renderDevices(devices) {
         <span class="stove-flame-icon">${icon("flame")}</span>
         <div>
           <h2 class="stove-model-title">${modelName}</h2>
-          <span class="stove-network-name">${d.hostname || "openfirenet.local"}</span>
+          <span class="stove-network-name">${d.hostname || "open-firenet.local"}</span>
         </div>
       </div>
       <span class="stove-status-badge">
@@ -391,8 +391,8 @@ function renderDevices(devices) {
 
       <div class="info-tile">
         <span class="info-label">${t("labelHostname")}</span>
-        <a href="http://${d.hostname || "openfirenet.local"}/" target="_blank" class="info-value info-link" title="http://${d.hostname || "openfirenet.local"}/">
-          ${d.hostname || "openfirenet.local"} <span class="external-icon">${icon("external-link")}</span>
+        <a href="http://${d.hostname || "open-firenet.local"}/" target="_blank" class="info-value info-link" title="http://${d.hostname || "open-firenet.local"}/">
+          ${d.hostname || "open-firenet.local"} <span class="external-icon">${icon("external-link")}</span>
         </a>
       </div>
 
