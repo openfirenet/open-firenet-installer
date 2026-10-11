@@ -27,8 +27,8 @@ Remotely upgrade your dongle straight from your sofa without ever having to unpl
 
 ---
 
-### 3. USB Serial Flasher (Update & Factory Reset Modes)
-Auto-detects plugged ESP32-S3 devices. Supports two flashing modes: **Update mode** (preserves Wi-Fi credentials and NVS settings) or **Full Factory Reset** (wipes and initializes flash memory).
+### 3. USB Serial Flasher (First Installation & Update)
+Tells you when a dongle is plugged in, reads it, and preselects the right mode: **First installation** for a new ESP32-S3 (writes everything, then takes you to the Wi-Fi setup) or **Update** for one that already runs Open Firenet (keeps the Wi-Fi and the settings).
 
 ![USB Serial Flasher](docs/screenshots/usb-flasher.png)
 
@@ -48,6 +48,13 @@ Browse official stable releases and pre-releases, download binaries automaticall
 
 ---
 
+### 6. Heating Cycle Recorder
+Records what the stove reports during a heating cycle to a file you can attach to an issue. The stove is only read; the file holds neither your Wi-Fi name nor your addresses.
+
+![Heating Cycle Recorder](docs/screenshots/record.png)
+
+---
+
 ## ✨ Key Features
 
 - **🔍 Automatic Network Discovery**: Detects your stove in seconds via mDNS and active subnet probing. Retrieves live stove model (*DOMO*, *INDUO*, etc.), operating status, IP address, and signal strength.
@@ -58,6 +65,8 @@ Browse official stable releases and pre-releases, download binaries automaticall
 - **🔒 Cryptographic Integrity & Security**: Official firmware binaries are verified using **Minisign** digital signatures against the official Open Firenet community public key before flashing.
 - **📶 Guided USB Wi-Fi Setup**: Provision Wi-Fi credentials over serial with a single click or terminal command. The installer waits for the dongle's confirmation.
 - **🔑 Update Password** (dongle firmware 4.0 or later): set or remove, over USB, a password that the dongle then asks for at each wireless update. The installer asks for it when the dongle has one.
+- **📈 Heating Cycle Recorder**: records what the stove reports during a heating cycle to a file, to attach to an issue. The stove is only read.
+- **🆕 Update Notice**: the window tells when a newer installer is available.
 - **📟 Embedded Serial Monitor**: Monitor live stove UART dialogue frames and boot logs directly inside your terminal.
 - **🌐 Multilingual**: Built-in support for **English**, **French**, **German** and **Italian**.
 - **🖥️ Dual Mode (GUI & CLI)**: Automatically launches a sleek, modern Tauri graphical interface in desktop environments, or falls back to an interactive menu / command-line tool in headless/SSH setups.
@@ -161,7 +170,7 @@ open-firenet-installer flash --file ./open-firenet-factory.bin
 open-firenet-installer ota --ip 192.168.1.93
 
 # Wirelessly update specifying an official GitHub release
-open-firenet-installer ota --ip 192.168.1.93 --release v2.0.1
+open-firenet-installer ota --ip 192.168.1.93 --release v4.1.1
 
 # Wirelessly update a dongle that has an update password (asked for when left out)
 open-firenet-installer ota --ip 192.168.1.93 --password <password>
@@ -171,6 +180,12 @@ open-firenet-installer wifi-setup --port /dev/ttyACM0
 
 # Set or remove the dongle's update password over USB serial (an empty password removes it)
 open-firenet-installer ota-password --port /dev/ttyACM0
+
+# Look at the dongle plugged in over USB, without writing to it (chip, flash size, partition table)
+open-firenet-installer probe --port /dev/ttyACM0
+
+# Record a heating cycle of the stove to a file (the stove is only read)
+open-firenet-installer record --ip 192.168.1.93 --minutes 120
 
 # Launch serial monitor at 115200 baud
 open-firenet-installer monitor --port /dev/ttyACM0

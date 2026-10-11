@@ -73,8 +73,8 @@ function getFreePort() {
 const mockDongle = [
   {
     ip: '192.168.1.93',
-    hostname: 'openfirenet.local',
-    firmware_version: 'v2.0.1',
+    hostname: 'open-firenet.local',
+    firmware_version: 'v4.1.1',
     stove_model: 'DOMO MultiAir',
     stove_state: 'Heating',
     wifi_rssi: '-62 dBm',
@@ -83,42 +83,42 @@ const mockDongle = [
 
 const mockReleases = [
   {
-    tag_name: 'v2.0.1',
-    name: 'v2.0.1 - Performance & Stability Update',
+    tag_name: 'v4.1.1',
+    name: 'v4.1.1',
     body: "### What's Changed\n- Improved Wi-Fi reconnection handling and stability\n- Added active reboot & online polling after OTA update\n- Optimized pellet feeder and temperature sensor polling\n- Added multi-language support (EN, FR, DE)",
     prerelease: false,
     assets: [
       {
-        name: 'open-firenet-v2.0.1-factory.bin',
-        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v2.0.1/open-firenet-v2.0.1-factory.bin',
+        name: 'open-firenet-v4.1.1-factory.bin',
+        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v4.1.1/open-firenet-v4.1.1-factory.bin',
         size: 1845120,
       },
       {
-        name: 'open-firenet-v2.0.1-ota.bin',
-        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v2.0.1/open-firenet-v2.0.1-ota.bin',
+        name: 'open-firenet-v4.1.1-ota.bin',
+        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v4.1.1/open-firenet-v4.1.1-ota.bin',
         size: 1284560,
       },
       {
         name: 'SHA256SUMS',
-        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v2.0.1/SHA256SUMS',
+        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v4.1.1/SHA256SUMS',
         size: 256,
       },
     ],
   },
   {
-    tag_name: 'v2.0.0',
-    name: 'v2.0.0 - Major ESP32-S3 Release',
+    tag_name: 'v4.1.0',
+    name: 'v4.1.0',
     body: '### Initial Stable ESP32-S3 Release\n- Native ESP32-S3 hardware support replacing original RIKA Firenet dongle\n- Real-time Home Assistant MQTT autodiscovery\n- Embedded Web UI and REST API',
     prerelease: false,
     assets: [
       {
-        name: 'open-firenet-v2.0.0-factory.bin',
-        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v2.0.0/open-firenet-v2.0.0-factory.bin',
+        name: 'open-firenet-v4.1.0-factory.bin',
+        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v4.1.0/open-firenet-v4.1.0-factory.bin',
         size: 1840000,
       },
       {
-        name: 'open-firenet-v2.0.0-ota.bin',
-        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v2.0.0/open-firenet-v2.0.0-ota.bin',
+        name: 'open-firenet-v4.1.0-ota.bin',
+        browser_download_url: 'https://github.com/openfirenet/open-firenet/releases/download/v4.1.0/open-firenet-v4.1.0-ota.bin',
         size: 1280000,
       },
     ],
@@ -129,6 +129,9 @@ const mockPorts = [
   {
     port_name: '/dev/ttyACM0',
     description: 'Espressif USB JTAG/serial debug unit (ESP32-S3)',
+    is_esp: true,
+    is_espressif: true,
+    is_open_firenet: false,
   },
   {
     port_name: '/dev/ttyUSB0',
@@ -146,6 +149,7 @@ const mockScript = `
     if (cmd === 'scan_network') return ${JSON.stringify(mockDongle)};
     if (cmd === 'get_releases') return ${JSON.stringify(mockReleases)};
     if (cmd === 'list_serial_ports') return ${JSON.stringify(mockPorts)};
+    if (cmd === 'probe_board') return { state: 'blank', chip: 'ESP32S3', flash_bytes: 16777216, partitions: [] };
     if (cmd === 'plugin:event|listen') return 1;
     return null;
   };
@@ -299,7 +303,11 @@ async function main() {
       {
         name: 'dashboard-scan.png',
         label: '1. Tableau de bord / Détection du poêle',
-        prepare: null,
+        // The "dongle detected" dialog opens over the first tab: it is closed for the captures.
+        prepare: `
+          const later = document.getElementById('board-modal-later');
+          if (later) later.click();
+        `,
       },
       {
         name: 'ota-update.png',
@@ -341,6 +349,19 @@ async function main() {
         prepare: `
           const tab = document.querySelector('[data-tab="tab-releases"]');
           if (tab) tab.click();
+        `,
+      },
+      {
+        name: 'record.png',
+        label: '6. Enregistreur de cycle de chauffe',
+        prepare: `
+          const tab = document.querySelector('[data-tab="tab-record"]');
+          if (tab) tab.click();
+          const ip = document.getElementById('record-ip');
+          if (ip) {
+            ip.value = '192.168.1.93';
+            ip.dispatchEvent(new Event('input'));
+          }
         `,
       },
     ];
