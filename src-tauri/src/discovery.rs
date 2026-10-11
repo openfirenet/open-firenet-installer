@@ -53,7 +53,8 @@ impl NetworkScanner {
     /// Tente de contacter Open Firenet via les noms mDNS par défaut
     pub fn probe_mdns_hosts(lang: CliLang) -> Vec<DiscoveredDongle> {
         let mut results = Vec::new();
-        let candidates = ["openfirenet.local:80", "open-firenet.local:80"];
+        // The bridge announces itself as "open-firenet"; the name without a dash is the one of very old firmwares.
+        let candidates = ["open-firenet.local:80", "openfirenet.local:80"];
 
         for target in &candidates {
             if let Ok(mut addrs) = target.to_socket_addrs() {
@@ -115,7 +116,7 @@ impl NetworkScanner {
 
                 return Some(DiscoveredDongle {
                     ip: ip.to_string(),
-                    hostname: "openfirenet.local".to_string(),
+                    hostname: "open-firenet.local".to_string(),
                     firmware_version: fw_ver_str,
                     stove_model: model,
                     stove_state: st,

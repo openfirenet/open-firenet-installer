@@ -263,9 +263,40 @@ fn set_ota_password(port: String, password: String, lang: Option<String>) -> Res
     Ok(lang.ota_password_sent(password.is_empty()).to_string())
 }
 
+/// Opens an address with the system's default program. The window used `cmd /C start <url>`: `start` takes a quoted
+/// first argument for a window title, `&` in an address splits the command, and the window has no console since it
+/// detaches from it at start. The shell's own call has none of these traps (issue #28).
+#[cfg(target_os = "windows")]
+fn windows_open(url: &str) -> bool {
+    use std::os::windows::ffi::OsStrExt;
+    #[link(name = "shell32")]
+    extern "system" {
+        fn ShellExecuteW(
+            hwnd: *mut std::ffi::c_void,
+            operation: *const u16,
+            file: *const u16,
+            parameters: *const u16,
+            directory: *const u16,
+            show: i32,
+        ) -> isize;
+    }
+    let wide = |text: &str| std::ffi::OsStr::new(text).encode_wide().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (operation, file) = (wide("open"), wide(url));
+    // SW_SHOWNORMAL = 1; a value above 32 means success.
+    unsafe { ShellExecuteW(std::ptr::null_mut(), operation.as_ptr(), file.as_ptr(), std::ptr::null(), std::ptr::null(), 1) > 32 }
+}
+
+/// Only web addresses are opened: the window passes addresses it built, and this keeps it so.
+fn is_web_address(url: &str) -> bool {
+    url.starts_with("http://") || url.starts_with("https://")
+}
+
 #[tauri::command]
 fn open_browser_url(url: String, lang: Option<String>) -> Result<(), String> {
     let lang = CliLang::from_window(lang.as_deref());
+    if !is_web_address(&url) {
+        return Err(lang.cannot_open_browser(&url));
+    }
     #[cfg(target_os = "linux")]
     {
         std::process::Command::new("xdg-open")
@@ -275,10 +306,9 @@ fn open_browser_url(url: String, lang: Option<String>) -> Result<(), String> {
     }
     #[cfg(target_os = "windows")]
     {
-        std::process::Command::new("cmd")
-            .args(["/C", "start", &url])
-            .spawn()
-            .map_err(|e| lang.cannot_open_browser(&e.to_string()))?;
+        if !windows_open(&url) {
+            return Err(lang.cannot_open_browser("ShellExecute"));
+        }
     }
     #[cfg(target_os = "macos")]
     {
