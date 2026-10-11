@@ -52,9 +52,9 @@ Browse official stable releases and pre-releases, download binaries automaticall
 
 - **🔍 Automatic Network Discovery**: Detects your stove in seconds via mDNS and active subnet probing. Retrieves live stove model (*DOMO*, *INDUO*, etc.), operating status, IP address, and signal strength.
 - **📡 Pure Rust ArduinoOTA Wireless Flasher**: Built-in, high-speed pure Rust OTA client eliminating Python or external script requirements. Automatically polls for the device to restart and come back online.
-- **⚡ USB Serial Flasher with Safe Dual Modes**:
-  - **Update Mode** (offset `0x10000`): Updates application firmware while preserving your stored Wi-Fi credentials and configuration.
-  - **Full Reset / Factory Mode** (offset `0x0000`): Flashes a complete factory image onto new ESP32-S3 chips or for clean reinstalls.
+- **⚡ USB Serial Flasher with Two Modes, Chosen for You**: the installer reads the dongle you plug in (chip, flash size, partition table) and preselects the right mode.
+  - **First installation** (offset `0x0000`): Flashes a complete image onto a new ESP32-S3, or one holding something else, and then takes you to the Wi-Fi setup.
+  - **Update** (offset `0x10000`): Updates the firmware while preserving your stored Wi-Fi credentials and configuration.
 - **🔒 Cryptographic Integrity & Security**: Official firmware binaries are verified using **Minisign** digital signatures against the official Open Firenet community public key before flashing.
 - **📶 Guided USB Wi-Fi Setup**: Provision Wi-Fi credentials over serial with a single click or terminal command. The installer waits for the dongle's confirmation.
 - **🔑 Update Password** (dongle firmware 4.0 or later): set or remove, over USB, a password that the dongle then asks for at each wireless update. The installer asks for it when the dongle has one.
