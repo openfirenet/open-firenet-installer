@@ -915,6 +915,73 @@ btnSendWifi.addEventListener("click", async () => {
 });
 
 // Écoute des événements en direct émis par Tauri
+// --- Recording of a heating cycle ------------------------------------------------------------------------------
+const recordIp = document.getElementById("record-ip");
+const recordStatus = document.getElementById("record-status");
+const recordLog = document.getElementById("record-log");
+const btnRecordStart = document.getElementById("btn-record-start");
+const btnRecordStop = document.getElementById("btn-record-stop");
+const btnRecordNote = document.getElementById("btn-record-note");
+const recordNote = document.getElementById("record-note");
+function setRecording(running) {
+  btnRecordStart.disabled = running;
+  btnRecordStop.disabled = !running;
+  btnRecordNote.disabled = !running;
+  recordNote.disabled = !running;
+  recordIp.disabled = running;
+}
+btnRecordStart.addEventListener("click", async () => {
+  const ip = recordIp.value.trim() || otaIpInput.value.trim();
+  if (!ip) {
+    recordStatus.textContent = t("recordNeedIp");
+    return;
+  }
+  recordIp.value = ip;
+  recordLog.textContent = "";
+  btnRecordSend.classList.add("hidden");
+  try {
+    const file = await invoke("start_recording", {
+      ip,
+      minutes: parseInt(document.getElementById("record-minutes").value, 10) || 120,
+      lang: getLang(),
+    });
+    recordStatus.textContent = t("recordRunning").replace("{file}", file);
+    setRecording(true);
+  } catch (err) {
+    recordStatus.textContent = `${t("alertErrorPrefix")} ${err}`;
+  }
+});
+btnRecordStop.addEventListener("click", () => invoke("stop_recording"));
+function sendRecordNote() {
+  const note = recordNote.value.trim();
+  if (!note) return;
+  invoke("add_recording_note", { note });
+  recordNote.value = "";
+}
+btnRecordNote.addEventListener("click", sendRecordNote);
+recordNote.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") sendRecordNote();
+});
+listen("record-line", (event) => {
+  // The samples of the analog values go to the file only: the window shows changes and notes.
+  if (String(event.payload).includes(" ANALOG ")) return;
+  recordLog.textContent += event.payload + "\n";
+  recordLog.scrollTop = recordLog.scrollHeight;
+});
+const btnRecordSend = document.getElementById("btn-record-send");
+btnRecordSend.addEventListener("click", () =>
+  invoke("open_browser_url", { url: "https://github.com/openfirenet/open-firenet/issues/new?template=heating_cycle.yml", lang: getLang() }).catch(() => {})
+);
+listen("record-done", (event) => {
+  setRecording(false);
+  btnRecordSend.classList.remove("hidden");
+  recordStatus.textContent = t("recordDone").replace("{changes}", event.payload.changes).replace("{file}", event.payload.file);
+});
+listen("record-error", (event) => {
+  setRecording(false);
+  recordStatus.textContent = `${t("alertErrorPrefix")} ${event.payload}`;
+});
+
 listen("flash-status", (event) => {
   if (usbStatusText) usbStatusText.textContent = event.payload;
 });

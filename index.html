@@ -52,6 +52,10 @@
         <span class="tab-icon" data-icon="wifi"></span>
         <span data-i18n="tabWifi">Config Wi-Fi</span>
       </button>
+      <button class="tab-btn" data-tab="tab-record">
+        <span class="tab-icon" data-icon="activity"></span>
+        <span data-i18n="tabRecord">Enregistrer</span>
+      </button>
       <button class="tab-btn" data-tab="tab-releases">
         <span class="tab-icon" data-icon="package"></span>
         <span data-i18n="tabReleases">Releases</span>
@@ -313,6 +317,39 @@
       </section>
 
       <!-- 5. Releases Tab -->
+      <section id="tab-record" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h2 data-i18n="recordTitle">Enregistrer un cycle de chauffe</h2>
+            <p data-i18n="recordDesc"></p>
+          </div>
+        </div>
+        <div class="card form-card">
+          <div class="form-group">
+            <label for="record-ip" data-i18n="labelRecordIp">Adresse de la clé :</label>
+            <input type="text" id="record-ip" placeholder="192.168.1.93" autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label for="record-minutes" data-i18n="labelRecordMinutes">Durée maximale (minutes) :</label>
+            <input type="number" id="record-minutes" value="120" min="1" max="1440" />
+          </div>
+          <div class="action-row record-actions">
+            <button type="button" id="btn-record-start" class="btn btn-primary" data-i18n="btnRecordStart">Démarrer</button>
+            <button type="button" id="btn-record-stop" class="btn btn-secondary" data-i18n="btnRecordStop" disabled>Arrêter</button>
+          </div>
+          <p class="status-msg" id="record-status"></p>
+          <div class="form-group">
+            <label for="record-note" data-i18n="labelRecordNote">Noter ce que vous voyez (par exemple ce qu'affiche l'écran du poêle) :</label>
+            <div class="file-picker-row">
+              <input type="text" id="record-note" autocomplete="off" disabled />
+              <button type="button" id="btn-record-note" class="btn btn-secondary btn-sm" data-i18n="btnRecordNote" disabled>Ajouter</button>
+            </div>
+          </div>
+          <button type="button" id="btn-record-send" class="btn btn-secondary btn-sm hidden" data-i18n="btnRecordSend">Envoyer le fichier</button>
+          <pre id="record-log" class="record-log"></pre>
+        </div>
+      </section>
+
       <section id="tab-releases" class="tab-pane">
         <div class="pane-header">
           <div>

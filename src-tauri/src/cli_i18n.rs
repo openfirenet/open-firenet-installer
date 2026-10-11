@@ -461,6 +461,55 @@ impl CliLang {
         }
     }
 
+    pub fn record_unreachable(&self, ip: &str, err: &str) -> String {
+        match self {
+            CliLang::Fr => format!("La clé à l'adresse {} ne répond pas ({}). Vérifiez l'adresse et que la clé est allumée.", ip, err),
+            CliLang::En => format!("The dongle at {} does not answer ({}). Check the address and that the dongle is powered.", ip, err),
+            CliLang::De => format!("Der Dongle unter {} antwortet nicht ({}). Prüfen Sie die Adresse und ob der Dongle eingeschaltet ist.", ip, err),
+            CliLang::It => format!("Il dongle all'indirizzo {} non risponde ({}). Verifica l'indirizzo e che il dongle sia acceso.", ip, err),
+        }
+    }
+    pub fn record_cannot_write(&self, path: &str) -> String {
+        match self {
+            CliLang::Fr => format!("Impossible d'écrire le fichier {}", path),
+            CliLang::En => format!("Cannot write the file {}", path),
+            CliLang::De => format!("Die Datei {} kann nicht geschrieben werden", path),
+            CliLang::It => format!("Impossibile scrivere il file {}", path),
+        }
+    }
+    pub fn record_started(&self, path: &str, minutes: u64) -> String {
+        match self {
+            CliLang::Fr => format!("⏺  Enregistrement du cycle de chauffe dans {} (pendant {} min au plus, Ctrl+C pour arrêter).", path, minutes),
+            CliLang::En => format!("⏺  Recording the heating cycle to {} (for {} min at most, Ctrl+C to stop).", path, minutes),
+            CliLang::De => format!("⏺  Der Heizzyklus wird in {} aufgezeichnet (höchstens {} Min., Strg+C zum Beenden).", path, minutes),
+            CliLang::It => format!("⏺  Registrazione del ciclo di riscaldamento in {} (al massimo {} min, Ctrl+C per fermare).", path, minutes),
+        }
+    }
+    pub fn record_already_running(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "Un enregistrement est déjà en cours.",
+            CliLang::En => "A recording is already running.",
+            CliLang::De => "Es läuft bereits eine Aufzeichnung.",
+            CliLang::It => "Una registrazione è già in corso.",
+        }
+    }
+    pub fn record_hint(&self) -> &'static str {
+        match self {
+            CliLang::Fr => "Le poêle est seulement lu, rien ne lui est envoyé. Gardez cet ordinateur allumé. Pour noter ce que vous voyez (par exemple ce qu'affiche l'écran du poêle), tapez une ligne puis Entrée.",
+            CliLang::En => "The stove is only read, nothing is sent to it. Keep this computer awake. To note what you see (for example what the stove's screen shows), type a line and press Enter.",
+            CliLang::De => "Der Ofen wird nur gelesen, es wird nichts an ihn gesendet. Lassen Sie diesen Computer eingeschaltet. Um zu notieren, was Sie sehen (zum Beispiel die Anzeige des Ofens), tippen Sie eine Zeile und drücken Sie Enter.",
+            CliLang::It => "La stufa viene solo letta, non le viene inviato nulla. Tieni acceso questo computer. Per annotare ciò che vedi (per esempio cosa mostra lo schermo della stufa), scrivi una riga e premi Invio.",
+        }
+    }
+    pub fn record_done(&self, changes: u32, path: &str) -> String {
+        match self {
+            CliLang::Fr => format!("Enregistrement terminé : {} changement(s) notés. Fichier : {}\nVous pouvez nous l'envoyer : https://github.com/openfirenet/open-firenet/issues/new?template=heating_cycle.yml", changes, path),
+            CliLang::En => format!("Recording finished: {} change(s) noted. File: {}\nYou can send it to us: https://github.com/openfirenet/open-firenet/issues/new?template=heating_cycle.yml", changes, path),
+            CliLang::De => format!("Aufzeichnung beendet: {} Änderung(en) notiert. Datei: {}\nSie können sie uns senden: https://github.com/openfirenet/open-firenet/issues/new?template=heating_cycle.yml", changes, path),
+            CliLang::It => format!("Registrazione terminata: {} cambiamento/i annotati. File: {}\nPuoi inviarcelo: https://github.com/openfirenet/open-firenet/issues/new?template=heating_cycle.yml", changes, path),
+        }
+    }
+
     pub fn monitor_opening(&self, port: &str, baud: u32) -> String {
         match self {
             CliLang::Fr => format!("📟 Ouverture du moniteur série sur {} à {} bauds (Ctrl+C pour quitter)...", port, baud),

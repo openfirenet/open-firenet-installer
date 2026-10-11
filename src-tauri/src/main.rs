@@ -1,5 +1,5 @@
 // The modules live in the library, which the window uses too: declaring them here again would compile them twice.
-use open_firenet_installer::{cli_i18n, discovery, flasher_ota, flasher_serial, github, wifi_setup};
+use open_firenet_installer::{cli_i18n, discovery, flasher_ota, flasher_serial, github, recorder, wifi_setup};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -76,6 +76,18 @@ enum Commands {
         #[arg(short, long)]
         port: Option<String>,
     },
+    /// Record a heating cycle of the stove to a file (the stove is only read)
+    Record {
+        /// Address of the dongle
+        #[arg(short, long)]
+        ip: String,
+        /// How long to record, in minutes
+        #[arg(short, long, default_value = "120")]
+        minutes: u64,
+        /// File to write (default: open-firenet-cycle-<date>.log in the current directory)
+        #[arg(short, long)]
+        out: Option<PathBuf>,
+    },
     /// List the releases published on GitHub
     ListReleases,
     /// Open the serial monitor
@@ -109,6 +121,7 @@ fn main() -> Result<()> {
         Some(Commands::Ota { ip, file, release, password }) => cmd_ota(&ip, file, release, password, lang)?,
         Some(Commands::OtaPassword { port }) => cmd_ota_password(port, lang)?,
         Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port, lang)?,
+        Some(Commands::Record { ip, minutes, out }) => cmd_record(&ip, minutes, out, lang)?,
         Some(Commands::ListReleases) => cmd_list_releases(lang)?,
         Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud, lang)?,
         None => {
@@ -131,6 +144,38 @@ fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+/// Records a heating cycle to a file. The lines typed meanwhile go into the file as notes.
+fn cmd_record(ip: &str, minutes: u64, out: Option<PathBuf>, lang: CliLang) -> Result<()> {
+    let path = out.unwrap_or_else(recorder::default_path);
+    println!("{}", lang.record_started(&path.display().to_string(), minutes));
+    println!("{}\n", lang.record_hint());
+
+    let (send, notes) = std::sync::mpsc::channel::<String>();
+    std::thread::spawn(move || {
+        for line in std::io::stdin().lines().map_while(|l| l.ok()) {
+            if send.send(line).is_err() {
+                break;
+            }
+        }
+    });
+
+    let changes = recorder::record(
+        ip,
+        &path,
+        std::time::Duration::from_secs(minutes * 60),
+        std::time::Duration::from_secs(2),
+        &notes,
+        &|| false,
+        lang,
+        |progress| match progress {
+            recorder::Progress::Line(line) if !line.contains(" ANALOG ") && !line.contains(" START ") => println!("{}", line),
+            _ => {}
+        },
+    )?;
+    println!("\n{} {}", "✔".green().bold(), lang.record_done(changes, &path.display().to_string()));
     Ok(())
 }
 
