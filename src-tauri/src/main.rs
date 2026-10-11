@@ -1,5 +1,5 @@
 // The modules live in the library, which the window uses too: declaring them here again would compile them twice.
-use open_firenet_installer::{cli_i18n, discovery, flasher_ota, flasher_serial, github, recorder, wifi_setup};
+use open_firenet_installer::{board_probe, cli_i18n, discovery, flasher_ota, flasher_serial, github, recorder, wifi_setup};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -88,6 +88,11 @@ enum Commands {
         #[arg(short, long)]
         out: Option<PathBuf>,
     },
+    /// Look at the board plugged in over USB, without writing to it
+    Probe {
+        #[arg(short, long)]
+        port: Option<String>,
+    },
     /// List the releases published on GitHub
     ListReleases,
     /// Open the serial monitor
@@ -122,6 +127,14 @@ fn main() -> Result<()> {
         Some(Commands::OtaPassword { port }) => cmd_ota_password(port, lang)?,
         Some(Commands::WifiSetup { port }) => cmd_wifi_setup(port, lang)?,
         Some(Commands::Record { ip, minutes, out }) => cmd_record(&ip, minutes, out, lang)?,
+        Some(Commands::Probe { port }) => {
+            let port = choose_serial_port(port, lang)?;
+            let report = board_probe::probe(&port, lang)?;
+            println!("chip: {} | flash: {} bytes | state: {:?}", report.chip, report.flash_bytes, report.state);
+            for p in &report.partitions {
+                println!("  {:<10} type {:#04x} subtype {:#04x} offset {:#08x} size {:#08x}", p.label, p.kind, p.subtype, p.offset, p.size);
+            }
+        }
         Some(Commands::ListReleases) => cmd_list_releases(lang)?,
         Some(Commands::Monitor { port, baud }) => cmd_monitor(port, baud, lang)?,
         None => {

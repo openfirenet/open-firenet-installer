@@ -14,6 +14,15 @@ pub struct DetectedPort {
     pub port_name: String,
     pub description: String,
     pub is_esp: bool,
+    /// The port is the one a running Open Firenet firmware presents (the port that goes to the stove): the board
+    /// cannot be read nor flashed through it unless it was started with its BOOT button held.
+    #[serde(default)]
+    pub is_open_firenet: bool,
+    /// The port is the chip's own USB (Espressif's vendor id, not a running Open Firenet): it is an ESP32 for sure,
+    /// so it can be read without asking. A generic serial adapter can hide any device: reading it restarts that
+    /// device, which is only done when the user asks.
+    #[serde(default)]
+    pub is_espressif: bool,
 }
 
 pub struct SerialFlasher;
@@ -29,6 +38,8 @@ impl SerialFlasher {
         for p in ports {
             let mut desc = lang.port_generic().to_string();
             let mut is_esp = false;
+            let mut is_open_firenet = false;
+            let mut is_espressif = false;
 
             if let SerialPortType::UsbPort(UsbPortInfo { vid, pid, product, manufacturer, .. }) = &p.port_type {
                 let prod = product.as_deref().unwrap_or(lang.unknown());
@@ -36,8 +47,14 @@ impl SerialFlasher {
                 desc = format!("USB: {} ({}) [VID: {:04x}, PID: {:04x}]", prod, mfg, vid, pid);
 
                 // 0x303a = Espressif Systems
-                if *vid == 0x303a {
+                if *vid == 0x303a && *pid == 0x819a {
+                    // The USB identity of the Open Firenet firmware itself (USB.PID in the firmware).
                     is_esp = true;
+                    is_open_firenet = true;
+                    desc = lang.port_open_firenet().to_string();
+                } else if *vid == 0x303a {
+                    is_esp = true;
+                    is_espressif = true;
                     desc = format!("🔥 ESP32-S3 ({})", prod);
                 } else if *vid == 0x1a86 || *vid == 0x10c4 || *vid == 0x0403 {
                     // Adaptateurs USB-Série classiques (CH340, CP2102, FTDI)
@@ -50,6 +67,8 @@ impl SerialFlasher {
                 port_name: p.port_name,
                 description: desc,
                 is_esp,
+                is_open_firenet,
+                is_espressif,
             });
         }
 
@@ -213,7 +232,74 @@ impl SerialFlasher {
         flasher.write_bin_to_flash(addr, bin_data, Some(&mut adapter))
             .map_err(|e| anyhow!(lang.usb_write_error(&format!("{:?}", e))))?;
 
+        if is_usb_jtag {
+            // On a new connection: run right after the write, on the connection that did it, the same sequence
+            // left the board in flashing mode (tried on an ESP32-S3 flashed with BOOT held).
+            drop(flasher);
+            Self::leave_flashing_mode(port_name);
+        }
         Ok(())
+    }
+
+    /// Restarts an ESP32-S3 flashed through its own USB port into the firmware just written.
+    ///
+    /// A board put into flashing mode by holding its BOOT button keeps that mode across an ordinary reset: after
+    /// the flash it sat there until it was unplugged. This is what Espressif's esptool does for this chip
+    /// (targets/esp32s3.py, hard_reset and watchdog_reset): clear the "forced download" bit, and when the boot pin
+    /// was low at start, restart through the RTC watchdog, which reads that pin again; otherwise an ordinary reset
+    /// is enough. Errors are ignored: at worst the board stays in flashing mode, as it did before.
+    fn leave_flashing_mode(port_name: &str) {
+        use espflash::connection::reset::{ResetAfterOperation, ResetBeforeOperation};
+        use espflash::flasher::Flasher;
+
+        const RTC_CNTL_OPTION1_REG: u32 = 0x6000_812C; // bit 0: download mode forced over USB
+        const GPIO_STRAP_REG: u32 = 0x6000_4038; // bit 3 clear: the boot pin was low at start
+        const RTC_CNTL_WDTCONFIG0_REG: u32 = 0x6000_8098;
+        const RTC_CNTL_WDTCONFIG1_REG: u32 = 0x6000_809C;
+        const RTC_CNTL_WDTWPROTECT_REG: u32 = 0x6000_80B0;
+        const RTC_CNTL_WDT_WKEY: u32 = 0x50D8_3AA1;
+
+        let Some(port_info) = serialport::available_ports().ok().and_then(|ports| {
+            ports.into_iter().find(|p| p.port_name == port_name).and_then(|p| match p.port_type {
+                SerialPortType::UsbPort(info) => Some(info),
+                _ => None,
+            })
+        }) else {
+            return;
+        };
+        let Ok(serial) = serialport::new(port_name, 115_200).flow_control(serialport::FlowControl::None).open_native() else {
+            return;
+        };
+        let Ok(mut flasher) = Flasher::connect(
+            serial,
+            port_info,
+            Some(115_200),
+            true,
+            false,
+            false,
+            None,
+            ResetAfterOperation::NoReset,
+            ResetBeforeOperation::UsbReset,
+        ) else {
+            return;
+        };
+        // The register addresses below are those of the ESP32-S3: nothing is written to another chip.
+        if flasher.chip() != espflash::targets::Chip::Esp32s3 {
+            return;
+        }
+        let connection = flasher.connection();
+        let forced = connection.read_reg(RTC_CNTL_OPTION1_REG).map(|v| v & 0x1 != 0).unwrap_or(false);
+        let _ = connection.write_reg(RTC_CNTL_OPTION1_REG, 0, Some(0x1));
+        let boot_pin_was_low = connection.read_reg(GPIO_STRAP_REG).map(|strap| strap & (1 << 3) == 0).unwrap_or(false);
+        if boot_pin_was_low && !forced {
+            let _ = connection.write_reg(RTC_CNTL_WDTWPROTECT_REG, RTC_CNTL_WDT_WKEY, None); // unlock
+            let _ = connection.write_reg(RTC_CNTL_WDTCONFIG1_REG, 2000, None); // timeout
+            let _ = connection.write_reg(RTC_CNTL_WDTCONFIG0_REG, (1 << 31) | (5 << 28) | (1 << 8) | 2, None); // enable
+            let _ = connection.write_reg(RTC_CNTL_WDTWPROTECT_REG, 0, None); // lock
+            std::thread::sleep(std::time::Duration::from_millis(800));
+        } else {
+            let _ = connection.reset();
+        }
     }
 
     /// Secours via esptool externe si installé

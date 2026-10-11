@@ -926,6 +926,18 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+/* The step after a first installation */
+.install-next {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--primary-amber);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  color: inherit;
+  font-size: 14px;
+}
+.install-next.hidden { display: none; }
+
 /* Recording of a heating cycle */
 .record-actions {
   display: flex;

@@ -117,7 +117,7 @@ const usbStatusText = document.getElementById("usb-status-text");
 // USB Mode Toggle (Mise à jour vs Reset Factory)
 const btnUsbModeUpdate = document.getElementById("usb-mode-update");
 const btnUsbModeFactory = document.getElementById("usb-mode-factory");
-let selectedUsbMode = "update"; // "update" | "factory"
+let selectedUsbMode = "factory"; // "update" | "factory": first installation unless the board is found ready for an update
 
 if (btnUsbModeUpdate && btnUsbModeFactory) {
   btnUsbModeUpdate.addEventListener("click", () => {
@@ -132,6 +132,237 @@ if (btnUsbModeUpdate && btnUsbModeFactory) {
     btnUsbModeUpdate.classList.remove("active");
   });
 }
+
+// The board on the selected port is read (nothing is written) to tell a new board from one that already runs Open
+// Firenet, and the mode is preselected from it (issue #29). The user can still choose the other mode.
+let boardCheck = 0;
+let lastBoardKey = "";
+let lastBoardReport = null;
+function showBoardReport() {
+  const status = document.getElementById("usb-board-status");
+  if (!status) return;
+  const report = lastBoardReport;
+  if (!report) return;
+  const btnCheck = document.getElementById("btn-check-board");
+  if (btnCheck) btnCheck.classList.toggle("hidden", report !== "not_checked");
+  if (typeof report === "string") {
+    status.textContent = t({ checking: "boardChecking", unknown: "boardUnknown", running: "boardRunning", not_checked: "boardNotChecked" }[report]);
+    return;
+  }
+  const key = { blank: "boardBlank", other_layout: "boardOther", ready: "boardReady", wrong_chip: "boardWrongChip", flash_too_small: "boardSmall" }[report.state];
+  status.textContent = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
+}
+// `asked`: the user clicked "Check the board". Without it, only a port that is an ESP32 for sure is read: reading
+// restarts the device, and a generic serial adapter may carry something that has nothing to do with us.
+async function checkBoard(asked = false) {
+  const status = document.getElementById("usb-board-status");
+  const port = usbPortSelect.value;
+  // The same board as last time (same port, same identity): it is not read again, reading restarts it.
+  const seen = (detectedPorts || []).find((p) => p.port_name === port);
+  const boardKey = seen ? `${seen.port_name}|${seen.description}` : "";
+  if (!asked && boardKey && boardKey === lastBoardKey && lastBoardReport && lastBoardReport !== "checking") {
+    showBoardReport();
+    renderBoardBanner();
+    return;
+  }
+  lastBoardKey = boardKey;
+  const check = ++boardCheck;
+  btnStartUsbFlash.disabled = false;
+  if (!port) {
+    lastBoardReport = null;
+    if (status) status.textContent = "";
+    document.getElementById("btn-check-board").classList.add("hidden");
+    renderBoardBanner();
+    return;
+  }
+  // A running Open Firenet shows the port that goes to the stove: the board cannot be read through it, but what it
+  // is is known from its USB identity.
+  const info = (detectedPorts || []).find((p) => p.port_name === port);
+  if (info && info.is_open_firenet) {
+    lastBoardReport = "running";
+    showBoardReport();
+    btnUsbModeUpdate.click();
+    renderBoardBanner();
+    return;
+  }
+  if (!asked && !(info && info.is_espressif)) {
+    lastBoardReport = "not_checked";
+    showBoardReport();
+    renderBoardBanner();
+    return;
+  }
+  lastBoardReport = "checking";
+  showBoardReport();
+  let report = null;
+  try {
+    report = await invoke("probe_board", { port, lang: getLang() });
+  } catch (err) {
+    console.warn("board probe:", err);
+  }
+  if (check !== boardCheck) return; // another port was chosen meanwhile
+  lastBoardReport = report || "unknown";
+  showBoardReport();
+  if (!report) return;
+  if (report.state === "ready") btnUsbModeUpdate.click();
+  else btnUsbModeFactory.click();
+  // A board the firmware cannot run on: nothing to flash.
+  btnStartUsbFlash.disabled = report.state === "wrong_chip" || report.state === "flash_too_small";
+  renderBoardBanner();
+}
+usbPortSelect.addEventListener("change", () => checkBoard(false));
+document.getElementById("btn-check-board").addEventListener("click", () => checkBoard(true));
+
+// After a first installation the window goes to the Wi-Fi tab and waits for the freshly installed dongle to show up
+// among the ports, to select it. `installNext`: null, "waiting" or "found".
+let installNext = null;
+function renderInstallNext() {
+  const note = document.getElementById("wifi-install-next");
+  if (!note) return;
+  note.classList.toggle("hidden", !installNext);
+  if (!installNext) return;
+  const next = { waiting: "installWaitingKey", stuck: "installStuck", found: "installPhoneHint", choose: "installChoose" }[installNext];
+  note.textContent = `${t("installDoneNext")} ${t(next)}`;
+}
+// While the freshly installed dongle has not come back, there is nothing to send the Wi-Fi to.
+function updateWifiSendButton() {
+  const sendButton = document.getElementById("btn-send-wifi");
+  if (sendButton && !isWifiConfigInProgress) sendButton.disabled = ["waiting", "stuck", "choose"].includes(installNext);
+}
+let installNextTimer = null;
+let installFlashedPort = "";
+let installDonglesBefore = [];
+function startWifiAfterInstall(flashedPort) {
+  clearTimeout(installNextTimer);
+  installFlashedPort = flashedPort;
+  document.querySelector('[data-tab="tab-wifi"]').click();
+  // Flashed through a serial adapter (the board's UART port): the port stays the same, the Wi-Fi goes through it.
+  const flashed = (detectedPorts || []).find((p) => p.port_name === flashedPort);
+  if (flashed && !flashed.is_espressif) {
+    wifiPortSelect.value = flashedPort;
+    installNext = "found";
+    renderInstallNext();
+    updateWifiSendButton();
+    document.getElementById("wifi-ssid").focus();
+    return;
+  }
+  installNext = "waiting";
+  updateWifiSendButton();
+  // A board flashed while its BOOT button was held stays in flashing mode: say what to do when it does not come back.
+  clearTimeout(installNextTimer);
+  installNextTimer = setTimeout(() => {
+    if (installNext === "waiting") {
+      installNext = "stuck";
+      renderInstallNext();
+    }
+  }, 12000);
+  renderInstallNext();
+  selectInstalledDongle();
+}
+// Choosing a port by hand ends the wait: the user knows which board to talk to.
+document.getElementById("wifi-port-select").addEventListener("change", () => {
+  if (["waiting", "stuck", "choose"].includes(installNext)) {
+    clearTimeout(installNextTimer);
+    installNext = null;
+    renderInstallNext();
+    updateWifiSendButton();
+  }
+});
+// Selects, in the Wi-Fi tab, the port of the dongle that was just installed, once it is there. With several dongles
+// plugged in: the one on the port that was flashed, else the only one that was not there before; when that cannot
+// be told, the user chooses.
+function selectInstalledDongle() {
+  if (installNext !== "waiting" && installNext !== "stuck") return;
+  const dongles = (detectedPorts || []).filter((p) => p.is_open_firenet);
+  if (dongles.length === 0) return;
+  const fresh = dongles.filter((p) => !installDonglesBefore.includes(p.port_name));
+  const found =
+    dongles.find((p) => p.port_name === installFlashedPort) ||
+    (fresh.length === 1 ? fresh[0] : null) ||
+    (dongles.length === 1 ? dongles[0] : null);
+  clearTimeout(installNextTimer);
+  if (!found) {
+    installNext = "choose";
+    renderInstallNext();
+    updateWifiSendButton();
+    return;
+  }
+  wifiPortSelect.value = found.port_name;
+  installNext = "found";
+  renderInstallNext();
+  updateWifiSendButton();
+  document.getElementById("wifi-ssid").focus();
+}
+
+// Dialog "a board was plugged in over USB": shown once for each board the installer recognised, unless the user is
+// already on the USB tab or busy. "Later" closes it; nothing is switched without the user.
+let boardModalSeen = "";
+let boardGoneAt = 0;
+// The dongle restarts after its Wi-Fi was sent: until then, one that comes back is not a new one.
+let dongleRestartsUntil = 0;
+function renderBoardBanner() {
+  const modal = document.getElementById("board-modal");
+  if (!modal) return;
+  const report = lastBoardReport;
+  const ready = report === "running" || (report && report.state === "ready");
+  const fresh = report && (report.state === "blank" || report.state === "other_layout");
+  const key = usbPortSelect.value && (ready || fresh) ? `${usbPortSelect.value}|${ready ? "ready" : "fresh"}` : "";
+  if (!key) {
+    if (!boardGoneAt) boardGoneAt = Date.now();
+    modal.classList.add("hidden");
+    return;
+  }
+  // Unplugged then plugged in again: it is announced again. A dongle that only restarted (after its Wi-Fi was
+  // sent, for instance) comes back within seconds and is not.
+  if (boardGoneAt && Date.now() - boardGoneAt > 10000) boardModalSeen = "";
+  boardGoneAt = 0;
+  if (ready && Date.now() < dongleRestartsUntil) boardModalSeen = key;
+  const onUsbTab = document.getElementById("tab-usb").classList.contains("active");
+  const busy = isUsbFlashingInProgress || isWifiConfigInProgress || isOtaInProgress || installNext;
+  if (!modal.classList.contains("hidden")) {
+    // Already open: keep its texts in the current language.
+  } else if (key === boardModalSeen || onUsbTab || busy) {
+    if (onUsbTab || busy) boardModalSeen = key; // seen on the tab itself, or the user is already dealing with it
+    return;
+  }
+  boardModalSeen = key;
+  document.getElementById("board-modal-title").textContent = t("boardModalTitle");
+  // The port is named: with several boards plugged in, it tells which one this is about.
+  const sentence = t(ready ? "bannerBoardReady" : "bannerBoardNew").replace(/\.\s*$/, "");
+  document.getElementById("board-modal-text").textContent = `${sentence} (${usbPortSelect.value}).`;
+  const go = document.getElementById("board-modal-go");
+  go.textContent = t(ready ? "btnBannerUpdate" : "btnBannerInstall");
+  go.onclick = () => {
+    modal.classList.add("hidden");
+    document.querySelector('[data-tab="tab-usb"]').click();
+  };
+  modal.classList.remove("hidden");
+}
+document.getElementById("board-modal-later").addEventListener("click", () => {
+  document.getElementById("board-modal").classList.add("hidden");
+});
+
+// A board plugged in or removed while the window is open: the list of ports is read again (listing does not
+// touch the devices).
+let knownPorts = "";
+let knownPortNames = null;
+setInterval(async () => {
+  if (isUsbFlashingInProgress || isWifiConfigInProgress || lastBoardReport === "checking") return;
+  try {
+    const ports = await invoke("list_serial_ports", { lang: getLang() });
+    const names = ports.map((p) => p.port_name + "|" + p.description).join(",");
+    if (knownPorts !== "" && names !== knownPorts) {
+      // One dongle plugged in while nothing is going on: it is selected, and the dialog names its port. With
+      // several at once, or in the middle of something, the choice stays where the user left it.
+      const plugged = ports.filter((p) => (p.is_espressif || p.is_open_firenet) && !knownPortNames.includes(p.port_name));
+      const idle = !isOtaInProgress && !installNext && confirmModal.classList.contains("hidden");
+      refreshPorts(plugged.length === 1 && idle ? plugged[0].port_name : undefined);
+    }
+    knownPorts = names;
+    knownPortNames = ports.map((p) => p.port_name);
+  } catch (err) {
+    /* the next round will try again */
+  }
+}, 3000);
 
 // Confirmation Modal Elements (Partagé USB & OTA)
 const confirmModal = document.getElementById("confirm-modal");
@@ -265,6 +496,9 @@ function renderUpdateBanner() {
 
 function updateDynamicButtons() {
   renderUpdateBanner();
+  renderInstallNext();
+  showBoardReport();
+  renderBoardBanner();
   const scanLabel = btnScan ? btnScan.querySelector(".btn-label") : null;
   if (scanLabel) scanLabel.textContent = t("btnScan");
   const portsLabel = btnRefreshPorts ? btnRefreshPorts.querySelector(".btn-label") : null;
@@ -298,6 +532,7 @@ tabs.forEach((tab) => {
     const targetPane = document.getElementById(targetId);
     if (targetPane) targetPane.classList.add("active");
     resetTransientUi();
+    renderBoardBanner();
   });
 });
 
@@ -654,9 +889,12 @@ function renderReleasesList(releases) {
 }
 
 // 4. USB Ports
-async function refreshPorts() {
+async function refreshPorts(pluggedPort) {
   btnRefreshPorts.disabled = true;
   btnRefreshPorts.innerHTML = `<span class="spinner-btn"></span> <span class="btn-label" data-i18n="detectingPorts">${t("detectingPorts")}</span>`;
+  // The ports chosen so far are kept when the list is read again (a second board plugged in must not move them).
+  const keptUsbPort = usbPortSelect.value;
+  const keptWifiPort = wifiPortSelect.value;
   usbPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
   wifiPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
 
@@ -668,6 +906,7 @@ async function refreshPorts() {
     if (!detectedPorts || detectedPorts.length === 0) {
       usbPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
       wifiPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
+      checkBoard(false);
       return;
     }
 
@@ -682,6 +921,12 @@ async function refreshPorts() {
       optWifi.textContent = `${p.port_name} • ${p.description}`;
       wifiPortSelect.appendChild(optWifi);
     });
+    // A dongle that was just plugged in becomes the one the USB tab is about; otherwise the choice is kept.
+    const usbPort = typeof pluggedPort === "string" ? pluggedPort : keptUsbPort;
+    if (detectedPorts.some((p) => p.port_name === usbPort)) usbPortSelect.value = usbPort;
+    if (detectedPorts.some((p) => p.port_name === keptWifiPort)) wifiPortSelect.value = keptWifiPort;
+    checkBoard(false);
+    selectInstalledDongle();
   } catch (err) {
     console.error("Erreur détection ports :", err);
     usbPortSelect.innerHTML = `<option value=''>${t("alertErrorPrefix")} USB</option>`;
@@ -807,6 +1052,7 @@ async function doUsbFlash() {
   usbProgressBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
   try {
+    installDonglesBefore = (detectedPorts || []).filter((p) => p.is_open_firenet).map((p) => p.port_name);
     await invoke("flash_usb_device", {
       port,
       releaseTag: tag || null,
@@ -816,9 +1062,14 @@ async function doUsbFlash() {
     });
     usbProgressBar.style.width = "100%";
     usbStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusFlashingSuccess")}`;
-    setTimeout(() => {
-      alert(t("statusFlashingSuccess"));
-    }, 400);
+    if (selectedUsbMode === "factory") {
+      // A first installation: the next step is the Wi-Fi. The board restarts and comes back under another port.
+      startWifiAfterInstall(port);
+    } else {
+      setTimeout(() => {
+        alert(t("statusFlashingSuccess"));
+      }, 400);
+    }
   } catch (err) {
     console.error("Erreur Flash USB :", err);
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
@@ -895,6 +1146,12 @@ btnSendWifi.addEventListener("click", async () => {
     alert(t("alertFillSsid"));
     return;
   }
+  // The chip's own port means the board sits in its flashing mode: no firmware is running to take the Wi-Fi.
+  const wifiPortInfo = (detectedPorts || []).find((p) => p.port_name === port);
+  if (wifiPortInfo && wifiPortInfo.is_espressif) {
+    wifiStatusText.textContent = t("wifiBoardInFlashMode");
+    return;
+  }
 
   isWifiConfigInProgress = true;
   btnSendWifi.disabled = true;
@@ -903,6 +1160,10 @@ btnSendWifi.addEventListener("click", async () => {
   try {
     await invoke("configure_wifi", { port, ssid, password: pass, lang: getLang() });
     wifiStatusText.textContent = t("wifiConfigSuccess");
+    dongleRestartsUntil = Date.now() + 60000;
+    installNext = null; // the step after a first installation is done
+    renderInstallNext();
+    updateWifiSendButton();
     alert(t("wifiConfigSuccess"));
   } catch (err) {
     console.error("Erreur Wi-Fi :", err);
