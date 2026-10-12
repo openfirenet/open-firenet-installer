@@ -32,37 +32,49 @@ impl WifiSetup {
     /// Opening the port restarts many boards (the serial adapter's DTR/RTS lines drive the reset pin), and a command
     /// sent while the bridge starts is lost. So the command is sent again, for 15 seconds at most, and nothing is
     /// reported as done without the bridge's answer.
-    fn send_until_confirmed(port_name: &str, command: &str, confirmation: &str, lang: crate::cli_i18n::CliLang) -> Result<bool> {
-        let mut port = serialport::new(port_name, 115200)
-            .timeout(Duration::from_millis(500))
-            .open()
-            .context(lang.cannot_open_serial())?;
+    fn send_until_confirmed(port_name: &str, command: &str, confirmation: &str, secrets: &[&str], lang: crate::cli_i18n::CliLang) -> Result<bool> {
+        use crate::journal;
+        let shown = journal::mask(command.trim_end(), secrets);
+        journal::note(format!("serial {}: open at 115200 baud, to send \"{}\" and wait for \"{}\"", port_name, shown, confirmation));
+        let mut port = journal::io(
+            &format!("open {}", port_name),
+            serialport::new(port_name, 115200).timeout(Duration::from_millis(500)).open().map_err(std::io::Error::from),
+        )
+        .context(lang.cannot_open_serial())?;
         let deadline = Instant::now() + Duration::from_secs(15);
         let mut heard = String::new();
         let mut buffer = [0u8; 512];
+        let mut attempt = 0;
         while Instant::now() < deadline {
-            port.write_all(command.as_bytes())?;
-            port.flush()?;
+            attempt += 1;
+            journal::note(format!("serial {}: attempt {}, write {} bytes", port_name, attempt, command.len()));
+            journal::io(&format!("write {}", port_name), port.write_all(command.as_bytes()))?;
+            journal::io(&format!("flush {}", port_name), port.flush())?;
             let listen_until = Instant::now() + Duration::from_millis(1500);
             while Instant::now() < listen_until {
-                match port.read(&mut buffer) {
-                    Ok(n) if n > 0 => heard.push_str(&String::from_utf8_lossy(&buffer[..n])),
+                match journal::io(&format!("read {}", port_name), port.read(&mut buffer)) {
+                    Ok(n) if n > 0 => {
+                        journal::note(format!("serial {}: received \"{}\"", port_name, journal::mask(&journal::printable(&buffer[..n]), secrets)));
+                        heard.push_str(&String::from_utf8_lossy(&buffer[..n]));
+                    }
                     Ok(_) => {}
                     Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
                     Err(e) => return Err(e.into()),
                 }
                 if heard.contains(confirmation) {
+                    journal::note(format!("serial {}: confirmation received", port_name));
                     return Ok(true);
                 }
             }
         }
+        journal::note(format!("serial {}: no confirmation after {} attempts in 15 s", port_name, attempt));
         Ok(false)
     }
 
     /// Sends the Wi-Fi name and password over the serial port; the bridge saves them and restarts.
     pub fn send_credentials(port_name: &str, ssid: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
         let command = format!("SETWIFI:{}:{}\n", ssid, password);
-        if Self::send_until_confirmed(port_name, &command, "SETWIFI OK", lang)? {
+        if Self::send_until_confirmed(port_name, &command, "SETWIFI OK", &[ssid, password], lang)? {
             Ok(())
         } else {
             Err(anyhow!(lang.wifi_not_confirmed()))
@@ -73,7 +85,7 @@ impl WifiSetup {
     /// bridge only accepts this over USB, never over the network.
     pub fn send_ota_password(port_name: &str, password: &str, lang: crate::cli_i18n::CliLang) -> Result<()> {
         let command = format!("SETOTAPASS:{}\n", password);
-        if Self::send_until_confirmed(port_name, &command, "SETOTAPASS OK", lang)? {
+        if Self::send_until_confirmed(port_name, &command, "SETOTAPASS OK", &[password], lang)? {
             Ok(())
         } else {
             Err(anyhow!(lang.ota_password_not_confirmed()))

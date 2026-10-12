@@ -937,6 +937,17 @@ async function refreshPorts(pluggedPort) {
   }
 }
 
+// Journal of what the installer did, saved as a file to attach to a report.
+document.getElementById("btn-save-journal").addEventListener("click", async (event) => {
+  event.preventDefault();
+  try {
+    const path = await invoke("save_journal");
+    alert(t("journalSaved").replace("{path}", path));
+  } catch (err) {
+    alert(`${t("journalError")} ${err}`);
+  }
+});
+
 // 5. Actions
 btnScan.addEventListener("click", runScan);
 btnRefreshPorts.addEventListener("click", refreshPorts);

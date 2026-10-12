@@ -2,6 +2,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use std::path::PathBuf;
 
 pub mod board_probe;
+pub mod journal;
 pub mod cli_i18n;
 pub mod discovery;
 pub mod flasher_ota;
@@ -90,12 +91,13 @@ async fn flash_usb_device(
             "percent": 5,
             "message": lang.usb_flashing_in_progress()
         }));
-        SerialFlasher::flash_usb_bin(&port, &bin_path, offset, 921600, lang, move |pct, msg| {
+        journal::note(format!("USB flash on {}: {} at offset {}", port, bin_path.display(), offset));
+        journal::outcome(&format!("USB flash on {}", port), SerialFlasher::flash_usb_bin(&port, &bin_path, offset, 921600, lang, move |pct, msg| {
             let _ = app_handle.emit("flash-progress", serde_json::json!({
                 "percent": pct,
                 "message": msg
             }));
-        }).map_err(|e| e.to_string())?;
+        })).map_err(|e| e.to_string())?;
         let _ = app.emit("flash-status", lang.usb_done());
         Ok(lang.usb_done_restarting().to_string())
     })
@@ -135,12 +137,13 @@ async fn update_ota_device(
             "percent": 5,
             "message": lang.ota_sending_wifi()
         }));
-        flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path, password.as_deref(), lang, move |pct, msg| {
+        journal::note(format!("Wi-Fi update of {}: {}, password given: {}", ip, bin_path.display(), password.is_some()));
+        journal::outcome(&format!("Wi-Fi update of {}", ip), flasher_ota::OtaFlasher::flash_arduino_ota(&ip, &bin_path, password.as_deref(), lang, move |pct, msg| {
             let _ = app_handle.emit("ota-progress", serde_json::json!({
                 "percent": pct,
                 "message": msg
             }));
-        }).map_err(|e| e.to_string())?;
+        })).map_err(|e| e.to_string())?;
         let _ = app.emit("ota-status", lang.rebooted_online());
         Ok(lang.ota_success().to_string())
     })
@@ -170,9 +173,25 @@ async fn check_installer_update(app: tauri::AppHandle, lang: Option<String>) -> 
 #[tauri::command]
 async fn probe_board(port: String, lang: Option<String>) -> Result<board_probe::BoardReport, String> {
     let lang = CliLang::from_window(lang.as_deref());
-    tauri::async_runtime::spawn_blocking(move || board_probe::probe(&port, lang).map_err(|e| e.to_string()))
+    tauri::async_runtime::spawn_blocking(move || {
+        let report = journal::outcome(&format!("read of the board on {}", port), board_probe::probe(&port, lang));
+        if let Ok(r) = &report {
+            journal::note(format!("board on {}: {:?}, chip {}, flash {} bytes, {} partitions", port, r.state, r.chip, r.flash_bytes, r.partitions.len()));
+        }
+        report.map_err(|e| e.to_string())
+    })
         .await
         .map_err(|e| e.to_string())?
+}
+
+/// Writes the journal (see journal.rs) to a file in the user's documents and returns its path.
+#[tauri::command]
+fn save_journal(app: AppHandle) -> Result<String, String> {
+    let folder = app.path().document_dir().or_else(|_| app.path().home_dir()).unwrap_or_else(|_| std::path::PathBuf::from("."));
+    let epoch = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let path = folder.join(format!("open-firenet-installer-journal-{}.txt", epoch));
+    std::fs::write(&path, journal::text(&app.package_info().version.to_string())).map_err(|e| e.to_string())?;
+    Ok(path.display().to_string())
 }
 
 /// The recording in progress, if any: how to stop it and how to hand it a note.
@@ -256,7 +275,7 @@ fn configure_wifi(
     lang: Option<String>,
 ) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
-    wifi_setup::WifiSetup::send_credentials(&port, &ssid, &password, lang).map_err(|e| e.to_string())?;
+    journal::outcome(&format!("Wi-Fi setup on {}", port), wifi_setup::WifiSetup::send_credentials(&port, &ssid, &password, lang)).map_err(|e| e.to_string())?;
     Ok(lang.wifi_config_sent().to_string())
 }
 
@@ -271,7 +290,7 @@ fn ota_password_needed(ip: String) -> Option<bool> {
 #[tauri::command(async)]
 fn set_ota_password(port: String, password: String, lang: Option<String>) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
-    wifi_setup::WifiSetup::send_ota_password(&port, &password, lang).map_err(|e| e.to_string())?;
+    journal::outcome(&format!("update password on {}", port), wifi_setup::WifiSetup::send_ota_password(&port, &password, lang)).map_err(|e| e.to_string())?;
     Ok(lang.ota_password_sent(password.is_empty()).to_string())
 }
 
@@ -343,6 +362,7 @@ pub fn run() {
             flash_usb_device,
             update_ota_device,
             configure_wifi,
+            save_journal,
             set_ota_password,
             ota_password_needed,
             open_browser_url,
