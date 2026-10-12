@@ -123,6 +123,7 @@ impl SerialFlasher {
                 return Ok(());
             }
             Err(e) => {
+                crate::journal::note(format!("USB flash on {}: built-in flasher FAILED: {:#}", port, e));
                 println!("{} {}", "⚠".yellow(), lang.usb_native_failed(&e.to_string()));
 
                 // 2. Si esptool externe est installé sur le système, tenter comme secours
@@ -174,6 +175,10 @@ impl SerialFlasher {
             .map_err(|e| anyhow!(lang.cannot_open_port(port_name, &e.to_string())))?;
 
         let is_usb_jtag = port_info.pid == 0x1001;
+        crate::journal::note(format!(
+            "USB flash on {}: USB {:04x}:{:04x} product {:?}, {} bytes at {:#x}, {} baud, the chip's own USB port: {}",
+            port_name, port_info.vid, port_info.pid, port_info.product.clone().unwrap_or_default(), bin_data.len(), addr, baud_rate, is_usb_jtag
+        ));
         let before_reset = if is_usb_jtag {
             ResetBeforeOperation::UsbReset
         } else {
@@ -265,12 +270,17 @@ impl SerialFlasher {
                 _ => None,
             })
         }) else {
+            crate::journal::note(format!("restart after flash: {} is no longer in the list of ports", port_name));
             return;
         };
-        let Ok(serial) = serialport::new(port_name, 115_200).flow_control(serialport::FlowControl::None).open_native() else {
-            return;
+        let serial = match serialport::new(port_name, 115_200).flow_control(serialport::FlowControl::None).open_native() {
+            Ok(serial) => serial,
+            Err(e) => {
+                crate::journal::note(format!("restart after flash: FAILED open {}: {}", port_name, e));
+                return;
+            }
         };
-        let Ok(mut flasher) = Flasher::connect(
+        let connected = Flasher::connect(
             serial,
             port_info,
             Some(115_200),
@@ -280,17 +290,28 @@ impl SerialFlasher {
             None,
             ResetAfterOperation::NoReset,
             ResetBeforeOperation::UsbReset,
-        ) else {
-            return;
+        );
+        let mut flasher = match connected {
+            Ok(flasher) => flasher,
+            Err(e) => {
+                crate::journal::note(format!("restart after flash: FAILED connect to the chip on {}: {:?}", port_name, e));
+                return;
+            }
         };
         // The register addresses below are those of the ESP32-S3: nothing is written to another chip.
         if flasher.chip() != espflash::targets::Chip::Esp32s3 {
+            crate::journal::note(format!("restart after flash: chip is {:?}, nothing done", flasher.chip()));
             return;
         }
         let connection = flasher.connection();
         let forced = connection.read_reg(RTC_CNTL_OPTION1_REG).map(|v| v & 0x1 != 0).unwrap_or(false);
         let _ = connection.write_reg(RTC_CNTL_OPTION1_REG, 0, Some(0x1));
-        let boot_pin_was_low = connection.read_reg(GPIO_STRAP_REG).map(|strap| strap & (1 << 3) == 0).unwrap_or(false);
+        let strap = connection.read_reg(GPIO_STRAP_REG);
+        let boot_pin_was_low = strap.as_ref().map(|strap| strap & (1 << 3) == 0).unwrap_or(false);
+        crate::journal::note(format!(
+            "restart after flash on {}: download forced over USB = {}, strap register = {:?}, boot pin low at start = {} -> {}",
+            port_name, forced, strap, boot_pin_was_low, if boot_pin_was_low && !forced { "watchdog restart" } else { "ordinary reset" }
+        ));
         if boot_pin_was_low && !forced {
             let _ = connection.write_reg(RTC_CNTL_WDTWPROTECT_REG, RTC_CNTL_WDT_WKEY, None); // unlock
             let _ = connection.write_reg(RTC_CNTL_WDTCONFIG1_REG, 2000, None); // timeout

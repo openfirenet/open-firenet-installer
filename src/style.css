@@ -973,6 +973,8 @@ select option:checked, select option:hover {
 .update-banner.hidden { display: none; }
 
 /* Footer */
+.footer-link { color: var(--text-muted); text-decoration: underline; cursor: pointer; }
+.footer-link:hover { color: var(--text-primary, #fff); }
 .app-footer {
   padding: 12px 24px;
   background: #090d16;

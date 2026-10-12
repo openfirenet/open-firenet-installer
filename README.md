@@ -67,6 +67,7 @@ Records what the stove reports during a heating cycle to a file you can attach t
 - **🔑 Update Password** (dongle firmware 4.0 or later): set or remove, over USB, a password that the dongle then asks for at each wireless update. The installer asks for it when the dongle has one.
 - **📈 Heating Cycle Recorder**: records what the stove reports during a heating cycle to a file, to attach to an issue. The stove is only read.
 - **🆕 Update Notice**: the window tells when a newer installer is available.
+- **🧾 Journal for a Report**: the window saves, on request, a file of what the installer did (each step of its exchanges with the dongle, each failure with the system's error code), to attach to a report. The Wi-Fi name and the passwords are masked. On the command line, `--debug` prints it as it goes.
 - **📟 Embedded Serial Monitor**: Monitor live stove UART dialogue frames and boot logs directly inside your terminal.
 - **🌐 Multilingual**: Built-in support for **English**, **French**, **German** and **Italian**.
 - **🖥️ Dual Mode (GUI & CLI)**: Automatically launches a sleek, modern Tauri graphical interface in desktop environments, or falls back to an interactive menu / command-line tool in headless/SSH setups.

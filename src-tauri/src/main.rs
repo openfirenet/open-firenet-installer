@@ -36,6 +36,10 @@ struct Cli {
     /// Language of the texts: fr, en, de or it (default: the system's, else French)
     #[arg(short, long)]
     lang: Option<String>,
+
+    /// Print the journal as it goes: each step of the exchanges with the board, and each failure with its cause
+    #[arg(long, global = true)]
+    debug: bool,
 }
 
 #[derive(Subcommand)]
@@ -114,6 +118,9 @@ fn print_banner(lang: CliLang) {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    if cli.debug {
+        open_firenet_installer::journal::echo_to_stderr();
+    }
 
     let lang = match cli.lang.as_deref() {
         Some(l) => CliLang::from_str(l),
