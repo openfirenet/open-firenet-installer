@@ -773,10 +773,10 @@ impl CliLang {
     /// firmware is larger than the update slot of Arduino's default partition scheme: that cause is then named too.
     pub fn ota_no_tcp_connection(&self, port: u16, firmware_bytes: usize, default_slot_bytes: Option<usize>) -> String {
         let mut text = tr!(self,
-            format!("Délai d'attente dépassé : la clé n'a pas pu se connecter au port TCP {} de cet ordinateur. Vérifiez que votre pare-feu autorise les connexions entrantes sur le réseau local.", port),
-            format!("Timed out: the dongle could not connect to TCP port {} of this computer. Check that your firewall allows incoming connections on the local network.", port),
-            format!("Zeitüberschreitung: Der Dongle konnte sich nicht mit TCP-Port {} dieses Computers verbinden. Prüfen Sie, ob Ihre Firewall eingehende Verbindungen im lokalen Netzwerk zulässt.", port),
-            format!("Tempo scaduto: il dongle non è riuscito a connettersi alla porta TCP {} di questo computer. Verifica che il firewall consenta le connessioni in entrata sulla rete locale.", port));
+            format!("Délai d'attente dépassé : la clé n'a pas pu se connecter au port TCP {} de cet ordinateur. Vérifiez que votre pare-feu ou le routage de votre réseau autorise les connexions entrantes sur le réseau local.", port),
+            format!("Timed out: the dongle could not connect to TCP port {} of this computer. Check that your firewall or network routing allows incoming connections on the local network.", port),
+            format!("Zeitüberschreitung: Der Dongle konnte sich nicht mit TCP-Port {} dieses Computers verbinden. Prüfen Sie, ob Ihre Firewall oder das Netzwerk-Routing eingehende Verbindungen im lokalen Netzwerk zulässt.", port),
+            format!("Tempo scaduto: il dongle non è riuscito a connettersi alla porta TCP {} di questo computer. Verifica che il firewall o l'instradamento di rete consenta le connessioni in entrata sulla rete locale.", port));
         if let Some(slot) = default_slot_bytes {
             text.push_str("\n\n");
             text.push_str(&tr!(self,

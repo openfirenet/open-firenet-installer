@@ -117,7 +117,16 @@ async fn update_ota_device(
     let lang = CliLang::from_window(lang.as_deref());
     tauri::async_runtime::spawn_blocking(move || {
         let bin_path = if let Some(path) = custom_file {
-            PathBuf::from(path)
+            let path_buf = PathBuf::from(path);
+            if let Ok(metadata) = std::fs::metadata(&path_buf) {
+                let size = metadata.len() as usize;
+                if let Some(slot) = flasher_ota::OtaFlasher::ota_slot_bytes(&ip) {
+                    if size > slot {
+                        return Err(lang.ota_slot_too_small(size, slot));
+                    }
+                }
+            }
+            path_buf
         } else if let Some(tag) = release_tag {
             let client = GitHubClient::new(lang);
             let releases = client.list_releases().map_err(|e| e.to_string())?;
@@ -125,6 +134,11 @@ async fn update_ota_device(
                 .ok_or_else(|| lang.release_not_found(&tag))?;
             let asset = release.ota_asset()
                 .ok_or_else(|| lang.no_update_binary().to_string())?;
+            if let Some(slot) = flasher_ota::OtaFlasher::ota_slot_bytes(&ip) {
+                if (asset.size as usize) > slot {
+                    return Err(lang.ota_slot_too_small(asset.size as usize, slot));
+                }
+            }
             let _ = app.emit("ota-status", lang.downloading_verifying());
             let dest = client.download_and_verify_asset(&release, asset).map_err(|e| e.to_string())?;
             dest

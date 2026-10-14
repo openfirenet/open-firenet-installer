@@ -16,13 +16,45 @@ impl OtaFlasher {
     /// Update slot of Arduino's default 4 MB partition scheme (the releases use "Minimal SPIFFS", 1,966,080 bytes).
     pub const DEFAULT_SCHEME_SLOT_BYTES: usize = 1_310_720;
 
-    /// Size of the stick's update slot, as reported by its firmware (`device.ota_slot_bytes`), when it reports one.
-    fn ota_slot_bytes(ip: &str) -> Option<usize> {
-        let url = format!("http://{}/api/state", ip);
-        let resp = ureq::get(&url).timeout(Duration::from_millis(1500)).call().ok()?;
-        let state: serde_json::Value = resp.into_json().ok()?;
+    /// Parses the size of the stick's update slot from /api/state JSON (`device.ota_slot_bytes`).
+    pub fn parse_ota_slot(state: &serde_json::Value) -> Option<usize> {
         let slot = state.get("device")?.get("ota_slot_bytes")?.as_u64()?;
         if slot == 0 { None } else { Some(slot as usize) }
+    }
+
+    /// Size of the stick's update slot, as reported by its firmware (`device.ota_slot_bytes`), when it reports one.
+    pub fn ota_slot_bytes(ip: &str) -> Option<usize> {
+        let url = format!("http://{}/api/state", ip);
+        let resp = match ureq::get(&url).timeout(Duration::from_millis(2500)).call() {
+            Ok(r) => r,
+            Err(e) => {
+                crate::journal::note(format!("OTA slot query for {} failed: {}", ip, e));
+                return None;
+            }
+        };
+        let state: serde_json::Value = match resp.into_json() {
+            Ok(s) => s,
+            Err(e) => {
+                crate::journal::note(format!("OTA slot JSON parse for {} failed: {}", ip, e));
+                return None;
+            }
+        };
+        let slot = Self::parse_ota_slot(&state);
+        match slot {
+            Some(s) => crate::journal::note(format!("OTA update slot for {}: {} bytes", ip, s)),
+            None => crate::journal::note(format!("OTA update slot for {} not reported by firmware", ip)),
+        }
+        slot
+    }
+
+    /// When a TCP connection times out during OTA, determines whether Arduino's default partition scheme
+    /// should be suggested as a possible cause: only when the stick's slot size could NOT be determined
+    /// from its firmware and the firmware image is larger than that default slot.
+    pub fn ota_default_slot_hint(stick_slot: Option<usize>, content_size: usize) -> Option<usize> {
+        match stick_slot {
+            Some(_) => None,
+            None => Some(Self::DEFAULT_SCHEME_SLOT_BYTES).filter(|slot| content_size > *slot),
+        }
     }
 
     /// Answer to the bridge's password challenge, as the update library of the ESP32 Arduino core 3.3 expects it
@@ -80,7 +112,8 @@ impl OtaFlasher {
 
         // A stick first flashed with Arduino's default partition scheme has update slots of 1,310,720 bytes: a
         // larger firmware is refused by the stick without a word. Newer firmware reports the slot size.
-        if let Some(slot) = Self::ota_slot_bytes(ip) {
+        let stick_slot = Self::ota_slot_bytes(ip);
+        if let Some(slot) = stick_slot {
             if content_size > slot {
                 return Err(anyhow!(lang.ota_slot_too_small(content_size, slot)));
             }
@@ -183,7 +216,7 @@ impl OtaFlasher {
         }
 
         // An older firmware does not report its slot size: above Arduino's default slot, name that cause too.
-        let default_slot = Some(Self::DEFAULT_SCHEME_SLOT_BYTES).filter(|slot| content_size > *slot);
+        let default_slot = Self::ota_default_slot_hint(stick_slot, content_size);
         let mut stream = client_stream
             .ok_or_else(|| anyhow!(lang.ota_no_tcp_connection(local_port, content_size, default_slot)))?;
 
@@ -294,5 +327,48 @@ mod tests {
         let good = OtaFlasher::auth_response("correct horse", nonce, "fw.bin", 1, "x", "1.2.3.4").1;
         let bad = OtaFlasher::auth_response("correct horsf", nonce, "fw.bin", 1, "x", "1.2.3.4").1;
         assert_ne!(good, bad);
+    }
+
+    #[test]
+    fn parses_ota_slot_bytes_from_api_state() {
+        let valid = serde_json::json!({
+            "device": {
+                "ota_slot_bytes": 1_966_080
+            }
+        });
+        assert_eq!(OtaFlasher::parse_ota_slot(&valid), Some(1_966_080));
+
+        let zero = serde_json::json!({
+            "device": {
+                "ota_slot_bytes": 0
+            }
+        });
+        assert_eq!(OtaFlasher::parse_ota_slot(&zero), None);
+
+        let missing_field = serde_json::json!({
+            "device": {
+                "version": "3.5.0"
+            }
+        });
+        assert_eq!(OtaFlasher::parse_ota_slot(&missing_field), None);
+
+        let empty = serde_json::json!({});
+        assert_eq!(OtaFlasher::parse_ota_slot(&empty), None);
+    }
+
+    #[test]
+    fn ota_default_slot_hint_behavior() {
+        const DEFAULT_SLOT: usize = OtaFlasher::DEFAULT_SCHEME_SLOT_BYTES;
+        let large_fw = DEFAULT_SLOT + 50_000;
+        let small_fw = DEFAULT_SLOT - 50_000;
+
+        // When the stick reported a confirmed slot that fits, never blame the slot size:
+        assert_eq!(OtaFlasher::ota_default_slot_hint(Some(1_966_080), large_fw), None);
+
+        // When the stick's slot size is unknown (e.g. older firmware) and fw exceeds default slot:
+        assert_eq!(OtaFlasher::ota_default_slot_hint(None, large_fw), Some(DEFAULT_SLOT));
+
+        // When the stick's slot size is unknown but fw fits in default slot anyway:
+        assert_eq!(OtaFlasher::ota_default_slot_hint(None, small_fw), None);
     }
 }
