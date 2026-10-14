@@ -139,6 +139,115 @@ button, .tab-btn, .lang-select, .nav-tabs {
   gap: 16px;
 }
 
+/* Custom Language Dropdown */
+.lang-dropdown {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.lang-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1e2638;
+  color: var(--text-main);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+.lang-dropdown-btn:hover,
+.lang-dropdown-btn:focus,
+.lang-dropdown.open .lang-dropdown-btn {
+  background-color: #2b364e;
+  border-color: var(--primary-orange);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.25);
+}
+
+.lang-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-orange);
+  transition: transform 0.2s ease;
+}
+
+.lang-arrow svg {
+  width: 14px;
+  height: 14px;
+}
+
+.lang-dropdown.open .lang-arrow {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 145px;
+  background: #161b26;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 8px;
+  padding: 4px;
+  margin: 0;
+  list-style: none;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.lang-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.lang-dropdown-item:hover,
+.lang-dropdown-item:focus {
+  background: rgba(249, 115, 22, 0.15);
+  color: #ffffff;
+  outline: none;
+}
+
+.lang-dropdown-item.selected {
+  background: rgba(249, 115, 22, 0.25);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.flag-icon {
+  width: 20px;
+  height: 14px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.lang-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .lang-select {
   background-color: #1e2638;
   color: var(--text-main);
@@ -366,6 +475,38 @@ button, .tab-btn, .lang-select, .nav-tabs {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.port-select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.show-all-ports-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.show-all-ports-label:hover {
+  color: var(--text-main);
+}
+
+.show-all-ports-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  margin: 0;
 }
 
 label {
@@ -926,6 +1067,23 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+.status-msg:empty {
+  display: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wifi-section-divider {
+  margin: 6px 0 2px 0;
+  border: 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.desc-hint {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
 /* The step after a first installation */
 .install-next {
   margin: 0;
@@ -1354,6 +1512,20 @@ select option:checked, select option:hover {
 
 .modal-icon {
   font-size: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+#info-modal .modal-body p {
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .modal-header h3 {

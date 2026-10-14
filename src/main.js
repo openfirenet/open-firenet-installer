@@ -4,8 +4,20 @@ import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { t, setLanguage, getLang } from "./i18n.js";
 import { renderMarkdown } from "./markdown.js";
 import { icon, hydrateIcons } from "./icons.js";
+import { flag } from "./flags.js";
 
 hydrateIcons();
+
+function logMsg(msg) {
+  invoke("log_client_message", { message: msg }).catch(() => {});
+}
+window.addEventListener("error", (e) => {
+  logMsg(`JS_ERROR: ${e.message} at ${e.filename}:${e.lineno}`);
+});
+window.addEventListener("unhandledrejection", (e) => {
+  logMsg(`JS_UNHANDLED_REJECTION: ${e.reason}`);
+});
+logMsg("main.js script loaded");
 
 // State
 let discoveredDevices = [];
@@ -114,6 +126,45 @@ const usbProgressBox = document.getElementById("usb-progress-box");
 const usbProgressBar = document.getElementById("usb-progress-bar");
 const usbStatusText = document.getElementById("usb-status-text");
 
+let isUsbFlashingInProgress = false;
+
+function updateUsbFlashButton() {
+  if (!btnStartUsbFlash) return;
+  if (isUsbFlashingInProgress) {
+    btnStartUsbFlash.disabled = true;
+    return;
+  }
+  const port = usbPortSelect ? usbPortSelect.value : "";
+  if (!port) {
+    btnStartUsbFlash.disabled = true;
+    return;
+  }
+  const report = lastBoardReport;
+  if (report && typeof report === "object" && (report.state === "wrong_chip" || report.state === "flash_too_small")) {
+    btnStartUsbFlash.disabled = true;
+    return;
+  }
+  btnStartUsbFlash.disabled = false;
+}
+
+let showAllSerialPorts = false;
+const checkboxShowAllPortsUsb = document.getElementById("checkbox-show-all-ports-usb");
+const checkboxShowAllPortsWifi = document.getElementById("checkbox-show-all-ports-wifi");
+
+function syncShowAllPorts(checked) {
+  showAllSerialPorts = checked;
+  if (checkboxShowAllPortsUsb) checkboxShowAllPortsUsb.checked = checked;
+  if (checkboxShowAllPortsWifi) checkboxShowAllPortsWifi.checked = checked;
+  if (typeof renderPorts === "function") renderPorts();
+}
+
+if (checkboxShowAllPortsUsb) {
+  checkboxShowAllPortsUsb.addEventListener("change", (e) => syncShowAllPorts(e.target.checked));
+}
+if (checkboxShowAllPortsWifi) {
+  checkboxShowAllPortsWifi.addEventListener("change", (e) => syncShowAllPorts(e.target.checked));
+}
+
 // USB Mode Toggle (Mise à jour vs Reset Factory)
 const btnUsbModeUpdate = document.getElementById("usb-mode-update");
 const btnUsbModeFactory = document.getElementById("usb-mode-factory");
@@ -163,16 +214,18 @@ async function checkBoard(asked = false) {
   if (!asked && boardKey && boardKey === lastBoardKey && lastBoardReport && lastBoardReport !== "checking") {
     showBoardReport();
     renderBoardBanner();
+    updateUsbFlashButton();
     return;
   }
   lastBoardKey = boardKey;
   const check = ++boardCheck;
-  btnStartUsbFlash.disabled = false;
+  updateUsbFlashButton();
   if (!port) {
     lastBoardReport = null;
     if (status) status.textContent = "";
     document.getElementById("btn-check-board").classList.add("hidden");
     renderBoardBanner();
+    updateUsbFlashButton();
     return;
   }
   // A running Open Firenet shows the port that goes to the stove: the board cannot be read through it, but what it
@@ -183,16 +236,19 @@ async function checkBoard(asked = false) {
     showBoardReport();
     btnUsbModeUpdate.click();
     renderBoardBanner();
+    updateUsbFlashButton();
     return;
   }
   if (!asked && !(info && info.is_espressif)) {
     lastBoardReport = "not_checked";
     showBoardReport();
     renderBoardBanner();
+    updateUsbFlashButton();
     return;
   }
   lastBoardReport = "checking";
   showBoardReport();
+  updateUsbFlashButton();
   let report = null;
   try {
     report = await invoke("probe_board", { port, lang: getLang() });
@@ -202,14 +258,19 @@ async function checkBoard(asked = false) {
   if (check !== boardCheck) return; // another port was chosen meanwhile
   lastBoardReport = report || "unknown";
   showBoardReport();
-  if (!report) return;
+  if (!report) {
+    updateUsbFlashButton();
+    return;
+  }
   if (report.state === "ready") btnUsbModeUpdate.click();
   else btnUsbModeFactory.click();
-  // A board the firmware cannot run on: nothing to flash.
-  btnStartUsbFlash.disabled = report.state === "wrong_chip" || report.state === "flash_too_small";
   renderBoardBanner();
+  updateUsbFlashButton();
 }
-usbPortSelect.addEventListener("change", () => checkBoard(false));
+usbPortSelect.addEventListener("change", () => {
+  updateUsbFlashButton();
+  checkBoard(false);
+});
 document.getElementById("btn-check-board").addEventListener("click", () => checkBoard(true));
 
 // After a first installation the window goes to the Wi-Fi tab and waits for the freshly installed dongle to show up
@@ -226,7 +287,15 @@ function renderInstallNext() {
 // While the freshly installed dongle has not come back, there is nothing to send the Wi-Fi to.
 function updateWifiSendButton() {
   const sendButton = document.getElementById("btn-send-wifi");
-  if (sendButton && !isWifiConfigInProgress) sendButton.disabled = ["waiting", "stuck", "choose"].includes(installNext);
+  const setPassButton = document.getElementById("btn-set-otapass");
+  const portSelect = document.getElementById("wifi-port-select");
+  const hasPort = Boolean(portSelect && portSelect.value);
+  if (sendButton && !isWifiConfigInProgress) {
+    sendButton.disabled = ["waiting", "stuck", "choose"].includes(installNext) || !hasPort;
+  }
+  if (setPassButton) {
+    setPassButton.disabled = !hasPort;
+  }
 }
 let installNextTimer = null;
 let installFlashedPort = "";
@@ -264,8 +333,8 @@ document.getElementById("wifi-port-select").addEventListener("change", () => {
     clearTimeout(installNextTimer);
     installNext = null;
     renderInstallNext();
-    updateWifiSendButton();
   }
+  updateWifiSendButton();
 });
 // Selects, in the Wi-Fi tab, the port of the dongle that was just installed, once it is there. With several dongles
 // plugged in: the one on the port that was flashed, else the only one that was not there before; when that cannot
@@ -447,6 +516,104 @@ if (confirmModal) {
   });
 }
 
+// In-app information / alert modal replacing browser alerts
+export function showInfoModal(message, options = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("info-modal");
+    if (!modal) {
+      resolve();
+      return;
+    }
+    const titleEl = document.getElementById("info-modal-title");
+    const textEl = document.getElementById("info-modal-text");
+    const iconEl = document.getElementById("info-modal-icon");
+    const okBtn = document.getElementById("info-modal-ok");
+
+    let type = options.type;
+    const msgStr = String(message || "");
+    if (!type) {
+      const lower = msgStr.toLowerCase();
+      if (
+        msgStr.startsWith(t("alertErrorPrefix")) ||
+        lower.includes("error") ||
+        lower.includes("erreur") ||
+        lower.includes("fehler") ||
+        lower.includes("errore")
+      ) {
+        type = "error";
+      } else if (
+        lower.includes("enregistrés") ||
+        lower.includes("saved") ||
+        lower.includes("gespeichert") ||
+        lower.includes("salvate") ||
+        lower.includes("succès") ||
+        lower.includes("success")
+      ) {
+        type = "success";
+      } else {
+        type = "info";
+      }
+    }
+
+    let defaultTitle = t("modalTitleInfo");
+    let iconName = "info";
+    let iconClass = "icon-info";
+    if (type === "error") {
+      defaultTitle = t("modalTitleError");
+      iconName = "alert-triangle";
+      iconClass = "icon-error";
+    } else if (type === "success") {
+      defaultTitle = t("modalTitleSuccess");
+      iconName = "check-circle";
+      iconClass = "icon-success";
+    }
+
+    if (titleEl) {
+      titleEl.textContent = options.title || defaultTitle;
+    }
+    if (textEl) {
+      textEl.textContent = msgStr;
+    }
+    if (iconEl) {
+      iconEl.className = `modal-icon ${iconClass}`;
+      iconEl.innerHTML = icon(options.icon || iconName);
+    }
+    if (okBtn) {
+      okBtn.textContent = t("modalBtnOk");
+    }
+
+    modal.classList.remove("hidden");
+    if (okBtn) okBtn.focus();
+
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      if (okBtn) okBtn.removeEventListener("click", onOk);
+      document.removeEventListener("keydown", onKeyDown);
+      resolve();
+    };
+
+    const onOk = (e) => {
+      if (e) e.preventDefault();
+      cleanup();
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape" || e.key === "Enter") {
+        e.preventDefault();
+        cleanup();
+      }
+    };
+
+    if (okBtn) okBtn.addEventListener("click", onOk);
+    document.addEventListener("keydown", onKeyDown);
+  });
+}
+
+// Redirect any window.alert to the integrated modal
+window.alert = (msg) => {
+  showInfoModal(msg);
+};
+
 const wifiPortSelect = document.getElementById("wifi-port-select");
 const wifiSsid = document.getElementById("wifi-ssid");
 const wifiPass = document.getElementById("wifi-pass");
@@ -458,7 +625,6 @@ const btnRefreshReleases = document.getElementById("btn-refresh-releases");
 
 // État des opérations en cours
 let isOtaInProgress = false;
-let isUsbFlashingInProgress = false;
 let isWifiConfigInProgress = false;
 
 function resetTransientUi() {
@@ -509,18 +675,73 @@ function updateDynamicButtons() {
   if (retryLabel) retryLabel.textContent = t("emptyBtnRetryScan");
 }
 
-// Language selector dropdown
-const langSelect = document.getElementById("lang-select");
-if (langSelect) {
-  langSelect.addEventListener("change", (e) => {
-    setLanguage(e.target.value, () => {
-      updateDynamicButtons();
-      renderDevices(discoveredDevices);
-      renderReleasesList(availableReleases);
-      populateReleaseDropdowns(availableReleases);
+// Language selector dropdown with vector flags
+function initLanguageDropdown() {
+  const dropdown = document.getElementById("lang-dropdown");
+  const btn = document.getElementById("lang-btn");
+  const menu = document.getElementById("lang-menu");
+  if (!dropdown || !btn || !menu) return;
+
+  // Populate menu flag SVGs
+  menu.querySelectorAll("[data-flag]").forEach((el) => {
+    const lang = el.getAttribute("data-flag");
+    el.innerHTML = flag(lang, `menu-${lang}`);
+  });
+
+  const closeDropdown = () => {
+    dropdown.classList.remove("open");
+    menu.classList.add("hidden");
+    btn.setAttribute("aria-expanded", "false");
+  };
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = dropdown.classList.toggle("open");
+    menu.classList.toggle("hidden", !isOpen);
+    btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  });
+
+  menu.querySelectorAll(".lang-dropdown-item").forEach((item) => {
+    const selectItem = () => {
+      const lang = item.getAttribute("data-lang");
+      if (lang) {
+        setLanguage(lang, () => {
+          updateDynamicButtons();
+          renderDevices(discoveredDevices);
+          renderReleasesList(availableReleases);
+          populateReleaseDropdowns(availableReleases);
+        });
+      }
+      closeDropdown();
+    };
+
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      selectItem();
+    });
+
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectItem();
+      }
     });
   });
+
+  document.addEventListener("click", (e) => {
+    if (!dropdown.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dropdown.classList.contains("open")) {
+      closeDropdown();
+      btn.focus();
+    }
+  });
 }
+initLanguageDropdown();
 
 // 1. Tab Switching
 tabs.forEach((tab) => {
@@ -551,23 +772,31 @@ async function runScan() {
   devicesContainer.innerHTML = "";
 
   try {
+    logMsg("runScan: calling scan_network");
     discoveredDevices = await invoke("scan_network", { lang: getLang() });
+    logMsg(`runScan: scan_network returned ${discoveredDevices ? discoveredDevices.length : 0} devices`);
     renderDevices(discoveredDevices);
+    logMsg("runScan: renderDevices finished");
     // Pre-fill the OTA IP field with the detected stove, but don't clobber
     // anything the user already typed in there themselves.
     if (discoveredDevices.length > 0 && !otaIpInput.value.trim()) {
       otaIpInput.value = discoveredDevices[0].ip;
+      logMsg("runScan: calling refreshOtaPasswordField");
       refreshOtaPasswordField();
+      logMsg("runScan: refreshOtaPasswordField called");
     }
   } catch (err) {
+    logMsg(`runScan: error caught: ${err}`);
     console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
   } finally {
+    logMsg("runScan: finally block executing");
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
     if (emptyBtnRetry) emptyBtnRetry.disabled = false;
     btnScan.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
     isScanning = false;
+    logMsg("runScan: complete");
   }
 }
 
@@ -888,49 +1117,65 @@ function renderReleasesList(releases) {
   });
 }
 
-// 4. USB Ports
+function renderPorts(pluggedPort) {
+  const keptUsbPort = usbPortSelect.value;
+  const keptWifiPort = wifiPortSelect.value;
+  usbPortSelect.innerHTML = "";
+  wifiPortSelect.innerHTML = "";
+
+  const allPorts = detectedPorts || [];
+  const visiblePorts = showAllSerialPorts
+    ? allPorts
+    : allPorts.filter((p) => p.is_esp);
+
+  if (visiblePorts.length === 0) {
+    usbPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
+    wifiPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
+    checkBoard(false);
+    updateUsbFlashButton();
+    updateWifiSendButton();
+    return;
+  }
+
+  visiblePorts.forEach((p) => {
+    const opt = document.createElement("option");
+    opt.value = p.port_name;
+    opt.textContent = `${p.port_name} • ${p.description}`;
+    usbPortSelect.appendChild(opt);
+
+    const optWifi = document.createElement("option");
+    optWifi.value = p.port_name;
+    optWifi.textContent = `${p.port_name} • ${p.description}`;
+    wifiPortSelect.appendChild(optWifi);
+  });
+
+  // A dongle that was just plugged in becomes the one the USB tab is about; otherwise the choice is kept.
+  const usbPort = typeof pluggedPort === "string" ? pluggedPort : keptUsbPort;
+  if (visiblePorts.some((p) => p.port_name === usbPort)) usbPortSelect.value = usbPort;
+  if (visiblePorts.some((p) => p.port_name === keptWifiPort)) wifiPortSelect.value = keptWifiPort;
+  checkBoard(false);
+  updateUsbFlashButton();
+  updateWifiSendButton();
+  selectInstalledDongle();
+}
+
 async function refreshPorts(pluggedPort) {
   btnRefreshPorts.disabled = true;
   btnRefreshPorts.innerHTML = `<span class="spinner-btn"></span> <span class="btn-label" data-i18n="detectingPorts">${t("detectingPorts")}</span>`;
-  // The ports chosen so far are kept when the list is read again (a second board plugged in must not move them).
-  const keptUsbPort = usbPortSelect.value;
-  const keptWifiPort = wifiPortSelect.value;
-  usbPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
-  wifiPortSelect.innerHTML = `<option>${t("detectingPorts")}</option>`;
+  usbPortSelect.innerHTML = `<option value=''>${t("detectingPorts")}</option>`;
+  wifiPortSelect.innerHTML = `<option value=''>${t("detectingPorts")}</option>`;
+  updateUsbFlashButton();
+  updateWifiSendButton();
 
   try {
     detectedPorts = await invoke("list_serial_ports", { lang: getLang() });
-    usbPortSelect.innerHTML = "";
-    wifiPortSelect.innerHTML = "";
-
-    if (!detectedPorts || detectedPorts.length === 0) {
-      usbPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
-      wifiPortSelect.innerHTML = `<option value=''>${t("noPortDetected")}</option>`;
-      checkBoard(false);
-      return;
-    }
-
-    detectedPorts.forEach((p) => {
-      const opt = document.createElement("option");
-      opt.value = p.port_name;
-      opt.textContent = `${p.port_name} • ${p.description}`;
-      usbPortSelect.appendChild(opt);
-
-      const optWifi = document.createElement("option");
-      optWifi.value = p.port_name;
-      optWifi.textContent = `${p.port_name} • ${p.description}`;
-      wifiPortSelect.appendChild(optWifi);
-    });
-    // A dongle that was just plugged in becomes the one the USB tab is about; otherwise the choice is kept.
-    const usbPort = typeof pluggedPort === "string" ? pluggedPort : keptUsbPort;
-    if (detectedPorts.some((p) => p.port_name === usbPort)) usbPortSelect.value = usbPort;
-    if (detectedPorts.some((p) => p.port_name === keptWifiPort)) wifiPortSelect.value = keptWifiPort;
-    checkBoard(false);
-    selectInstalledDongle();
+    renderPorts(pluggedPort);
   } catch (err) {
     console.error("Erreur détection ports :", err);
     usbPortSelect.innerHTML = `<option value=''>${t("alertErrorPrefix")} USB</option>`;
     wifiPortSelect.innerHTML = `<option value=''>${t("alertErrorPrefix")} USB</option>`;
+    updateUsbFlashButton();
+    updateWifiSendButton();
   } finally {
     btnRefreshPorts.disabled = false;
     btnRefreshPorts.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnRefreshPorts">${t("btnRefreshPorts")}</span>`;
@@ -942,9 +1187,9 @@ document.getElementById("btn-save-journal").addEventListener("click", async (eve
   event.preventDefault();
   try {
     const path = await invoke("save_journal");
-    alert(t("journalSaved").replace("{path}", path));
+    showInfoModal(t("journalSaved").replace("{path}", path), { type: "success" });
   } catch (err) {
-    alert(`${t("journalError")} ${err}`);
+    showInfoModal(`${t("journalError")} ${err}`, { type: "error" });
   }
 });
 
@@ -958,7 +1203,7 @@ btnUseDetectedIp.addEventListener("click", () => {
     otaIpInput.value = discoveredDevices[0].ip;
     refreshOtaPasswordField();
   } else {
-    alert(t("alertNoStoveDetected"));
+    showInfoModal(t("alertNoStoveDetected"), { type: "info" });
   }
 });
 
@@ -985,13 +1230,13 @@ async function doOtaUpdate() {
     otaProgressBar.style.width = "100%";
     otaStatusText.innerHTML = `<span class="icon-success">${icon("check-circle")}</span> ${t("statusOtaOnline")}`;
     setTimeout(() => {
-      alert(t("otaSuccessOnline"));
+      showInfoModal(t("otaSuccessOnline"), { type: "success" });
       runScan();
     }, 400);
   } catch (err) {
     console.error("Erreur OTA :", err);
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
-    alert(`${t("alertErrorPrefix")} ${err}`);
+    showInfoModal(`${t("alertErrorPrefix")} ${err}`, { type: "error" });
     refreshOtaPasswordField();
   } finally {
     // Clear the picked file so a later attempt in "file" mode doesn't
@@ -1007,18 +1252,18 @@ async function doOtaUpdate() {
 btnStartOta.addEventListener("click", () => {
   const ip = otaIpInput.value.trim();
   if (!ip) {
-    alert(t("alertFillIp"));
+    showInfoModal(t("alertFillIp"), { type: "info" });
     return;
   }
   const tag = otaSource === "release" ? otaReleaseSelect.value : null;
   const localFile = otaSource === "file" ? otaLocalFilePath : null;
 
   if (otaSource === "release" && !tag) {
-    alert(t("alertSelectVersionOrFile"));
+    showInfoModal(t("alertSelectVersionOrFile"), { type: "info" });
     return;
   }
   if (otaSource === "file" && !localFile) {
-    alert(t("alertSelectVersionOrFile"));
+    showInfoModal(t("alertSelectVersionOrFile"), { type: "info" });
     return;
   }
 
@@ -1078,13 +1323,13 @@ async function doUsbFlash() {
       startWifiAfterInstall(port);
     } else {
       setTimeout(() => {
-        alert(t("statusFlashingSuccess"));
+        showInfoModal(t("statusFlashingSuccess"), { type: "success" });
       }, 400);
     }
   } catch (err) {
     console.error("Erreur Flash USB :", err);
     usbStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
-    alert(`${t("alertErrorPrefix")} ${err}`);
+    showInfoModal(`${t("alertErrorPrefix")} ${err}`, { type: "error" });
   } finally {
     // Clear the picked file so a later attempt in "file" mode doesn't
     // silently reuse a stale path.
@@ -1092,14 +1337,14 @@ async function doUsbFlash() {
     const usbFileNameEl = document.getElementById("usb-file-name");
     if (usbFileNameEl) usbFileNameEl.textContent = "";
     isUsbFlashingInProgress = false;
-    btnStartUsbFlash.disabled = false;
+    updateUsbFlashButton();
   }
 }
 
 btnStartUsbFlash.addEventListener("click", () => {
   const port = usbPortSelect.value;
   if (!port) {
-    alert(t("alertSelectPort"));
+    showInfoModal(t("alertSelectPort"), { type: "info" });
     return;
   }
 
@@ -1107,11 +1352,11 @@ btnStartUsbFlash.addEventListener("click", () => {
   const localFile = usbSource === "file" ? usbLocalFilePath : null;
 
   if (usbSource === "release" && !tag) {
-    alert(t("alertSelectVersionOrFile"));
+    showInfoModal(t("alertSelectVersionOrFile"), { type: "info" });
     return;
   }
   if (usbSource === "file" && !localFile) {
-    alert(t("alertSelectVersionOrFile"));
+    showInfoModal(t("alertSelectVersionOrFile"), { type: "info" });
     return;
   }
 
@@ -1150,11 +1395,11 @@ btnSendWifi.addEventListener("click", async () => {
   const pass = wifiPass.value;
 
   if (!port) {
-    alert(t("alertSelectWifiPort"));
+    showInfoModal(t("alertSelectWifiPort"), { type: "info" });
     return;
   }
   if (!ssid) {
-    alert(t("alertFillSsid"));
+    showInfoModal(t("alertFillSsid"), { type: "info" });
     return;
   }
   // The chip's own port means the board sits in its flashing mode: no firmware is running to take the Wi-Fi.
@@ -1165,24 +1410,25 @@ btnSendWifi.addEventListener("click", async () => {
   }
 
   isWifiConfigInProgress = true;
-  btnSendWifi.disabled = true;
+  updateWifiSendButton();
   wifiStatusText.textContent = t("statusSearching");
 
   try {
     await invoke("configure_wifi", { port, ssid, password: pass, lang: getLang() });
-    wifiStatusText.textContent = t("wifiConfigSuccess");
+    const successMsg = t("wifiConfigSuccess", { ssid });
+    wifiStatusText.textContent = successMsg;
     dongleRestartsUntil = Date.now() + 60000;
     installNext = null; // the step after a first installation is done
     renderInstallNext();
     updateWifiSendButton();
-    alert(t("wifiConfigSuccess"));
+    showInfoModal(successMsg, { type: "success" });
   } catch (err) {
     console.error("Erreur Wi-Fi :", err);
     wifiStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
-    alert(`${t("alertErrorPrefix")} ${err}`);
+    showInfoModal(`${t("alertErrorPrefix")} ${err}`, { type: "error" });
   } finally {
     isWifiConfigInProgress = false;
-    btnSendWifi.disabled = false;
+    updateWifiSendButton();
   }
 });
 
@@ -1336,6 +1582,8 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
   // Lancement des scans asynchrones
+  updateUsbFlashButton();
+  updateWifiSendButton();
   runScan();
   refreshPorts();
   loadReleases();
@@ -1346,12 +1594,19 @@ window.addEventListener("DOMContentLoaded", () => {
 document.getElementById("btn-set-otapass")?.addEventListener("click", async () => {
   const status = document.getElementById("otapass-status-text");
   const port = wifiPortSelect.value;
-  if (!port) { status.textContent = `${t("alertErrorPrefix")} USB`; return; }
+  if (!port) {
+    status.textContent = `${t("alertErrorPrefix")} USB`;
+    showInfoModal(t("alertSelectWifiPort"), { type: "info" });
+    return;
+  }
   status.textContent = t("statusSearching");
   try {
-    status.textContent = await invoke("set_ota_password", { port, password: document.getElementById("ota-newpass").value, lang: getLang() });
+    const res = await invoke("set_ota_password", { port, password: document.getElementById("ota-newpass").value, lang: getLang() });
+    status.textContent = res;
     document.getElementById("ota-newpass").value = "";
+    showInfoModal(res, { type: "success" });
   } catch (err) {
     status.textContent = `${t("alertErrorPrefix")} ${err}`;
+    showInfoModal(`${t("alertErrorPrefix")} ${err}`, { type: "error" });
   }
 });

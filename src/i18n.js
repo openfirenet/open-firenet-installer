@@ -85,6 +85,7 @@ export const translations = {
     usbDesc: "Pour installer Open Firenet sur une clé ESP32-S3 neuve, ou mettre à jour une clé branchée à l'ordinateur.",
     btnRefreshPorts: "Actualiser",
     labelUsbPort: "Port USB Série connecté :",
+    showAllPorts: "Afficher tous les ports",
     detectingPorts: "Détection des ports en cours...",
     noPortDetected: "Aucun port série détecté (branchez votre clé en USB)",
     labelUsbMode: "Que voulez-vous faire ?",
@@ -129,7 +130,7 @@ export const translations = {
     labelWifiSsid: "Nom du réseau Wi-Fi (SSID) :",
     labelWifiPass: "Mot de passe Wi-Fi :",
     btnSendWifi: "Enregistrer le Wi-Fi dans la clé",
-    wifiConfigSuccess: "Identifiants Wi-Fi envoyés ! La clé tente la connexion...",
+    wifiConfigSuccess: "Identifiants Wi-Fi enregistrés dans la clé ! Vous pouvez la débrancher et la brancher sur votre poêle.",
     wifiNativeHintTitle: "Astuce Wi-Fi :",
     wifiNativeHintDesc: "Sur les cartes sans puce UART dédiée, vous pouvez aussi configurer le Wi-Fi en vous connectant au point d'accès « Open-Firenet-Setup » (192.168.4.1).",
 
@@ -183,7 +184,11 @@ export const translations = {
     labelOtaNewPass: "Mot de passe de mise à jour (optionnel) :",
     otaNewPassDesc: "Demandé ensuite à chaque mise à jour sans fil. Laissez vide et validez pour le retirer. Il ne se règle que par USB.",
     btnSetOtaPass: "Enregistrer le mot de passe de mise à jour",
-    alertErrorPrefix: "Erreur :"
+    alertErrorPrefix: "Erreur :",
+    modalBtnOk: "OK",
+    modalTitleInfo: "Information",
+    modalTitleError: "Erreur",
+    modalTitleSuccess: "Succès"
   },
 
   en: {
@@ -272,6 +277,7 @@ export const translations = {
     usbDesc: "To install Open Firenet on a new ESP32-S3 dongle, or to update a dongle plugged into the computer.",
     btnRefreshPorts: "Refresh",
     labelUsbPort: "Connected USB Serial Port:",
+    showAllPorts: "Show all ports",
     detectingPorts: "Detecting serial ports...",
     noPortDetected: "No serial port detected (plug your dongle into USB)",
     labelUsbMode: "What do you want to do?",
@@ -316,7 +322,7 @@ export const translations = {
     labelWifiSsid: "Wi-Fi Network Name (SSID):",
     labelWifiPass: "Wi-Fi Password:",
     btnSendWifi: "Save Wi-Fi to Dongle",
-    wifiConfigSuccess: "Wi-Fi credentials sent! The dongle is attempting to connect...",
+    wifiConfigSuccess: "Wi-Fi credentials saved to the dongle! You can now disconnect it and plug it into your stove.",
     wifiNativeHintTitle: "Wi-Fi Tip:",
     wifiNativeHintDesc: "On boards without a dedicated UART chip, you can also configure Wi-Fi by connecting to the \"Open-Firenet-Setup\" access point (192.168.4.1).",
 
@@ -370,7 +376,11 @@ export const translations = {
     labelOtaNewPass: "Update password (optional):",
     otaNewPassDesc: "Then asked at each wireless update. Leave empty and save to remove it. It can only be set over USB.",
     btnSetOtaPass: "Save the update password",
-    alertErrorPrefix: "Error:"
+    alertErrorPrefix: "Error:",
+    modalBtnOk: "OK",
+    modalTitleInfo: "Information",
+    modalTitleError: "Error",
+    modalTitleSuccess: "Success"
   },
 
   it: {
@@ -448,6 +458,7 @@ export const translations = {
     "usbDesc": "Per installare Open Firenet su un dongle ESP32-S3 nuovo, o per aggiornare un dongle collegato al computer.",
     "btnRefreshPorts": "Aggiorna",
     "labelUsbPort": "Porta seriale USB connessa:",
+    "showAllPorts": "Mostra tutte le porte",
     "detectingPorts": "Rilevamento delle porte seriali...",
     "noPortDetected": "Nessuna porta seriale rilevata (collega il dongle tramite USB)",
     "labelUsbMode": "Cosa vuoi fare?",
@@ -490,7 +501,7 @@ export const translations = {
     "labelWifiSsid": "Nome della rete Wi-Fi (SSID):",
     "labelWifiPass": "Password Wi-Fi:",
     "btnSendWifi": "Salva Wi-Fi sul dongle",
-    "wifiConfigSuccess": "Credenziali Wi-Fi inviate! Il dongle sta tentando di connettersi...",
+    "wifiConfigSuccess": "Credenziali Wi-Fi salvate nella chiavetta! Ora puoi scollegarla e collegarla alla tua stufa.",
     "wifiNativeHintTitle": "Suggerimento Wi-Fi:",
     "wifiNativeHintDesc": "Sulle schede senza un chip UART dedicato, puoi configurare il Wi-Fi anche collegandoti all'Access Point \"Open-Firenet-Setup\" (192.168.4.1).",
     "releasesTitle": "Versioni ufficiali di Open Firenet",
@@ -537,7 +548,11 @@ export const translations = {
     "labelOtaNewPass": "Password di aggiornamento (opzionale):",
     "otaNewPassDesc": "Verrà poi richiesta a ogni aggiornamento tramite Wi-Fi. Lascia vuoto e salva per rimuoverla. Si imposta solo tramite USB.",
     "btnSetOtaPass": "Salva la password di aggiornamento",
-    "alertErrorPrefix": "Errore:"
+    "alertErrorPrefix": "Errore:",
+    "modalBtnOk": "OK",
+    "modalTitleInfo": "Informazione",
+    "modalTitleError": "Errore",
+    "modalTitleSuccess": "Successo"
   },
 
   de: {
@@ -626,6 +641,7 @@ export const translations = {
     usbDesc: "Um Open Firenet auf einem neuen ESP32-S3-Dongle zu installieren oder einen am Computer angeschlossenen Dongle zu aktualisieren.",
     btnRefreshPorts: "Aktualisieren",
     labelUsbPort: "Verbundener USB-Seriell-Port:",
+    showAllPorts: "Alle Ports anzeigen",
     detectingPorts: "Ports werden gesucht...",
     noPortDetected: "Kein serieller Port erkannt (Dongle per USB anschließen)",
     labelUsbMode: "Was möchten Sie tun?",
@@ -670,7 +686,7 @@ export const translations = {
     labelWifiSsid: "WLAN-Netzwerkname (SSID):",
     labelWifiPass: "WLAN-Passwort:",
     btnSendWifi: "WLAN auf Dongle speichern",
-    wifiConfigSuccess: "WLAN-Daten gesendet! Der Dongle verbindet sich...",
+    wifiConfigSuccess: "WLAN-Zugangsdaten auf dem Dongle gespeichert! Sie können ihn jetzt abziehen und an Ihren Ofen anschließen.",
     wifiNativeHintTitle: "WLAN-Tipp:",
     wifiNativeHintDesc: "Auf Boards ohne dedizierten UART-Chip können Sie das WLAN auch über den Access Point „Open-Firenet-Setup“ (192.168.4.1) konfigurieren.",
 
@@ -724,9 +740,15 @@ export const translations = {
     labelOtaNewPass: "Update-Passwort (optional):",
     otaNewPassDesc: "Wird danach bei jedem drahtlosen Update abgefragt. Leer lassen und speichern, um es zu entfernen. Es lässt sich nur per USB setzen.",
     btnSetOtaPass: "Update-Passwort speichern",
-    alertErrorPrefix: "Fehler:"
+    alertErrorPrefix: "Fehler:",
+    modalBtnOk: "OK",
+    modalTitleInfo: "Information",
+    modalTitleError: "Fehler",
+    modalTitleSuccess: "Erfolg"
   }
 };
+
+import { flag, LANG_LABELS } from "./flags.js";
 
 let currentLang = localStorage.getItem("of_lang") || (navigator.language.startsWith("it") ? "it" : navigator.language.startsWith("de") ? "de" : navigator.language.startsWith("en") ? "en" : "fr");
 
@@ -734,9 +756,15 @@ export function getLang() {
   return currentLang;
 }
 
-export function t(key) {
+export function t(key, params = null) {
   const dict = translations[currentLang] || translations.fr;
-  return dict[key] || translations.fr[key] || key;
+  let text = dict[key] || translations.fr[key] || key;
+  if (params && typeof params === "object") {
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replaceAll(`{${k}}`, v);
+    }
+  }
+  return text;
 }
 
 export function setLanguage(lang, onLangChangeCallback) {
@@ -761,7 +789,20 @@ export function setLanguage(lang, onLangChangeCallback) {
     if (key) el.title = t(key);
   });
 
-  // Sync dropdown value
+  // Sync custom flag dropdown
+  const currentFlagEl = document.getElementById("lang-current-flag");
+  const currentLabelEl = document.getElementById("lang-current-label");
+  if (currentFlagEl) currentFlagEl.innerHTML = flag(lang, "current");
+  if (currentLabelEl && LANG_LABELS[lang]) currentLabelEl.textContent = LANG_LABELS[lang];
+
+  document.querySelectorAll(".lang-dropdown-item").forEach((item) => {
+    const itemLang = item.getAttribute("data-lang");
+    const isSelected = itemLang === lang;
+    item.classList.toggle("selected", isSelected);
+    item.setAttribute("aria-selected", isSelected ? "true" : "false");
+  });
+
+  // Sync legacy select dropdown if present
   const selectEl = document.getElementById("lang-select");
   if (selectEl && selectEl.value !== lang) {
     selectEl.value = lang;
