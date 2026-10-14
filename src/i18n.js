@@ -501,7 +501,7 @@ export const translations = {
     "labelWifiSsid": "Nome della rete Wi-Fi (SSID):",
     "labelWifiPass": "Password Wi-Fi:",
     "btnSendWifi": "Salva Wi-Fi sul dongle",
-    "wifiConfigSuccess": "Credenziali Wi-Fi salvate nella chiavetta! Ora puoi scollegarla e collegarla alla tua stufa.",
+    "wifiConfigSuccess": "Credenziali Wi-Fi salvate nel dongle! Ora puoi scollegarlo e collegarlo alla tua stufa.",
     "wifiNativeHintTitle": "Suggerimento Wi-Fi:",
     "wifiNativeHintDesc": "Sulle schede senza un chip UART dedicato, puoi configurare il Wi-Fi anche collegandoti all'Access Point \"Open-Firenet-Setup\" (192.168.4.1).",
     "releasesTitle": "Versioni ufficiali di Open Firenet",

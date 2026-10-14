@@ -8,16 +8,6 @@ import { flag } from "./flags.js";
 
 hydrateIcons();
 
-function logMsg(msg) {
-  invoke("log_client_message", { message: msg }).catch(() => {});
-}
-window.addEventListener("error", (e) => {
-  logMsg(`JS_ERROR: ${e.message} at ${e.filename}:${e.lineno}`);
-});
-window.addEventListener("unhandledrejection", (e) => {
-  logMsg(`JS_UNHANDLED_REJECTION: ${e.reason}`);
-});
-logMsg("main.js script loaded");
 
 // State
 let discoveredDevices = [];
@@ -772,31 +762,23 @@ async function runScan() {
   devicesContainer.innerHTML = "";
 
   try {
-    logMsg("runScan: calling scan_network");
     discoveredDevices = await invoke("scan_network", { lang: getLang() });
-    logMsg(`runScan: scan_network returned ${discoveredDevices ? discoveredDevices.length : 0} devices`);
     renderDevices(discoveredDevices);
-    logMsg("runScan: renderDevices finished");
     // Pre-fill the OTA IP field with the detected stove, but don't clobber
     // anything the user already typed in there themselves.
     if (discoveredDevices.length > 0 && !otaIpInput.value.trim()) {
       otaIpInput.value = discoveredDevices[0].ip;
-      logMsg("runScan: calling refreshOtaPasswordField");
       refreshOtaPasswordField();
-      logMsg("runScan: refreshOtaPasswordField called");
     }
   } catch (err) {
-    logMsg(`runScan: error caught: ${err}`);
     console.error("Erreur lors du scan réseau :", err);
     emptyDevices.classList.remove("hidden");
   } finally {
-    logMsg("runScan: finally block executing");
     scanLoading.classList.add("hidden");
     btnScan.disabled = false;
     if (emptyBtnRetry) emptyBtnRetry.disabled = false;
     btnScan.innerHTML = `<span class="btn-icon">${icon("refresh-cw")}</span> <span class="btn-label" data-i18n="btnScan">${t("btnScan")}</span>`;
     isScanning = false;
-    logMsg("runScan: complete");
   }
 }
 
