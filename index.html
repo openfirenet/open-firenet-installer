@@ -18,13 +18,32 @@
         </div>
       </div>
       <div class="header-right">
-        <!-- Language Selector Dropdown with Flags -->
-        <select class="lang-select" id="lang-select" aria-label="Langue / Language">
-          <option value="de">🇩🇪 Deutsch</option>
-          <option value="en">🇬🇧 English</option>
-          <option value="fr">🇫🇷 Français</option>
-          <option value="it">🇮🇹 Italiano</option>
-        </select>
+        <!-- Language Selector Dropdown with Vector Flags -->
+        <div class="lang-dropdown" id="lang-dropdown">
+          <button type="button" class="lang-dropdown-btn" id="lang-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Langue / Language">
+            <span class="lang-flag" id="lang-current-flag"></span>
+            <span class="lang-label" id="lang-current-label">Français</span>
+            <span class="lang-arrow" data-icon="chevron-down"></span>
+          </button>
+          <ul class="lang-dropdown-menu hidden" id="lang-menu" role="listbox">
+            <li class="lang-dropdown-item" role="option" data-lang="fr" tabindex="0">
+              <span class="lang-flag" data-flag="fr"></span>
+              <span class="lang-name">Français</span>
+            </li>
+            <li class="lang-dropdown-item" role="option" data-lang="en" tabindex="0">
+              <span class="lang-flag" data-flag="en"></span>
+              <span class="lang-name">English</span>
+            </li>
+            <li class="lang-dropdown-item" role="option" data-lang="de" tabindex="0">
+              <span class="lang-flag" data-flag="de"></span>
+              <span class="lang-name">Deutsch</span>
+            </li>
+            <li class="lang-dropdown-item" role="option" data-lang="it" tabindex="0">
+              <span class="lang-flag" data-flag="it"></span>
+              <span class="lang-name">Italiano</span>
+            </li>
+          </ul>
+        </div>
       </div>
     </header>
 
@@ -183,7 +202,13 @@
 
         <div class="card form-card">
           <div class="form-group">
-            <label for="usb-port-select" data-i18n="labelUsbPort">Port USB Série connecté :</label>
+            <div class="port-select-header">
+              <label for="usb-port-select" data-i18n="labelUsbPort">Port USB Série connecté :</label>
+              <label class="show-all-ports-label">
+                <input type="checkbox" id="checkbox-show-all-ports-usb" class="checkbox-show-all-ports" />
+                <span data-i18n="showAllPorts">Afficher tous les ports</span>
+              </label>
+            </div>
             <select id="usb-port-select">
               <option value="" data-i18n="detectingPorts">Détection des ports en cours...</option>
             </select>
@@ -239,7 +264,7 @@
           </div>
 
           <div class="action-row">
-            <button id="btn-start-usb-flash" class="btn btn-primary btn-lg">
+            <button id="btn-start-usb-flash" class="btn btn-primary btn-lg" disabled>
               <span class="btn-icon" data-icon="zap"></span> <span data-i18n="btnStartUsbFlash">Flasher la clé USB</span>
             </button>
           </div>
@@ -273,7 +298,13 @@
         <div class="card form-card">
           <p class="status-msg install-next hidden" id="wifi-install-next"></p>
           <div class="form-group">
-            <label for="wifi-port-select" data-i18n="labelWifiPort">Port USB de la clé :</label>
+            <div class="port-select-header">
+              <label for="wifi-port-select" data-i18n="labelWifiPort">Port USB de la clé :</label>
+              <label class="show-all-ports-label">
+                <input type="checkbox" id="checkbox-show-all-ports-wifi" class="checkbox-show-all-ports" />
+                <span data-i18n="showAllPorts">Afficher tous les ports</span>
+              </label>
+            </div>
             <select id="wifi-port-select">
               <option value="" data-i18n="selectPort">Sélectionnez un port...</option>
             </select>
@@ -290,24 +321,25 @@
           </div>
 
           <div class="action-row">
-            <button id="btn-send-wifi" class="btn btn-primary btn-lg">
+            <button id="btn-send-wifi" class="btn btn-primary btn-lg" disabled>
               <span class="btn-icon" data-icon="save"></span> <span data-i18n="btnSendWifi">Enregistrer le Wi-Fi dans la clé</span>
             </button>
           </div>
-          <p id="wifi-status-text" class="status-msg mt-3"></p>
+          <p id="wifi-status-text" class="status-msg"></p>
 
-          <hr style="margin:24px 0;border:0;border-top:1px solid rgba(148,163,184,0.25)" />
-          <div class="form-group">
+          <hr class="wifi-section-divider" />
+
+          <div class="form-group ota-pass-group">
             <label for="ota-newpass" data-i18n="labelOtaNewPass">Mot de passe de mise à jour (optionnel) :</label>
             <input type="password" id="ota-newpass" autocomplete="new-password" />
-            <p class="status-msg" data-i18n="otaNewPassDesc">Demandé ensuite à chaque mise à jour sans fil. Laissez vide et validez pour le retirer. Il ne se règle que par USB.</p>
+            <p class="status-msg desc-hint" data-i18n="otaNewPassDesc">Demandé ensuite à chaque mise à jour sans fil. Laissez vide et validez pour le retirer. Il ne se règle que par USB.</p>
           </div>
           <div class="action-row">
-            <button id="btn-set-otapass" class="btn btn-secondary">
+            <button id="btn-set-otapass" class="btn btn-secondary" disabled>
               <span class="btn-icon" data-icon="save"></span> <span data-i18n="btnSetOtaPass">Enregistrer le mot de passe de mise à jour</span>
             </button>
           </div>
-          <p id="otapass-status-text" class="status-msg mt-3"></p>
+          <p id="otapass-status-text" class="status-msg"></p>
 
           <div class="hint-box">
             <span class="hint-icon" data-icon="info"></span>
@@ -423,6 +455,22 @@
       <div class="modal-actions">
         <button id="board-modal-later" class="btn btn-secondary" data-i18n="btnBoardLater">Plus tard</button>
         <button id="board-modal-go" class="btn btn-primary"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic In-App Info / Alert Modal -->
+  <div id="info-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="card modal-dialog">
+      <div class="modal-header">
+        <span id="info-modal-icon" class="modal-icon"></span>
+        <h3 id="info-modal-title" data-i18n="modalTitleInfo">Information</h3>
+      </div>
+      <div class="modal-body">
+        <p id="info-modal-text"></p>
+      </div>
+      <div class="modal-actions">
+        <button id="info-modal-ok" class="btn btn-primary" data-i18n="modalBtnOk">OK</button>
       </div>
     </div>
   </div>

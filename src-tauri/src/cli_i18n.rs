@@ -457,7 +457,7 @@ impl CliLang {
             CliLang::Fr => "Identifiants Wi-Fi enregistrés dans la clé ! Vous pouvez la débrancher et la brancher sur votre poêle.",
             CliLang::En => "Wi-Fi credentials saved to the dongle! You can now disconnect it and plug it into your stove.",
             CliLang::De => "WLAN-Zugangsdaten auf dem Dongle gespeichert! Sie können ihn jetzt abziehen und an Ihren Ofen anschließen.",
-            CliLang::It => "Credenziali Wi-Fi salvate nella chiavetta! Ora puoi scollegarla e collegarla alla tua stufa.",
+            CliLang::It => "Credenziali Wi-Fi salvate nel dongle! Ora puoi scollegarlo e collegarlo alla tua stufa.",
         }
     }
 
