@@ -568,16 +568,43 @@ export function showInfoModal(message, options = {}) {
       iconEl.className = `modal-icon ${iconClass}`;
       iconEl.innerHTML = icon(options.icon || iconName);
     }
+    const actionBtn = document.getElementById("info-modal-action");
+    if (actionBtn) {
+      if (options.actionText && options.onAction) {
+        actionBtn.textContent = options.actionText;
+        actionBtn.classList.remove("hidden");
+        actionBtn.onclick = (e) => {
+          if (e) e.preventDefault();
+          cleanup();
+          options.onAction();
+        };
+        if (okBtn) {
+          okBtn.className = "btn btn-secondary";
+        }
+      } else {
+        actionBtn.classList.add("hidden");
+        actionBtn.onclick = null;
+        if (okBtn) {
+          okBtn.className = "btn btn-primary";
+        }
+      }
+    }
+
     if (okBtn) {
       okBtn.textContent = t("modalBtnOk");
     }
 
     modal.classList.remove("hidden");
-    if (okBtn) okBtn.focus();
+    if (actionBtn && !actionBtn.classList.contains("hidden")) {
+      actionBtn.focus();
+    } else if (okBtn) {
+      okBtn.focus();
+    }
 
     const cleanup = () => {
       modal.classList.add("hidden");
       if (okBtn) okBtn.removeEventListener("click", onOk);
+      if (actionBtn) actionBtn.onclick = null;
       document.removeEventListener("keydown", onKeyDown);
       resolve();
     };
@@ -1218,7 +1245,31 @@ async function doOtaUpdate() {
   } catch (err) {
     console.error("Erreur OTA :", err);
     otaStatusText.textContent = `${t("alertErrorPrefix")} ${err}`;
-    showInfoModal(`${t("alertErrorPrefix")} ${err}`, { type: "error" });
+    const errStr = String(err || "");
+    const isSlotSmall = errStr.includes("1310720") ||
+      errStr.includes("Première installation") ||
+      errStr.includes("First installation") ||
+      errStr.includes("Erstinstallation") ||
+      errStr.includes("Prima installazione");
+
+    const modalOptions = { type: "error" };
+    if (isSlotSmall) {
+      modalOptions.actionText = t("btnGoFirstInstall");
+      modalOptions.onAction = () => {
+        selectedUsbMode = "factory";
+        if (btnUsbModeFactory && btnUsbModeUpdate) {
+          btnUsbModeFactory.classList.add("active");
+          btnUsbModeUpdate.classList.remove("active");
+        }
+        if (tag && usbReleaseSelect) {
+          selectUsbSource("release");
+          usbReleaseSelect.value = tag;
+        }
+        const usbTabBtn = document.querySelector('[data-tab="tab-usb"]');
+        if (usbTabBtn) usbTabBtn.click();
+      };
+    }
+    showInfoModal(`${t("alertErrorPrefix")} ${err}`, modalOptions);
     refreshOtaPasswordField();
   } finally {
     // Clear the picked file so a later attempt in "file" mode doesn't
