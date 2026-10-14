@@ -1,4 +1,3 @@
-use colored::*;
 use serde::{Deserialize, Serialize};
 use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
 use std::sync::{Arc, Mutex};
@@ -34,6 +33,7 @@ struct ApiVersion {
 struct ApiStove {
     model_name: Option<String>,
     main_state: Option<i32>,
+    state_code: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -72,7 +72,7 @@ impl NetworkScanner {
     /// Sonde une adresse IP spécifique pour vérifier si c'est un dongle Open Firenet
     pub fn probe_ip(ip: &str, lang: CliLang) -> Option<DiscoveredDongle> {
         let socket_addr: SocketAddr = format!("{}:80", ip).parse().ok()?;
-        if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(600)).is_err() {
+        if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(1000)).is_err() {
             return None;
         }
 
@@ -105,7 +105,7 @@ impl NetworkScanner {
                     .unwrap_or_else(|| "RIKA".to_string());
 
                 let st = state.stove.as_ref()
-                    .and_then(|s| s.main_state)
+                    .and_then(|s| s.main_state.or(s.state_code))
                     .map(|code| lang.stove_state(code as i64).to_string())
                     .unwrap_or_else(|| "--".to_string());
 
@@ -128,39 +128,48 @@ impl NetworkScanner {
     }
 
     /// Effectue un scan rapide en parallèle sur le sous-réseau local (ex: 192.168.1.1..254)
+    /// Utilise un pool fixe de 24 workers pour éviter l'épuisement de threads sous Windows.
     pub fn scan_subnet(base_prefix: &str, lang: CliLang) -> Vec<DiscoveredDongle> {
         let results = Arc::new(Mutex::new(Vec::new()));
-        let mut handles = Vec::new();
-
-        println!("{} {}", lang.scanning_subnet().cyan().bold(), format!("{}.1 - {}.254", base_prefix, base_prefix).yellow());
+        let (tx, rx) = std::sync::mpsc::channel();
 
         for i in 1..=254 {
-            let ip = format!("{}.{}", base_prefix, i);
-            let results_clone = Arc::clone(&results);
+            let _ = tx.send(format!("{}.{}", base_prefix, i));
+        }
+        drop(tx);
 
-            let handle = thread::spawn(move || {
-                let socket_addr: SocketAddr = match format!("{}:80", ip).parse() {
-                    Ok(a) => a,
-                    Err(_) => return,
-                };
-                if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(300)).is_ok() {
-                    if let Some(dongle) = NetworkScanner::probe_ip(&ip, lang) {
-                        let mut r = results_clone.lock().unwrap();
-                        r.push(dongle);
+        let rx = Arc::new(Mutex::new(rx));
+        let num_workers = 24;
+        let mut workers = Vec::with_capacity(num_workers);
+
+        crate::journal::note(format!("scanning subnet {}.1 - {}.254", base_prefix, base_prefix));
+
+        for _ in 0..num_workers {
+            let rx = Arc::clone(&rx);
+            let results = Arc::clone(&results);
+            workers.push(thread::spawn(move || {
+                loop {
+                    let ip = match rx.lock().ok().and_then(|r| r.recv().ok()) {
+                        Some(ip) => ip,
+                        None => break,
+                    };
+                    let socket_addr: SocketAddr = match format!("{}:80", ip).parse() {
+                        Ok(a) => a,
+                        Err(_) => continue,
+                    };
+                    if TcpStream::connect_timeout(&socket_addr, Duration::from_millis(750)).is_ok() {
+                        if let Some(dongle) = NetworkScanner::probe_ip(&ip, lang) {
+                            if let Ok(mut r) = results.lock() {
+                                r.push(dongle);
+                            }
+                        }
                     }
                 }
-            });
-            handles.push(handle);
-
-            if handles.len() >= 64 {
-                for h in handles.drain(..) {
-                    let _ = h.join();
-                }
-            }
+            }));
         }
 
-        for h in handles {
-            let _ = h.join();
+        for w in workers {
+            let _ = w.join();
         }
 
         let res = results.lock().unwrap().clone();
@@ -169,10 +178,25 @@ impl NetworkScanner {
 
     /// Tente de détecter les préfixes réseaux locaux courants (ex: 192.168.1)
     pub fn detect_local_prefixes() -> Vec<String> {
-        vec![
-            "192.168.1".to_string(),
-            "192.168.0".to_string(),
-            "192.168.4".to_string(), // Mode AP de secours OpenFirenet
-        ]
+        let mut prefixes = Vec::new();
+        if let Ok(socket) = std::net::UdpSocket::bind("0.0.0.0:0") {
+            if socket.connect("8.8.8.8:80").is_ok() {
+                if let Ok(addr) = socket.local_addr() {
+                    if let std::net::IpAddr::V4(ipv4) = addr.ip() {
+                        let octets = ipv4.octets();
+                        if octets[0] != 127 {
+                            let prefix = format!("{}.{}.{}", octets[0], octets[1], octets[2]);
+                            prefixes.push(prefix);
+                        }
+                    }
+                }
+            }
+        }
+        for fallback in &["192.168.1", "192.168.0", "192.168.4"] {
+            if !prefixes.iter().any(|p| p == fallback) {
+                prefixes.push(fallback.to_string());
+            }
+        }
+        prefixes
     }
 }

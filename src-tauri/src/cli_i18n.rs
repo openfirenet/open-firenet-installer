@@ -454,10 +454,10 @@ impl CliLang {
 
     pub fn wifi_sent_success(&self) -> &'static str {
         match self {
-            CliLang::Fr => "✔ Commande transmise. Le dongle va tenter de se connecter.",
-            CliLang::En => "✔ Command sent. The dongle will now attempt to connect.",
-            CliLang::De => "✔ Befehl gesendet. Der Dongle versucht nun, sich zu verbinden.",
-            CliLang::It => "✔ Comando inviato. Il dongle proverà ora a connettersi.",
+            CliLang::Fr => "Identifiants Wi-Fi enregistrés dans la clé ! Vous pouvez la débrancher et la brancher sur votre poêle.",
+            CliLang::En => "Wi-Fi credentials saved to the dongle! You can now disconnect it and plug it into your stove.",
+            CliLang::De => "WLAN-Zugangsdaten auf dem Dongle gespeichert! Sie können ihn jetzt abziehen und an Ihren Ofen anschließen.",
+            CliLang::It => "Credenziali Wi-Fi salvate nella chiavetta! Ora puoi scollegarla e collegarla alla tua stufa.",
         }
     }
 
@@ -691,6 +691,20 @@ impl CliLang {
             "Der Dongle hat den Empfang der WLAN-Daten nicht bestätigt: Es wurde nichts geändert. Prüfen Sie, ob das Kabel an seinem richtigen Anschluss steckt und er seine Firmware hat, und versuchen Sie es erneut.",
             "Il dongle non ha confermato la ricezione del Wi-Fi: non è stato modificato nulla. Verifica che il cavo sia sulla sua porta giusta e che abbia il suo firmware, poi riprova.")
     }
+    pub fn wifi_probably_saved(&self) -> &'static str {
+        tr!(self,
+            "La clé s'est débranchée sans répondre : les identifiants Wi-Fi sont probablement enregistrés, mais rien ne le confirme. Rebranchez la clé sur le poêle et vérifiez qu'elle se connecte ; sinon, recommencez.",
+            "The dongle disconnected without answering: the Wi-Fi settings are probably saved, but nothing confirms it. Plug the dongle into the stove and check that it connects; if it does not, try again.",
+            "Der Dongle hat sich ohne Antwort getrennt: Die WLAN-Daten sind wahrscheinlich gespeichert, es gibt aber keine Bestätigung. Stecken Sie den Dongle an den Ofen und prüfen Sie, ob er sich verbindet; falls nicht, versuchen Sie es erneut.",
+            "Il dongle si è scollegato senza rispondere: le impostazioni Wi-Fi sono probabilmente salvate, ma nulla lo conferma. Collega il dongle alla stufa e verifica che si connetta; altrimenti riprova.")
+    }
+    pub fn ota_password_probably_saved(&self) -> &'static str {
+        tr!(self,
+            "La clé s'est débranchée sans répondre : le mot de passe de mise à jour est probablement enregistré, mais rien ne le confirme. Rebranchez la clé et vérifiez, sinon recommencez.",
+            "The dongle disconnected without answering: the update password is probably saved, but nothing confirms it. Plug the dongle in again and check; if not, try again.",
+            "Der Dongle hat sich ohne Antwort getrennt: Das Update-Passwort ist wahrscheinlich gespeichert, es gibt aber keine Bestätigung. Stecken Sie den Dongle erneut an und prüfen Sie es; falls nicht, versuchen Sie es erneut.",
+            "Il dongle si è scollegato senza rispondere: la password di aggiornamento è probabilmente salvata, ma nulla lo conferma. Ricollega il dongle e verifica; altrimenti riprova.")
+    }
     pub fn ota_password_not_confirmed(&self) -> &'static str {
         tr!(self,
             "La clé n'a pas confirmé le mot de passe de mise à jour : rien n'a été changé. Vérifiez que le câble est sur le port UART/COM de la clé et que son firmware est en version 4.0 ou plus, puis réessayez.",
@@ -701,16 +715,16 @@ impl CliLang {
     pub fn ota_password_sent(&self, removed: bool) -> &'static str {
         if removed {
             tr!(self,
-                "Mot de passe de mise à jour retiré. La clé redémarre.",
-                "Update password removed. The dongle is restarting.",
-                "Update-Passwort entfernt. Der Dongle startet neu.",
-                "Password di aggiornamento rimossa. Il dongle si sta riavviando.")
+                "Mot de passe de mise à jour retiré de la clé. Il reste demandé jusqu'à ce que la clé soit débranchée puis rebranchée.",
+                "Update password removed from the dongle. It is still asked until the dongle is unplugged and plugged in again.",
+                "Update-Passwort vom Dongle entfernt. Es wird weiter abgefragt, bis der Dongle aus- und wieder eingesteckt wird.",
+                "Password di aggiornamento rimossa dal dongle. Viene ancora richiesta finché il dongle non viene scollegato e ricollegato.")
         } else {
             tr!(self,
-                "Mot de passe de mise à jour enregistré. La clé redémarre. Il sera demandé à chaque mise à jour sans fil.",
-                "Update password saved. The dongle is restarting. It will be asked at each wireless update.",
-                "Update-Passwort gespeichert. Der Dongle startet neu. Es wird bei jedem drahtlosen Update abgefragt.",
-                "Password di aggiornamento salvata. Il dongle si sta riavviando. Verrà richiesta a ogni aggiornamento tramite Wi-Fi.")
+                "Mot de passe de mise à jour enregistré sur la clé. Il sera demandé à chaque mise à jour sans fil.",
+                "Update password saved on the dongle. It will be asked at each wireless update.",
+                "Update-Passwort auf dem Dongle gespeichert. Es wird bei jedem drahtlosen Update abgefragt.",
+                "Password di aggiornamento salvata sul dongle. Verrà richiesta a ogni aggiornamento tramite Wi-Fi.")
         }
     }
     pub fn ota_waiting_reply(&self, attempt: u32, of: u32) -> String {
@@ -1150,10 +1164,10 @@ impl CliLang {
     }
     pub fn wifi_config_sent(&self) -> &'static str {
         tr!(self,
-            "Configuration Wi-Fi envoyée avec succès !",
-            "Wi-Fi configuration sent successfully!",
-            "WLAN-Konfiguration erfolgreich gesendet!",
-            "Configurazione Wi-Fi inviata con successo!")
+            "Les identifiants Wi-Fi sont enregistrés sur la clé, vous pouvez la débrancher pour l'utiliser sur votre poêle.",
+            "The Wi-Fi credentials are saved on the dongle, you can unplug it to use it on your stove.",
+            "Die WLAN-Zugangsdaten wurden auf dem Dongle gespeichert. Sie können ihn ausstecken, um ihn an Ihrem Ofen zu verwenden.",
+            "Le credenziali Wi-Fi sono state salvate sul dongle, puoi scollegarlo per usarlo sulla stufa.")
     }
     pub fn cannot_open_browser(&self, error: &str) -> String {
         tr!(self,

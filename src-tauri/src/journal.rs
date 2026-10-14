@@ -25,6 +25,7 @@ pub fn note(text: impl AsRef<str>) {
     if ECHO.get().copied().unwrap_or(false) {
         eprintln!("{}", line);
     }
+
     if let Ok(mut lines) = LINES.lock() {
         if lines.len() >= MAX_LINES {
             lines.remove(0);

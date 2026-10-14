@@ -362,8 +362,9 @@ fn cmd_ota_password(port: Option<String>, lang: CliLang) -> Result<()> {
         .with_prompt(lang.ota_password_set_prompt())
         .allow_empty_password(true)
         .interact()?;
-    WifiSetup::send_ota_password(&selected_port, &password, lang)?;
-    println!("{} {}", "✔".green().bold(), lang.ota_password_sent(password.is_empty()));
+    let confirmed = WifiSetup::send_ota_password(&selected_port, &password, lang)?;
+    let done = if confirmed { lang.ota_password_sent(password.is_empty()) } else { lang.ota_password_probably_saved() };
+    println!("{} {}", "✔".green().bold(), done);
     Ok(())
 }
 

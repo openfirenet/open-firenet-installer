@@ -275,8 +275,8 @@ fn configure_wifi(
     lang: Option<String>,
 ) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
-    journal::outcome(&format!("Wi-Fi setup on {}", port), wifi_setup::WifiSetup::send_credentials(&port, &ssid, &password, lang)).map_err(|e| e.to_string())?;
-    Ok(lang.wifi_config_sent().to_string())
+    let confirmed = journal::outcome(&format!("Wi-Fi setup on {}", port), wifi_setup::WifiSetup::send_credentials(&port, &ssid, &password, lang)).map_err(|e| e.to_string())?;
+    Ok(if confirmed { lang.wifi_config_sent() } else { lang.wifi_probably_saved() }.to_string())
 }
 
 /// Whether the bridge at this address asks for an update password; `None` when it could not be asked. The window
@@ -290,8 +290,8 @@ fn ota_password_needed(ip: String) -> Option<bool> {
 #[tauri::command(async)]
 fn set_ota_password(port: String, password: String, lang: Option<String>) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
-    journal::outcome(&format!("update password on {}", port), wifi_setup::WifiSetup::send_ota_password(&port, &password, lang)).map_err(|e| e.to_string())?;
-    Ok(lang.ota_password_sent(password.is_empty()).to_string())
+    let confirmed = journal::outcome(&format!("update password on {}", port), wifi_setup::WifiSetup::send_ota_password(&port, &password, lang)).map_err(|e| e.to_string())?;
+    Ok(if confirmed { lang.ota_password_sent(password.is_empty()) } else { lang.ota_password_probably_saved() }.to_string())
 }
 
 /// Opens an address with the system's default program. The window used `cmd /C start <url>`: `start` takes a quoted
