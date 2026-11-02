@@ -1,4 +1,6 @@
 # Changelog
 
 ## Non publié
-- Spanish translation for installer
+
+### New
+- The installer is available in Spanish, in the window and on the command line.
