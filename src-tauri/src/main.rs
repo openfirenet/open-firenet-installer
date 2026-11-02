@@ -267,15 +267,22 @@ fn run_interactive_menu(mut lang: CliLang) -> Result<()> {
                 break;
             }
             7 => {
-                let lang_opts = &["🇫🇷 Français", "🇬🇧 English", "🇩🇪 Deutsch", "🇮🇹 Italiano"];
+                let lang_opts = [
+                    "🇫🇷 Français",
+                    "🇬🇧 English",
+                    "🇩🇪 Deutsch",
+                    "🇮🇹 Italiano",
+                    "🇪🇸 Español",
+                ];
                 let chosen = Select::new()
-                    .with_prompt("Choisir la langue / Select language / Sprache wählen / Scegli la lingua:")
-                    .items(lang_opts)
+                    .with_prompt("Choisir la langue / Select language / Sprache wählen / Scegli la lingua / Seleccionar idioma:")
+                    .items(&lang_opts)
                     .default(match lang {
                         CliLang::Fr => 0,
                         CliLang::En => 1,
                         CliLang::De => 2,
                         CliLang::It => 3,
+                        CliLang::Es => 4,
                     })
                     .interact()?;
                 lang = match chosen {
@@ -283,6 +290,7 @@ fn run_interactive_menu(mut lang: CliLang) -> Result<()> {
                     1 => CliLang::En,
                     2 => CliLang::De,
                     3 => CliLang::It,
+                    4 => CliLang::Es,
                     _ => CliLang::Fr,
                 };
                 continue;

@@ -6,6 +6,7 @@ export const LANG_LABELS = {
   en: "English",
   de: "Deutsch",
   it: "Italiano",
+  es: "Español",
 };
 
 export function flag(lang, idPrefix = "") {
@@ -19,6 +20,8 @@ export function flag(lang, idPrefix = "") {
       return '<svg class="flag-icon" viewBox="0 0 5 3" width="20" height="14" aria-hidden="true"><rect width="5" height="1" fill="#000000"/><rect y="1" width="5" height="1" fill="#dd0000"/><rect y="2" width="5" height="1" fill="#ffce00"/></svg>';
     case "it":
       return '<svg class="flag-icon" viewBox="0 0 3 2" width="20" height="14" aria-hidden="true"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#ffffff"/><rect x="2" width="1" height="2" fill="#ce2b37"/></svg>';
+    case "es":
+      return '<svg class="flag-icon" viewBox="0 0 3 2" width="20" height="14" aria-hidden="true"><rect width="3" height="2" fill="#c60b1e"/><rect y="0.5" width="3" height="1" fill="#ffc400"/></svg>';
     default:
       return "";
   }

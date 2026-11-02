@@ -748,8 +748,241 @@ export const translations = {
     modalBtnOk: "OK",
     modalTitleInfo: "Information",
     modalTitleError: "Fehler",
-    modalTitleSuccess: "Erfolg"
-  }
+    modalTitleSuccess: "Erfolg",
+  },
+
+  es: {
+    // Header
+    appTitle: "Open Firenet",
+    appTitleSuffix: "Instalador",
+    appSubtitle: "Asistente universal de instalación y actualización",
+    updateAvailable:
+      "La versión {latest} del instalador está disponible (tienes la {current}).",
+    btnGetUpdate: "Descargar",
+    statusReady: "Listo",
+    statusSearching: "Buscando en la red...",
+    statusNotFound: "No se ha encontrado ninguna estufa",
+    statusFound: "Estufa detectada",
+    statusError: "Error de búsqueda",
+    statusFlashingUsb: "Flasheo USB en curso...",
+    statusFlashingSuccess: "¡Flasheo completado con éxito!",
+    statusOtaWaiting: "En espera...",
+    statusOtaSending: "Enviando el firmware por Wi-Fi...",
+    statusOtaSuccess: "¡Actualización exitosa! El pincho se está reiniciando.",
+    statusOtaReconnecting: "Esperando el reinicio y la reconexión a la red...",
+    statusOtaOnline: "¡El pincho se ha reiniciado con éxito y está en línea!",
+    otaSuccessOnline:
+      "¡Actualización OTA exitosa! El pincho se ha reiniciado y vuelve a estar en línea.",
+
+    // Tabs
+    tabDiscovery: "Detección de red",
+    tabOta: "Actualización Wi-Fi",
+    tabUsb: "Flasheo USB",
+    tabWifi: "Config. Wi-Fi",
+    tabRecord: "Registrar",
+    btnRecordSend: "Envíanos este archivo (abre GitHub)",
+    recordTitle: "Registrar un ciclo de calefacción",
+    recordDesc:
+      "Registra lo que transmite la estufa durante un ciclo de calefacción para ayudarnos a mejorar Open Firenet. La estufa solo se lee, no se le envía nada. El archivo no contiene ni el nombre de tu red Wi-Fi ni tus direcciones. Mantén este ordenador encendido durante el registro.",
+    labelRecordIp: "Dirección del módulo:",
+    labelRecordMinutes: "Duración máxima (minutos):",
+    btnRecordStart: "Iniciar",
+    btnRecordStop: "Detener",
+    labelRecordNote:
+      "Anota lo que ves (por ejemplo, lo que muestra la pantalla de la estufa):",
+    btnRecordNote: "Añadir",
+    recordRunning: "Grabación en curso en {file}",
+    recordDone: "Completado: {changes} cambio(s) anotado(s). Archivo: {file}",
+    recordNeedIp: "Introduce la dirección del módulo.",
+    tabReleases: "Versiones",
+
+    // Discovery Tab
+    discoveryTitle: "Detección automática de tu estufa",
+    discoveryDesc:
+      "Busca tu estufa Open Firenet a través de mDNS (open-firenet.local) y en tu red local.",
+    btnScanInProgress: "Búsqueda en curso...",
+    btnScan: "Buscar",
+    scanLoadingTitle: "Buscando la estufa en la red local...",
+    scanLoadingDesc: "Detección mDNS y sondeo de subred en curso...",
+    emptyDevicesTitle: "No se ha detectado ninguna estufa Open Firenet",
+    emptyDevicesDesc:
+      "Comprueba que el módulo esté encendido y conectado a la misma red Wi-Fi que este ordenador.",
+    emptyBtnWifiSetup: "Configurar el Wi-Fi por USB",
+    emptyBtnRetryScan: "Volver a buscar",
+
+    // Single Device Card
+    stoveOnline: "En línea / Conectado",
+    stoveStandby: "En espera / Conectado",
+    stoveModelDefault: "Estufa RIKA",
+    labelIp: "Dirección IP",
+    labelHostname: "Nombre de host",
+    labelFirmware: "Versión de firmware",
+    versionUnknown: "Desconocida",
+    labelWifiSignal: "Señal Wi-Fi",
+    btnOpenWeb: "Abrir la interfaz web",
+    btnUpdateOta: "Actualizar por Wi-Fi",
+
+    // OTA Tab
+    otaTitle: "Actualización inalámbrica (OTA)",
+    otaDesc:
+      "Actualiza el firmware de tu estufa de forma remota a través de tu red Wi-Fi.",
+    labelOtaIp: "Dirección IP de la estufa:",
+    btnUseDetectedIp: "Usar la IP detectada",
+    placeholderOtaIp: "Ej: 192.168.1.93 o open-firenet.local",
+    labelOtaRelease: "Versión del firmware a instalar:",
+    loadingReleases: "Cargando las versiones oficiales...",
+    labelLocalFile: "Archivo binario local (.bin):",
+    labelFirmwareSource: "Origen del firmware:",
+    sourceRelease: "Versión oficial",
+    sourceLocalFile: "Archivo local",
+    btnBrowseFile: "Examinar…",
+    btnStartOta: "Iniciar la actualización OTA",
+    otaSuccessMsg: "¡Actualización exitosa! El módulo se está reiniciando.",
+
+    // USB Tab
+    usbTitle: "Flasheo USB serie",
+    usbDesc:
+      "Para instalar Open Firenet en un módulo ESP32-S3 nuevo o actualizar un módulo conectado al ordenador.",
+    btnRefreshPorts: "Actualizar",
+    labelUsbPort: "Puerto USB serie conectado:",
+    showAllPorts: "Mostrar todos los puertos",
+    detectingPorts: "Detectando puertos...",
+    noPortDetected: "Ningún puerto serie detectado (conecta tu módulo por USB)",
+    labelUsbMode: "¿Qué quieres hacer?",
+    usbModeUpdateTitle: "Actualización",
+    usbModeUpdateDesc:
+      "El módulo ya funciona. Se conservan el Wi-Fi y los ajustes.",
+    usbModeFactoryTitle: "Primera instalación",
+    usbModeFactoryDesc:
+      "Módulo nuevo o reinstalación completa. Habrá que introducir los datos de Wi-Fi.",
+    boardChecking: "Leyendo el módulo…",
+    boardBlank: "Módulo nuevo ({chip}, {mb} MB): primera instalación.",
+    boardOther:
+      "Este módulo ({chip}, {mb} MB) contiene otra cosa o una instalación que não permite actualizaciones inalámbricas: primera installation.",
+    boardReady:
+      "Open Firenet ya está instalado en este módulo ({chip}, {mb} MB): actualización, se conservarán tus ajustes.",
+    boardWrongChip:
+      "Este módulo no es un ESP32-S3 ({chip}): Open Firenet no se puede instalar en él.",
+    boardSmall:
+      "Este módulo solo tiene {mb} MB de memoria; se necesitan al menos 4.",
+    boardUnknown:
+      "No se ha podido leer el módulo. Si solo tiene un puerto USB, mantén pulsado su botón BOOT al conectarlo. De lo contrario, elígelo tú mismo a continuación.",
+    boardRunning:
+      "Open Firenet ya se ejecuta en este módulo, conectado a través del puerto que va a la estufa. Para actualizarlo, lo más sencillo es la pestaña «Actualización Wi-Fi». Por USB, mantén pulsado su botón BOOT al conectarlo, o utiliza su otro puerto USB si tiene dos.",
+    installDoneNext:
+      "Instalación exitosa. Queda configurar el Wi-Fi del módulo.",
+    installWaitingKey:
+      "El módulo se está reiniciando, su puerto aparecerá en la lista…",
+    installPhoneHint:
+      "También puedes hacerlo desde un teléfono: conéctate a la red Wi-Fi «Open-Firenet-Setup» creada por el módulo.",
+    wifiBoardInFlashMode:
+      "Este módulo sigue en modo flasheo: no puede recibir el Wi-Fi. Desconéctalo y vuelve a conectarlo (sin pulsar BOOT), o pulsa su botón RESET, y luego selecciona el puerto «Módulo Open Firenet».",
+    installStuck:
+      "El módulo no ha vuelto a aparecer. Desconéctalo y vuelve a conectarlo (sin pulsar BOOT), ou pulsa su botón RESET: tras un flasheo realizado manteniendo pulsado BOOT, no se reinicia solo.",
+    installChoose:
+      "Hay varios módulos Open Firenet conectados: selecciona a continuación el puerto del que acabas de instalar.",
+    btnCheckBoard: "Comprobar el módulo",
+    boardNotChecked:
+      "Haz clic en «Comprobar el módulo» para que el instalador lea lo que está conectado a este puerto y seleccione el modo correcto. El módulo se reinicia durante la lectura.",
+    bannerBoardNew: "Hay un módulo ESP32-S3 para instalar conectado por USB.",
+    bannerBoardReady: "Hay un módulo Open Firenet conectado por USB.",
+    btnBannerInstall: "Instalarlo",
+    btnBannerUpdate: "Actualizarlo",
+    btnBoardLater: "Más tarde",
+    boardModalTitle: "Módulo detectado",
+    labelUsbRelease: "Versión del firmware:",
+    labelUsbLocalFile: "Binario factory local (.bin):",
+    btnStartUsbFlash: "Flashear el módulo USB",
+    flashingInProgress: "Flasheo en curso...",
+    usbNativeHintTitle: "Placas con USB nativo (M5Stamp S3, XIAO ESP32-S3):",
+    usbNativeHintDesc:
+      "Si la conexión falla, mantén pulsado el botón BOOT al conectar el USB. Después del flasheo, pulsa el botón RESET para iniciar.",
+
+    // Wi-Fi Config Tab
+    wifiTitle: "Configuración Wi-Fi del módulo",
+    wifiDesc:
+      "Transmite el nombre de tu router Wi-Fi (SSID) et su contraseña de seguridad a través del enlace USB.",
+    labelWifiPort: "Puerto USB del módulo:",
+    selectPort: "Selecciona un puerto...",
+    labelWifiSsid: "Nombre de la red Wi-Fi (SSID):",
+    labelWifiPass: "Contraseña Wi-Fi:",
+    btnSendWifi: "Guardar el Wi-Fi en el módulo",
+    wifiConfigSuccess:
+      "¡Credenciales Wi-Fi guardadas en el módulo! Puedes desconectarlo y conectarlo a tu estufa.",
+    wifiNativeHintTitle: "Consejo sobre el Wi-Fi:",
+    wifiNativeHintDesc:
+      "En las placas sin chip UART dedicado, también puedes configurar el Wi-Fi conectándote al punto de acceso «Open-Firenet-Setup» (192.168.4.1).",
+
+    // Releases Tab
+    releasesTitle: "Versiones oficiales de Open Firenet",
+    releasesDesc:
+      "Historial de publicaciones oficiales en GitHub verificadas por Minisign.",
+    btnRefreshReleases: "Recargar",
+    checkingReleases: "Consultando GitHub...",
+    checkingReleasesDesc:
+      "Comprobando las versiones oficiales en openfirenet/open-firenet...",
+    badgeStable: "Estable",
+    badgePrerelease: "Prelanzamiento",
+    availableFiles: "Archivos y firmas:",
+    viewOnGithub: "Ver en GitHub",
+    showNotes: "Ver notas",
+    hideNotes: "Ocultar notas",
+    useForOta: "Instalar por Wi-Fi (OTA)",
+    useForUsb: "Instalar mediante flasheo USB",
+    noReleaseTitle: "No se ha encontrado ninguna versión oficial",
+    noReleaseDesc:
+      "Puedes flashearlo o actualizar tu módulo directamente usando un archivo .bin local.",
+
+    // Modal confirmation flash USB & OTA
+    modalConfirmTitle: "Confirmación del flasheo USB",
+    modalConfirmDesc:
+      "Estás a punto de escribir el firmware en el módulo Open Firenet. Por favor, comprueba los parámetros:",
+    modalTargetPort: "Puerto USB de destino:",
+    modalTargetVersion: "Firmware:",
+    modalConfirmWarning:
+      "Atención: esta operación escribirá en la memoria flash del ESP32. ¡No desconectes el módulo durante la operación!",
+    modalConfirmWarningFactory:
+      "Atención: esta operación restablecerá toda la memoria flash. ¡Habrá que volver a registrar la configuración Wi-Fi!",
+    modalBtnCancel: "Cancelar",
+    modalBtnConfirm: "Confirmar y flashear",
+
+    modalOtaConfirmTitle: "Confirmación de la actualización inalámbrica (OTA)",
+    modalOtaConfirmDesc:
+      "Estás a punto de actualizar tu módulo Open Firenet a través de la red Wi-Fi:",
+    modalTargetIp: "Dirección IP de destino:",
+    modalOtaConfirmWarning:
+      "Atención: asegúrate de que la estufa y el módulo permanezcan encendidos durante la transferencia. ¡No cortes la alimentación!",
+    modalOtaBtnConfirm: "Confirmar y actualizar",
+
+    // Footer & Alerts
+    footerTagline:
+      "Instalador de Open Firenet • Código abierto y sin telemetría",
+    footerNoStove: "Ninguna estufa conectada",
+    btnSaveJournal: "Registro para un informe",
+    journalSaved:
+      "Registro guardado en:\n{path}\n\nAdjunta este archivo a tu informe. El nombre de la red Wi-Fi y las contraseñas están ocultos en él.",
+    journalError: "No se ha podido guardar el registro:",
+    footerStoveActive: "Estufa activa:",
+    alertFillIp: "Por favor, introduce la dirección IP de la estufa.",
+    alertSelectVersionOrFile:
+      "Por favor, selecciona una versión o un archivo binario local.",
+    alertSelectPort: "Por favor, selecciona un puerto USB.",
+    alertSelectWifiPort: "Por favor, selecciona el puerto USB del módulo.",
+    alertFillSsid: "Por favor, introduce el nombre de tu red Wi-Fi (SSID).",
+    alertNoStoveDetected:
+      "No se ha detectado ninguna estufa en la red por ahora. Inicia una búsqueda primero.",
+    labelOtaPassword: "Contraseña de actualización del módulo:",
+    labelOtaNewPass: "Contraseña de actualización (opcional):",
+    otaNewPassDesc:
+      "Se solicitará después en cada actualización inalámbrica. Déjalo en blanco y confirma para eliminarlo. Solo se puede configurar por USB.",
+    btnSetOtaPass: "Guardar la contraseña de actualización",
+    alertErrorPrefix: "Error:",
+    btnGoFirstInstall: "Primera instalación USB",
+    modalBtnOk: "Aceptar",
+    modalTitleInfo: "Información",
+    modalTitleError: "Error",
+    modalTitleSuccess: "Éxito",
+  },
 };
 
 import { flag, LANG_LABELS } from "./flags.js";
