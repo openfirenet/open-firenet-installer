@@ -58,12 +58,14 @@ async fn flash_usb_device(
     release_tag: Option<String>,
     custom_file: Option<String>,
     mode: Option<String>,
+    psram: Option<bool>,
     lang: Option<String>,
 ) -> Result<String, String> {
     let lang = CliLang::from_window(lang.as_deref());
     tauri::async_runtime::spawn_blocking(move || {
         let is_update = mode.as_deref().unwrap_or("update") == "update";
         let offset = if is_update { "0x10000" } else { "0x0000" };
+        let is_psram = psram.unwrap_or(false);
 
         let bin_path = if let Some(path) = custom_file {
             PathBuf::from(path)
@@ -73,10 +75,10 @@ async fn flash_usb_device(
             let release = releases.into_iter().find(|r| r.tag_name == tag)
                 .ok_or_else(|| lang.release_not_found(&tag))?;
             let asset = if is_update {
-                release.ota_asset()
+                release.ota_asset_for(is_psram)
                     .ok_or_else(|| lang.no_update_binary().to_string())?
             } else {
-                release.factory_asset()
+                release.factory_asset_for(is_psram)
                     .ok_or_else(|| lang.no_factory_binary().to_string())?
             };
             let _ = app.emit("flash-status", lang.downloading_verifying());
@@ -132,7 +134,8 @@ async fn update_ota_device(
             let releases = client.list_releases().map_err(|e| e.to_string())?;
             let release = releases.into_iter().find(|r| r.tag_name == tag)
                 .ok_or_else(|| lang.release_not_found(&tag))?;
-            let asset = release.ota_asset()
+            let is_psram = flasher_ota::OtaFlasher::firmware_variant(&ip).as_deref() == Some("psram");
+            let asset = release.ota_asset_for(is_psram)
                 .ok_or_else(|| lang.no_update_binary().to_string())?;
             if let Some(slot) = flasher_ota::OtaFlasher::ota_slot_bytes(&ip) {
                 if (asset.size as usize) > slot {
@@ -190,7 +193,10 @@ async fn probe_board(port: String, lang: Option<String>) -> Result<board_probe::
     tauri::async_runtime::spawn_blocking(move || {
         let report = journal::outcome(&format!("read of the board on {}", port), board_probe::probe(&port, lang));
         if let Ok(r) = &report {
-            journal::note(format!("board on {}: {:?}, chip {}, flash {} bytes, {} partitions", port, r.state, r.chip, r.flash_bytes, r.partitions.len()));
+            journal::note(format!(
+                "board on {}: {:?}, chip {}, flash {} bytes, psram {} ({} bytes), {} partitions",
+                port, r.state, r.chip, r.flash_bytes, r.psram, r.psram_bytes, r.partitions.len()
+            ));
         }
         report.map_err(|e| e.to_string())
     })

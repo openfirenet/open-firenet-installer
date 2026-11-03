@@ -44,7 +44,25 @@ pub struct BoardReport {
     pub state: BoardState,
     pub chip: String,
     pub flash_bytes: u32,
+    pub psram: bool,
+    pub psram_bytes: u32,
     pub partitions: Vec<Partition>,
+}
+
+/// Decodes ESP32-S3 PSRAM capacity from BLOCK1 eFuse word 4 (EFUSE_RD_MAC_SPI_SYS_4_REG, bits 3..4)
+/// and word 5 (EFUSE_RD_MAC_SPI_SYS_5_REG, bit 19). Returns (has_psram, size_in_bytes).
+pub fn decode_psram(word4: u32, word5: u32) -> (bool, u32) {
+    let cap_low = (word4 >> 3) & 0x03;
+    let cap_hi = (word5 >> 19) & 0x01;
+    let cap = (cap_hi << 2) | cap_low;
+    let bytes = match cap {
+        1 => 8 * 1024 * 1024,
+        2 => 2 * 1024 * 1024,
+        3 => 16 * 1024 * 1024,
+        4 => 4 * 1024 * 1024,
+        _ => 0,
+    };
+    (bytes > 0, bytes)
 }
 
 /// The entries of a partition table image (32 bytes each, magic 0xAA 0x50), up to the end marker.
@@ -110,7 +128,7 @@ pub fn probe(port_name: &str, lang: CliLang) -> Result<BoardReport> {
         .flow_control(serialport::FlowControl::None)
         .open_native()
         .map_err(|e| anyhow!(lang.cannot_open_port(port_name, &e.to_string())))?;
-    let before = if port_info.pid == 0x1001 { ResetBeforeOperation::UsbReset } else { ResetBeforeOperation::DefaultReset };
+    let before = if port_info.pid == 0x1001 || port_info.pid == 0x819a { ResetBeforeOperation::UsbReset } else { ResetBeforeOperation::DefaultReset };
 
     // No chip is imposed: the point is to learn which one it is.
     let mut flasher = Flasher::connect(serial, port_info, Some(115_200), true, false, false, None, ResetAfterOperation::HardReset, before)
@@ -135,7 +153,22 @@ pub fn probe(port_name: &str, lang: CliLang) -> Result<BoardReport> {
     } else {
         (Vec::new(), false)
     };
-    Ok(BoardReport { state: classify(is_s3, flash_bytes, &partitions, app_present), chip: format!("{}", info.chip), flash_bytes, partitions })
+    let (psram, psram_bytes) = if is_s3 {
+        // EFUSE_RD_MAC_SPI_SYS_4_REG (0x6000_7054) and EFUSE_RD_MAC_SPI_SYS_5_REG (0x6000_7058)
+        let w4 = flasher.connection().read_reg(0x6000_7054).unwrap_or(0);
+        let w5 = flasher.connection().read_reg(0x6000_7058).unwrap_or(0);
+        decode_psram(w4, w5)
+    } else {
+        (false, 0)
+    };
+    Ok(BoardReport {
+        state: classify(is_s3, flash_bytes, &partitions, app_present),
+        chip: format!("{}", info.chip),
+        flash_bytes,
+        psram,
+        psram_bytes,
+        partitions,
+    })
 }
 
 #[cfg(test)]
@@ -212,5 +245,28 @@ mod tests {
     fn a_wrong_chip_or_a_small_flash_is_refused() {
         assert_eq!(classify(false, MB4, &parse_partition_table(&ours()), true), BoardState::WrongChip);
         assert_eq!(classify(true, 2 * 1024 * 1024, &[], false), BoardState::FlashTooSmall);
+    }
+
+    #[test]
+    fn psram_efuse_decoding() {
+        // No PSRAM: cap = 0
+        assert_eq!(decode_psram(0, 0), (false, 0));
+        assert_eq!(decode_psram(0xFFFFFFFF & !(0x3 << 3), 0xFFFFFFFF & !(1 << 19)), (false, 0));
+
+        // 8 MB PSRAM: cap = 1 (low=1, hi=0)
+        let w4_8m = 1 << 3;
+        assert_eq!(decode_psram(w4_8m, 0), (true, 8 * 1024 * 1024));
+
+        // 2 MB PSRAM: cap = 2 (low=2, hi=0)
+        let w4_2m = 2 << 3;
+        assert_eq!(decode_psram(w4_2m, 0), (true, 2 * 1024 * 1024));
+
+        // 16 MB PSRAM: cap = 3 (low=3, hi=0)
+        let w4_16m = 3 << 3;
+        assert_eq!(decode_psram(w4_16m, 0), (true, 16 * 1024 * 1024));
+
+        // 4 MB PSRAM: cap = 4 (low=0, hi=1)
+        let w5_4m = 1 << 19;
+        assert_eq!(decode_psram(0, w5_4m), (true, 4 * 1024 * 1024));
     }
 }

@@ -191,7 +191,12 @@ function showBoardReport() {
     return;
   }
   const key = { blank: "boardBlank", other_layout: "boardOther", ready: "boardReady", wrong_chip: "boardWrongChip", flash_too_small: "boardSmall" }[report.state];
-  status.textContent = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
+  let text = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
+  if (report.psram && report.psram_bytes) {
+    const psramMb = Math.round(report.psram_bytes / 1048576);
+    text += ` · PSRAM ${psramMb} MB`;
+  }
+  status.textContent = text;
 }
 // `asked`: the user clicked "Check the board". Without it, only a port that is an ESP32 for sure is read: reading
 // restarts the device, and a generic serial adapter may carry something that has nothing to do with us.
@@ -1347,6 +1352,7 @@ async function doUsbFlash() {
       releaseTag: tag || null,
       customFile: localFile,
       mode: selectedUsbMode,
+      psram: Boolean(lastBoardReport && lastBoardReport.psram),
       lang: getLang(),
     });
     usbProgressBar.style.width = "100%";

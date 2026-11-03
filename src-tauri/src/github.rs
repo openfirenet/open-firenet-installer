@@ -64,14 +64,32 @@ pub const OFFICIAL_PUBLIC_KEY: &str = "RWQhzS5dR0kodMCMiFMESBDRDhxMyRaA4yNbIcAMD
 impl Release {
     /// Trouve l'asset factory complet pour flash USB
     pub fn factory_asset(&self) -> Option<&ReleaseAsset> {
-        self.assets.iter().find(|a| a.name.contains("factory") && a.name.ends_with(".bin"))
-            .or_else(|| self.assets.iter().find(|a| a.name.contains("merged") && a.name.ends_with(".bin")))
+        self.factory_asset_for(false)
+    }
+
+    pub fn factory_asset_for(&self, psram: bool) -> Option<&ReleaseAsset> {
+        if psram {
+            self.assets.iter().find(|a| a.name.contains("factory-psram") && a.name.ends_with(".bin"))
+                .or_else(|| self.assets.iter().find(|a| a.name.contains("psram") && a.name.contains("factory") && a.name.ends_with(".bin")))
+        } else {
+            self.assets.iter().find(|a| a.name.contains("factory") && !a.name.contains("psram") && a.name.ends_with(".bin"))
+                .or_else(|| self.assets.iter().find(|a| a.name.contains("merged") && !a.name.contains("psram") && a.name.ends_with(".bin")))
+        }
     }
 
     /// Trouve l'asset OTA pour mise à jour sans fil
     pub fn ota_asset(&self) -> Option<&ReleaseAsset> {
-        self.assets.iter().find(|a| a.name.contains("ota") && a.name.ends_with(".bin"))
-            .or_else(|| self.assets.iter().find(|a| a.name.ends_with(".bin") && !a.name.contains("factory")))
+        self.ota_asset_for(false)
+    }
+
+    pub fn ota_asset_for(&self, psram: bool) -> Option<&ReleaseAsset> {
+        if psram {
+            self.assets.iter().find(|a| a.name.contains("ota-psram") && a.name.ends_with(".bin"))
+                .or_else(|| self.assets.iter().find(|a| a.name.contains("psram") && a.name.ends_with(".bin") && !a.name.contains("factory") && !a.name.contains("bootloader")))
+        } else {
+            self.assets.iter().find(|a| a.name.contains("ota") && !a.name.contains("psram") && a.name.ends_with(".bin"))
+                .or_else(|| self.assets.iter().find(|a| a.name.ends_with(".bin") && !a.name.contains("psram") && !a.name.contains("factory") && !a.name.contains("bootloader")))
+        }
     }
 
     pub fn sha256_asset(&self) -> Option<&ReleaseAsset> {
@@ -277,6 +295,33 @@ mod tests {
     fn test_official_public_key_valid() {
         let pk = minisign_verify::PublicKey::from_base64(OFFICIAL_PUBLIC_KEY);
         assert!(pk.is_ok(), "The official Open Firenet public key should parse without error");
+    }
+
+    #[test]
+    fn test_release_asset_variant_selection() {
+        let release = Release {
+            tag_name: "v4.10.0".into(),
+            name: None,
+            body: None,
+            prerelease: false,
+            assets: vec![
+                ReleaseAsset { name: "open-firenet-factory.bin".into(), browser_download_url: "u1".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-factory-psram.bin".into(), browser_download_url: "u2".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-ota.bin".into(), browser_download_url: "u3".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-ota-psram.bin".into(), browser_download_url: "u4".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-bootloader.bin".into(), browser_download_url: "u5".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-bootloader-psram.bin".into(), browser_download_url: "u6".into(), size: 100 },
+            ],
+        };
+
+        assert_eq!(release.factory_asset_for(false).map(|a| a.name.as_str()), Some("open-firenet-factory.bin"));
+        assert_eq!(release.factory_asset_for(true).map(|a| a.name.as_str()), Some("open-firenet-factory-psram.bin"));
+        assert_eq!(release.ota_asset_for(false).map(|a| a.name.as_str()), Some("open-firenet-ota.bin"));
+        assert_eq!(release.ota_asset_for(true).map(|a| a.name.as_str()), Some("open-firenet-ota-psram.bin"));
+
+        // Defaults
+        assert_eq!(release.factory_asset().map(|a| a.name.as_str()), Some("open-firenet-factory.bin"));
+        assert_eq!(release.ota_asset().map(|a| a.name.as_str()), Some("open-firenet-ota.bin"));
     }
 
     #[test]

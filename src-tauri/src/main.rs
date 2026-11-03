@@ -137,7 +137,12 @@ fn main() -> Result<()> {
         Some(Commands::Probe { port }) => {
             let port = choose_serial_port(port, lang)?;
             let report = board_probe::probe(&port, lang)?;
-            println!("chip: {} | flash: {} bytes | state: {:?}", report.chip, report.flash_bytes, report.state);
+            let psram_desc = if report.psram {
+                format!(" | psram: {} MB", report.psram_bytes / (1024 * 1024))
+            } else {
+                String::new()
+            };
+            println!("chip: {} | flash: {} bytes{} | state: {:?}", report.chip, report.flash_bytes, psram_desc, report.state);
             for p in &report.partitions {
                 println!("  {:<10} type {:#04x} subtype {:#04x} offset {:#08x} size {:#08x}", p.label, p.kind, p.subtype, p.offset, p.size);
             }
@@ -356,7 +361,8 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     let bin_path = if let Some(f) = file {
         f
     } else {
-        choose_or_download_firmware(true, release, lang)?
+        let is_psram = board_probe::probe(&selected_port, lang).map(|r| r.psram).unwrap_or(false);
+        choose_or_download_firmware(true, release, is_psram, lang)?
     };
 
     SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, lang, |_pct, _msg| {})?;
@@ -382,7 +388,8 @@ fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, password: O
     let bin_path = if let Some(f) = file {
         f
     } else {
-        choose_or_download_firmware(false, release, lang)?
+        let is_psram = flasher_ota::OtaFlasher::firmware_variant(ip).as_deref() == Some("psram");
+        choose_or_download_firmware(false, release, is_psram, lang)?
     };
 
     // The bridge tells whether it asks for a password; it is then typed here, never stored.
@@ -450,7 +457,7 @@ fn interactive_ota(lang: CliLang) -> Result<()> {
     cmd_ota(&ip, None, None, None, lang)
 }
 
-fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang: CliLang) -> Result<PathBuf> {
+fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, psram: bool, lang: CliLang) -> Result<PathBuf> {
     let gh = GitHubClient::new(lang);
     let cache_dir = GitHubClient::cache_dir();
     std::fs::create_dir_all(&cache_dir)?;
@@ -484,9 +491,9 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang:
     };
 
     let asset = if factory {
-        rel.factory_asset()
+        rel.factory_asset_for(psram)
     } else {
-        rel.ota_asset()
+        rel.ota_asset_for(psram)
     };
 
     let asset = match asset {
