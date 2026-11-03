@@ -1067,6 +1067,10 @@ select option:checked, select option:hover {
   color: var(--text-muted);
 }
 
+.status-warning {
+  color: var(--primary-amber);
+}
+
 .status-msg:empty {
   display: none;
   margin: 0;

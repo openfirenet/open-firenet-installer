@@ -134,7 +134,7 @@ async fn update_ota_device(
             let releases = client.list_releases().map_err(|e| e.to_string())?;
             let release = releases.into_iter().find(|r| r.tag_name == tag)
                 .ok_or_else(|| lang.release_not_found(&tag))?;
-            let is_psram = flasher_ota::OtaFlasher::firmware_variant(&ip).as_deref() == Some("psram");
+            let is_psram = flasher_ota::OtaFlasher::is_psram_device(&ip);
             let asset = release.ota_asset_for(is_psram)
                 .ok_or_else(|| lang.no_update_binary().to_string())?;
             if let Some(slot) = flasher_ota::OtaFlasher::ota_slot_bytes(&ip) {

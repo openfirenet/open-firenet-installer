@@ -361,7 +361,12 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     let bin_path = if let Some(f) = file {
         f
     } else {
-        let is_psram = board_probe::probe(&selected_port, lang).map(|r| r.psram).unwrap_or(false);
+        let probe_result = board_probe::probe(&selected_port, lang);
+        let is_psram = probe_result.as_ref().map(|r| r.psram).unwrap_or(false);
+        if is_psram {
+            let mb = probe_result.as_ref().map(|r| r.psram_bytes / (1024 * 1024)).unwrap_or(8);
+            println!("{}", lang.psram_detected(mb).cyan());
+        }
         choose_or_download_firmware(true, release, is_psram, lang)?
     };
 
@@ -388,7 +393,7 @@ fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, password: O
     let bin_path = if let Some(f) = file {
         f
     } else {
-        let is_psram = flasher_ota::OtaFlasher::firmware_variant(ip).as_deref() == Some("psram");
+        let is_psram = flasher_ota::OtaFlasher::is_psram_device(ip);
         choose_or_download_firmware(false, release, is_psram, lang)?
     };
 
@@ -490,11 +495,23 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, psram
         releases[idx].clone()
     };
 
-    let asset = if factory {
-        rel.factory_asset_for(psram)
+    let (asset, is_psram_fallback) = if factory {
+        if psram && !rel.has_psram_factory() {
+            (rel.factory_asset_for(false), true)
+        } else {
+            (rel.factory_asset_for(psram), false)
+        }
     } else {
-        rel.ota_asset_for(psram)
+        if psram && !rel.has_psram_ota() {
+            (rel.ota_asset_for(false), true)
+        } else {
+            (rel.ota_asset_for(psram), false)
+        }
     };
+
+    if is_psram_fallback {
+        println!("{}", lang.no_psram_binary_warning().yellow());
+    }
 
     let asset = match asset {
         Some(a) => a,

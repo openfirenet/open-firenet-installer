@@ -71,6 +71,7 @@ impl Release {
         if psram {
             self.assets.iter().find(|a| a.name.contains("factory-psram") && a.name.ends_with(".bin"))
                 .or_else(|| self.assets.iter().find(|a| a.name.contains("psram") && a.name.contains("factory") && a.name.ends_with(".bin")))
+                .or_else(|| self.factory_asset_for(false))
         } else {
             self.assets.iter().find(|a| a.name.contains("factory") && !a.name.contains("psram") && a.name.ends_with(".bin"))
                 .or_else(|| self.assets.iter().find(|a| a.name.contains("merged") && !a.name.contains("psram") && a.name.ends_with(".bin")))
@@ -86,10 +87,19 @@ impl Release {
         if psram {
             self.assets.iter().find(|a| a.name.contains("ota-psram") && a.name.ends_with(".bin"))
                 .or_else(|| self.assets.iter().find(|a| a.name.contains("psram") && a.name.ends_with(".bin") && !a.name.contains("factory") && !a.name.contains("bootloader")))
+                .or_else(|| self.ota_asset_for(false))
         } else {
             self.assets.iter().find(|a| a.name.contains("ota") && !a.name.contains("psram") && a.name.ends_with(".bin"))
                 .or_else(|| self.assets.iter().find(|a| a.name.ends_with(".bin") && !a.name.contains("psram") && !a.name.contains("factory") && !a.name.contains("bootloader")))
         }
+    }
+
+    pub fn has_psram_factory(&self) -> bool {
+        self.assets.iter().any(|a| (a.name.contains("factory-psram") || (a.name.contains("psram") && a.name.contains("factory"))) && a.name.ends_with(".bin"))
+    }
+
+    pub fn has_psram_ota(&self) -> bool {
+        self.assets.iter().any(|a| (a.name.contains("ota-psram") || (a.name.contains("psram") && !a.name.contains("factory") && !a.name.contains("bootloader"))) && a.name.ends_with(".bin"))
     }
 
     pub fn sha256_asset(&self) -> Option<&ReleaseAsset> {
@@ -322,6 +332,24 @@ mod tests {
         // Defaults
         assert_eq!(release.factory_asset().map(|a| a.name.as_str()), Some("open-firenet-factory.bin"));
         assert_eq!(release.ota_asset().map(|a| a.name.as_str()), Some("open-firenet-ota.bin"));
+        assert!(release.has_psram_factory());
+        assert!(release.has_psram_ota());
+
+        // Older release without PSRAM binary falls back to standard
+        let older_release = Release {
+            tag_name: "v4.9.1".into(),
+            name: None,
+            body: None,
+            prerelease: false,
+            assets: vec![
+                ReleaseAsset { name: "open-firenet-factory.bin".into(), browser_download_url: "u1".into(), size: 100 },
+                ReleaseAsset { name: "open-firenet-ota.bin".into(), browser_download_url: "u2".into(), size: 100 },
+            ],
+        };
+        assert!(!older_release.has_psram_factory());
+        assert!(!older_release.has_psram_ota());
+        assert_eq!(older_release.factory_asset_for(true).map(|a| a.name.as_str()), Some("open-firenet-factory.bin"));
+        assert_eq!(older_release.ota_asset_for(true).map(|a| a.name.as_str()), Some("open-firenet-ota.bin"));
     }
 
     #[test]

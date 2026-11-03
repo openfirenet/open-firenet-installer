@@ -160,17 +160,47 @@ const btnUsbModeUpdate = document.getElementById("usb-mode-update");
 const btnUsbModeFactory = document.getElementById("usb-mode-factory");
 let selectedUsbMode = "factory"; // "update" | "factory": first installation unless the board is found ready for an update
 
+function hasPsramAsset(rel, mode) {
+  if (!rel || !rel.assets) return false;
+  if (mode === "factory") {
+    return rel.assets.some((a) => (a.name.includes("factory-psram") || (a.name.includes("psram") && a.name.includes("factory"))) && a.name.endsWith(".bin"));
+  }
+  return rel.assets.some((a) => (a.name.includes("ota-psram") || (a.name.includes("psram") && !a.name.includes("factory") && !a.name.includes("bootloader"))) && a.name.endsWith(".bin"));
+}
+
+function updatePsramWarning() {
+  const usbWarn = document.getElementById("usb-release-psram-warning");
+  if (usbWarn) {
+    const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+    const tag = usbReleaseSelect ? usbReleaseSelect.value : "";
+    const rel = (availableReleases || []).find((r) => r.tag_name === tag);
+    if (isPsram && rel && !hasPsramAsset(rel, selectedUsbMode)) {
+      usbWarn.textContent = t("releaseNoPsramWarning");
+      usbWarn.classList.remove("hidden");
+    } else {
+      usbWarn.textContent = "";
+      usbWarn.classList.add("hidden");
+    }
+  }
+}
+
+if (usbReleaseSelect) {
+  usbReleaseSelect.addEventListener("change", updatePsramWarning);
+}
+
 if (btnUsbModeUpdate && btnUsbModeFactory) {
   btnUsbModeUpdate.addEventListener("click", () => {
     selectedUsbMode = "update";
     btnUsbModeUpdate.classList.add("active");
     btnUsbModeFactory.classList.remove("active");
+    updatePsramWarning();
   });
 
   btnUsbModeFactory.addEventListener("click", () => {
     selectedUsbMode = "factory";
     btnUsbModeFactory.classList.add("active");
     btnUsbModeUpdate.classList.remove("active");
+    updatePsramWarning();
   });
 }
 
@@ -194,9 +224,10 @@ function showBoardReport() {
   let text = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
   if (report.psram && report.psram_bytes) {
     const psramMb = Math.round(report.psram_bytes / 1048576);
-    text += ` · PSRAM ${psramMb} MB`;
+    text += ` · ${t("psramDetected").replace("{mb}", psramMb)}`;
   }
   status.textContent = text;
+  updatePsramWarning();
 }
 // `asked`: the user clicked "Check the board". Without it, only a port that is an ESP32 for sure is read: reading
 // restarts the device, and a generic serial adapter may carry something that has nothing to do with us.
@@ -392,7 +423,8 @@ function renderBoardBanner() {
   document.getElementById("board-modal-title").textContent = t("boardModalTitle");
   // The port is named: with several boards plugged in, it tells which one this is about.
   const sentence = t(ready ? "bannerBoardReady" : "bannerBoardNew").replace(/\.\s*$/, "");
-  document.getElementById("board-modal-text").textContent = `${sentence} (${usbPortSelect.value}).`;
+  const psramNote = report && report.psram && report.psram_bytes ? ` · ${t("psramDetected").replace("{mb}", Math.round(report.psram_bytes / 1048576))}` : "";
+  document.getElementById("board-modal-text").textContent = `${sentence} (${usbPortSelect.value}${psramNote}).`;
   const go = document.getElementById("board-modal-go");
   go.textContent = t(ready ? "btnBannerUpdate" : "btnBannerInstall");
   go.onclick = () => {
@@ -983,6 +1015,7 @@ function populateReleaseDropdowns(releases) {
     optUsb.textContent = `${r.tag_name} (${badgeText}) - ${r.name || ""}`;
     usbReleaseSelect.appendChild(optUsb);
   });
+  updatePsramWarning();
 }
 
 function formatBytes(bytes) {
@@ -1400,15 +1433,24 @@ btnStartUsbFlash.addEventListener("click", () => {
   }
 
   const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
-  const firmwareDisplay = usbSource === "file" ? basename(localFile) : `${tag} (${modeLabel})`;
-  const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
+  const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+  const rel = (availableReleases || []).find((r) => r.tag_name === tag);
+  const relHasPsram = hasPsramAsset(rel, selectedUsbMode);
+  const psramNote = isPsram ? (relHasPsram ? " · PSRAM" : "") : "";
+  const firmwareDisplay = usbSource === "file" ? basename(localFile) : `${tag} (${modeLabel}${psramNote})`;
+  const portDisplay = isPsram && lastBoardReport.psram_bytes
+    ? `${port} (${t("psramDetected").replace("{mb}", Math.round(lastBoardReport.psram_bytes / 1048576))})`
+    : port;
+  const warningKey = (isPsram && !relHasPsram && usbSource === "release")
+    ? "releaseNoPsramWarning"
+    : (selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning");
 
   openConfirmModal({
     iconName: "zap",
     titleKey: "modalConfirmTitle",
     descKey: "modalConfirmDesc",
     targetLabelKey: "modalTargetPort",
-    targetValue: port,
+    targetValue: portDisplay,
     firmwareValue: firmwareDisplay,
     warningKey: warningKey,
     confirmIconName: "zap",
