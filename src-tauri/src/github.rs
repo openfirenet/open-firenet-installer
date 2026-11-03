@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn test_release_asset_variant_selection() {
         let release = Release {
-            tag_name: "v4.10.0".into(),
+            tag_name: "v5.0.0".into(),
             name: None,
             body: None,
             prerelease: false,

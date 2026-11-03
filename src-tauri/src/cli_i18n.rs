@@ -1251,11 +1251,11 @@ impl CliLang {
     }
     pub fn no_psram_binary(&self) -> &'static str {
         tr!(self,
-            "Cette version ne contient aucun binaire compatible avec les clés équipées de PSRAM (support introduit avec la version 4.10)",
-            "This release does not contain any binary compatible with PSRAM boards (support introduced in version 4.10)",
-            "Dieses Release enthält keine mit PSRAM-Dongles kompatible Binärdatei (Unterstützung ab Version 4.10)",
-            "Questa versione non contiene alcun binario compatibile con i dongle dotati di PSRAM (supporto introdotto nella versione 4.10)",
-            "Esta versión no contiene ningún binario compatible con módulos con PSRAM (soporte introducido en la versión 4.10)")
+            "Cette version ne contient aucun binaire compatible avec les clés équipées de PSRAM (support introduit avec la version 5.0)",
+            "This release does not contain any binary compatible with PSRAM boards (support introduced in version 5.0)",
+            "Dieses Release enthält keine mit PSRAM-Dongles kompatible Binärdatei (Unterstützung ab Version 5.0)",
+            "Questa versione non contiene alcun binario compatibile con i dongle dotati di PSRAM (supporto introdotto nella versione 5.0)",
+            "Esta versión no contiene ningún binario compatible con módulos con PSRAM (soporte introducido en la versión 5.0)")
     }
     pub fn no_psram_binary_warning(&self) -> &'static str {
         tr!(self,
@@ -1267,27 +1267,27 @@ impl CliLang {
     }
     pub fn local_file_no_psram(&self) -> &'static str {
         tr!(self,
-            "⚠️  Binaire standard : la clé possède de la PSRAM qui ne sera pas activée.",
-            "⚠️  Standard binary: the board has PSRAM which will not be activated.",
-            "⚠️  Standard-Binärdatei: Der Dongle hat PSRAM, der nicht aktiviert wird.",
-            "⚠️  Binario standard: il dongle ha PSRAM che non sarà attivata.",
-            "⚠️  Binario estándar: el módulo tiene PSRAM que no se activará.")
+            "⚠️  Binaire standard : la PSRAM de la clé ne sera pas utilisée.",
+            "⚠️  Standard binary: the board's PSRAM will not be used.",
+            "⚠️  Standard-Binärdatei: Der PSRAM des Dongles wird nicht genutzt.",
+            "⚠️  Binario standard: la PSRAM del dongle non verrà utilizzata.",
+            "⚠️  Binario estándar: la PSRAM del módulo no se utilizará.")
     }
     pub fn local_file_requires_psram(&self) -> &'static str {
         tr!(self,
-            "⛔ Attention : ce binaire requiert de la PSRAM, mais cette clé n'en possède pas (elle ne pourra pas démarrer).",
-            "⛔ Warning: this binary requires PSRAM, but this board does not have any (it will fail to boot).",
-            "⛔ Achtung: Diese Binärdatei erfordert PSRAM, aber dieser Dongle hat keinen (er wird nicht starten).",
-            "⛔ Attenzione: questo binario richiede PSRAM, ma questo dongle non ne ha (non potrà avviarsi).",
-            "⛔ Atención: este binario requiere PSRAM, pero este módulo no tiene (no podrá arrancar).")
+            "⛔ Ce binaire nécessite de la PSRAM, mais cette clé n'en a pas (elle ne pourra pas démarrer).",
+            "⛔ This binary requires PSRAM, but this board has none (it will not boot).",
+            "⛔ Diese Binärdatei benötigt PSRAM, aber dieser Dongle hat keinen (er wird nicht starten).",
+            "⛔ Questo binario richiede PSRAM, ma questo dongle non ne ha (non potrà avviarsi).",
+            "⛔ Este binario requiere PSRAM, pero este módulo no tiene (no podrá arrancar).")
     }
     pub fn local_file_psram_match(&self) -> &'static str {
         tr!(self,
-            "⚡ Binaire avec support PSRAM détecté (adapté à cette clé).",
-            "⚡ Binary with PSRAM support detected (matched for this board).",
-            "⚡ Binärdatei mit PSRAM-Unterstützung erkannt (für diesen Dongle geeignet).",
-            "⚡ Binario con supporto PSRAM rilevato (adatto per questo dongle).",
-            "⚡ Binario con soporte PSRAM detectado (adecuado para este módulo).")
+            "⚡ Binaire avec support PSRAM (adapté à cette clé).",
+            "⚡ Binary with PSRAM support (matches this board).",
+            "⚡ Binärdatei mit PSRAM-Unterstützung (für diesen Dongle geeignet).",
+            "⚡ Binario con supporto PSRAM (adatto a questo dongle).",
+            "⚡ Binario con soporte PSRAM (adecuado para este módulo).")
     }
     pub fn local_file_invalid(&self) -> &'static str {
         tr!(self,
