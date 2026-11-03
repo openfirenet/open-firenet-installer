@@ -1071,6 +1071,14 @@ select option:checked, select option:hover {
   color: var(--primary-amber);
 }
 
+.status-error {
+  color: var(--danger-red);
+}
+
+.status-success {
+  color: var(--success-green);
+}
+
 .status-msg:empty {
   display: none;
   margin: 0;

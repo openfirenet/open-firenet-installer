@@ -204,6 +204,17 @@ async fn probe_board(port: String, lang: Option<String>) -> Result<board_probe::
         .map_err(|e| e.to_string())?
 }
 
+/// Inspects a local firmware binary: checks if it is a valid ESP32-S3 image and whether PSRAM support is present.
+#[tauri::command]
+async fn inspect_firmware(path: String) -> Result<board_probe::FirmwareInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let p = PathBuf::from(path);
+        board_probe::inspect_firmware_file(&p).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Writes the journal (see journal.rs) to a file in the user's documents and returns its path.
 #[tauri::command]
 fn save_journal(app: AppHandle) -> Result<String, String> {
@@ -391,7 +402,8 @@ pub fn run() {
             start_recording,
             add_recording_note,
             stop_recording,
-            probe_board
+            probe_board,
+            inspect_firmware
         ])
         .run(tauri::generate_context!())
         .expect("failed to start the window");

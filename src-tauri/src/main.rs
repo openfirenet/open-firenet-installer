@@ -358,15 +358,27 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     println!("{}\n", lang.usb_native_hint().dimmed());
 
     let selected_port = choose_serial_port(port, lang)?;
+    let probe_result = board_probe::probe(&selected_port, lang);
+    let is_psram = probe_result.as_ref().map(|r| r.psram).unwrap_or(false);
+    if is_psram {
+        let mb = probe_result.as_ref().map(|r| r.psram_bytes / (1024 * 1024)).unwrap_or(8);
+        println!("{}", lang.psram_detected(mb).cyan());
+    }
+
     let bin_path = if let Some(f) = file {
+        if let Ok(info) = board_probe::inspect_firmware_file(&f) {
+            if !info.is_valid {
+                println!("{}", lang.local_file_invalid().red().bold());
+            } else if is_psram && !info.has_psram {
+                println!("{}", lang.local_file_no_psram().yellow());
+            } else if !is_psram && info.has_psram {
+                println!("{}", lang.local_file_requires_psram().red().bold());
+            } else if is_psram && info.has_psram {
+                println!("{}", lang.local_file_psram_match().cyan());
+            }
+        }
         f
     } else {
-        let probe_result = board_probe::probe(&selected_port, lang);
-        let is_psram = probe_result.as_ref().map(|r| r.psram).unwrap_or(false);
-        if is_psram {
-            let mb = probe_result.as_ref().map(|r| r.psram_bytes / (1024 * 1024)).unwrap_or(8);
-            println!("{}", lang.psram_detected(mb).cyan());
-        }
         choose_or_download_firmware(true, release, is_psram, lang)?
     };
 
@@ -390,10 +402,21 @@ fn cmd_ota_password(port: Option<String>, lang: CliLang) -> Result<()> {
 fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, password: Option<String>, lang: CliLang) -> Result<()> {
     println!("{}", lang.ota_updating_to(ip).bold());
 
+    let is_psram = flasher_ota::OtaFlasher::is_psram_device(ip);
     let bin_path = if let Some(f) = file {
+        if let Ok(info) = board_probe::inspect_firmware_file(&f) {
+            if !info.is_valid {
+                println!("{}", lang.local_file_invalid().red().bold());
+            } else if is_psram && !info.has_psram {
+                println!("{}", lang.local_file_no_psram().yellow());
+            } else if !is_psram && info.has_psram {
+                println!("{}", lang.local_file_requires_psram().red().bold());
+            } else if is_psram && info.has_psram {
+                println!("{}", lang.local_file_psram_match().cyan());
+            }
+        }
         f
     } else {
-        let is_psram = flasher_ota::OtaFlasher::is_psram_device(ip);
         choose_or_download_firmware(false, release, is_psram, lang)?
     };
 

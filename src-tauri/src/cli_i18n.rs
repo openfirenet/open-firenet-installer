@@ -1265,6 +1265,38 @@ impl CliLang {
             "⚠️  Questa versione non contiene un binario ottimizzato per PSRAM: verrà installato il binario standard.",
             "⚠️  Esta versión no contiene un binario optimizado para PSRAM: se instalará el binario estándar.")
     }
+    pub fn local_file_no_psram(&self) -> &'static str {
+        tr!(self,
+            "⚠️  Binaire standard : la clé possède de la PSRAM qui ne sera pas activée.",
+            "⚠️  Standard binary: the board has PSRAM which will not be activated.",
+            "⚠️  Standard-Binärdatei: Der Dongle hat PSRAM, der nicht aktiviert wird.",
+            "⚠️  Binario standard: il dongle ha PSRAM che non sarà attivata.",
+            "⚠️  Binario estándar: el módulo tiene PSRAM que no se activará.")
+    }
+    pub fn local_file_requires_psram(&self) -> &'static str {
+        tr!(self,
+            "⛔ Attention : ce binaire requiert de la PSRAM, mais cette clé n'en possède pas (elle ne pourra pas démarrer).",
+            "⛔ Warning: this binary requires PSRAM, but this board does not have any (it will fail to boot).",
+            "⛔ Achtung: Diese Binärdatei erfordert PSRAM, aber dieser Dongle hat keinen (er wird nicht starten).",
+            "⛔ Attenzione: questo binario richiede PSRAM, ma questo dongle non ne ha (non potrà avviarsi).",
+            "⛔ Atención: este binario requiere PSRAM, pero este módulo no tiene (no podrá arrancar).")
+    }
+    pub fn local_file_psram_match(&self) -> &'static str {
+        tr!(self,
+            "⚡ Binaire avec support PSRAM détecté (adapté à cette clé).",
+            "⚡ Binary with PSRAM support detected (matched for this board).",
+            "⚡ Binärdatei mit PSRAM-Unterstützung erkannt (für diesen Dongle geeignet).",
+            "⚡ Binario con supporto PSRAM rilevato (adatto per questo dongle).",
+            "⚡ Binario con soporte PSRAM detectado (adecuado para este módulo).")
+    }
+    pub fn local_file_invalid(&self) -> &'static str {
+        tr!(self,
+            "Fichier invalide : ce n'est pas un binaire exécutable ESP32.",
+            "Invalid file: not a valid ESP32 executable binary.",
+            "Ungültige Datei: Keine gültige ausführbare ESP32-Binärdatei.",
+            "File non valido: non è un binario eseguibile ESP32 valido.",
+            "Archivo no válido: no es un binario ejecutable ESP32 válido.")
+    }
     pub fn psram_detected(&self, mb: u32) -> String {
         tr!(self,
             format!("⚡ PSRAM détectée ({} Mo) : sélection de la version avec support PSRAM", mb),

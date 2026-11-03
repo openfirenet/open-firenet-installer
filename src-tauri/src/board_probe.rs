@@ -49,6 +49,48 @@ pub struct BoardReport {
     pub partitions: Vec<Partition>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct FirmwareInfo {
+    pub is_valid: bool,
+    pub is_esp32s3: bool,
+    pub has_psram: bool,
+    pub file_size: u64,
+}
+
+/// Inspects the contents of a binary firmware image to detect whether it is a valid
+/// ESP32-S3 image and whether it was compiled with PSRAM support (checks for `esp_psram_init`).
+pub fn inspect_firmware_bytes(bytes: &[u8]) -> FirmwareInfo {
+    if bytes.is_empty() {
+        return FirmwareInfo {
+            is_valid: false,
+            is_esp32s3: false,
+            has_psram: false,
+            file_size: 0,
+        };
+    }
+
+    let is_valid = bytes[0] == 0xE9;
+    let is_esp32s3 = if bytes.len() >= 14 && bytes[0] == 0xE9 {
+        u16::from_le_bytes([bytes[12], bytes[13]]) == 0x0009
+    } else {
+        false
+    };
+
+    let has_psram = bytes.windows(14).any(|w| w == b"esp_psram_init");
+
+    FirmwareInfo {
+        is_valid,
+        is_esp32s3,
+        has_psram,
+        file_size: bytes.len() as u64,
+    }
+}
+
+pub fn inspect_firmware_file(path: &std::path::Path) -> Result<FirmwareInfo> {
+    let bytes = std::fs::read(path)?;
+    Ok(inspect_firmware_bytes(&bytes))
+}
+
 /// Decodes ESP32-S3 PSRAM capacity from BLOCK1 eFuse word 4 (EFUSE_RD_MAC_SPI_SYS_4_REG, bits 3..4)
 /// and word 5 (EFUSE_RD_MAC_SPI_SYS_5_REG, bit 19). Returns (has_psram, size_in_bytes).
 pub fn decode_psram(word4: u32, word5: u32) -> (bool, u32) {
@@ -268,5 +310,30 @@ mod tests {
         // 4 MB PSRAM: cap = 4 (low=0, hi=1)
         let w5_4m = 1 << 19;
         assert_eq!(decode_psram(0, w5_4m), (true, 4 * 1024 * 1024));
+    }
+
+    #[test]
+    fn inspect_firmware_detection() {
+        let mut standard = vec![0u8; 100];
+        standard[0] = 0xE9;
+        standard[12] = 0x09;
+        standard[13] = 0x00;
+        let info = inspect_firmware_bytes(&standard);
+        assert!(info.is_valid);
+        assert!(info.is_esp32s3);
+        assert!(!info.has_psram);
+
+        let mut with_psram = standard.clone();
+        with_psram.extend_from_slice(b"some prefix esp_psram_init some suffix");
+        let info_psram = inspect_firmware_bytes(&with_psram);
+        assert!(info_psram.is_valid);
+        assert!(info_psram.is_esp32s3);
+        assert!(info_psram.has_psram);
+
+        let invalid = vec![0x12, 0x34];
+        let info_inv = inspect_firmware_bytes(&invalid);
+        assert!(!info_inv.is_valid);
+        assert!(!info_inv.is_esp32s3);
+        assert!(!info_inv.has_psram);
     }
 }

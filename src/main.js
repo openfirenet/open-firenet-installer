@@ -49,6 +49,8 @@ const selectOtaSource = setupSourceToggle({
   onSwitch: (source) => {
     otaSource = source;
     otaLocalFilePath = null;
+    otaLocalFirmwareInfo = null;
+    updateLocalOtaFileStatus();
     const el = document.getElementById("ota-file-name");
     if (el) el.textContent = "";
   },
@@ -59,6 +61,9 @@ const selectUsbSource = setupSourceToggle({
   onSwitch: (source) => {
     usbSource = source;
     usbLocalFilePath = null;
+    usbLocalFirmwareInfo = null;
+    updateLocalUsbFileStatus();
+    updateUsbFlashButton();
     const el = document.getElementById("usb-file-name");
     if (el) el.textContent = "";
   },
@@ -117,6 +122,70 @@ const usbProgressBar = document.getElementById("usb-progress-bar");
 const usbStatusText = document.getElementById("usb-status-text");
 
 let isUsbFlashingInProgress = false;
+let usbLocalFirmwareInfo = null;
+let otaLocalFirmwareInfo = null;
+
+async function inspectLocalFirmware(path) {
+  try {
+    return await invoke("inspect_firmware", { path });
+  } catch (e) {
+    console.warn("inspect_firmware failed:", e);
+    return null;
+  }
+}
+
+function updateLocalUsbFileStatus() {
+  const el = document.getElementById("usb-file-psram-status");
+  if (!el) return;
+  if (!usbLocalFilePath || !usbLocalFirmwareInfo) {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+    return;
+  }
+  const info = usbLocalFirmwareInfo;
+  if (!info.is_valid) {
+    el.textContent = t("localFileInvalid");
+    el.className = "status-msg status-error";
+    return;
+  }
+  const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+  if (isPsram && !info.has_psram) {
+    el.textContent = t("localFileNoPsram");
+    el.className = "status-msg status-warning";
+  } else if (!isPsram && info.has_psram) {
+    el.textContent = t("localFileRequiresPsram");
+    el.className = "status-msg status-error";
+  } else if (isPsram && info.has_psram) {
+    el.textContent = t("localFilePsramMatch");
+    el.className = "status-msg status-success";
+  } else {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+  }
+}
+
+function updateLocalOtaFileStatus() {
+  const el = document.getElementById("ota-file-psram-status");
+  if (!el) return;
+  if (!otaLocalFilePath || !otaLocalFirmwareInfo) {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+    return;
+  }
+  const info = otaLocalFirmwareInfo;
+  if (!info.is_valid) {
+    el.textContent = t("localFileInvalid");
+    el.className = "status-msg status-error";
+    return;
+  }
+  if (info.has_psram) {
+    el.textContent = t("localFilePsramMatch");
+    el.className = "status-msg status-success";
+  } else {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+  }
+}
 
 function updateUsbFlashButton() {
   if (!btnStartUsbFlash) return;
@@ -131,6 +200,10 @@ function updateUsbFlashButton() {
   }
   const report = lastBoardReport;
   if (report && typeof report === "object" && (report.state === "wrong_chip" || report.state === "flash_too_small")) {
+    btnStartUsbFlash.disabled = true;
+    return;
+  }
+  if (usbSource === "file" && (!usbLocalFilePath || (usbLocalFirmwareInfo && !usbLocalFirmwareInfo.is_valid))) {
     btnStartUsbFlash.disabled = true;
     return;
   }
@@ -228,6 +301,7 @@ function showBoardReport() {
   }
   status.textContent = text;
   updatePsramWarning();
+  updateLocalUsbFileStatus();
 }
 // `asked`: the user clicked "Check the board". Without it, only a port that is an ESP32 for sure is read: reading
 // restarts the device, and a generic serial adapter may carry something that has nothing to do with us.
@@ -1362,6 +1436,8 @@ document.getElementById("ota-file-browse").addEventListener("click", async () =>
   if (selected) {
     otaLocalFilePath = selected;
     document.getElementById("ota-file-name").textContent = basename(selected);
+    otaLocalFirmwareInfo = await inspectLocalFirmware(selected);
+    updateLocalOtaFileStatus();
   }
 });
 
@@ -1434,16 +1510,31 @@ btnStartUsbFlash.addEventListener("click", () => {
 
   const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
   const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
-  const rel = (availableReleases || []).find((r) => r.tag_name === tag);
-  const relHasPsram = hasPsramAsset(rel, selectedUsbMode);
-  const psramNote = isPsram ? (relHasPsram ? " · PSRAM" : "") : "";
-  const firmwareDisplay = usbSource === "file" ? basename(localFile) : `${tag} (${modeLabel}${psramNote})`;
+  let warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
+  let firmwareDisplay = "";
+  if (usbSource === "file") {
+    const fileHasPsram = usbLocalFirmwareInfo && usbLocalFirmwareInfo.has_psram;
+    const filePsramNote = fileHasPsram ? " · PSRAM" : "";
+    firmwareDisplay = `${basename(localFile)} (${modeLabel}${filePsramNote})`;
+    if (usbLocalFirmwareInfo && !usbLocalFirmwareInfo.is_valid) {
+      warningKey = "localFileInvalid";
+    } else if (isPsram && !fileHasPsram) {
+      warningKey = "localFileNoPsram";
+    } else if (!isPsram && fileHasPsram) {
+      warningKey = "localFileRequiresPsram";
+    }
+  } else {
+    const rel = (availableReleases || []).find((r) => r.tag_name === tag);
+    const relHasPsram = hasPsramAsset(rel, selectedUsbMode);
+    const psramNote = isPsram ? (relHasPsram ? " · PSRAM" : "") : "";
+    firmwareDisplay = `${tag} (${modeLabel}${psramNote})`;
+    if (isPsram && !relHasPsram) {
+      warningKey = "releaseNoPsramWarning";
+    }
+  }
   const portDisplay = isPsram && lastBoardReport.psram_bytes
     ? `${port} (${t("psramDetected").replace("{mb}", Math.round(lastBoardReport.psram_bytes / 1048576))})`
     : port;
-  const warningKey = (isPsram && !relHasPsram && usbSource === "release")
-    ? "releaseNoPsramWarning"
-    : (selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning");
 
   openConfirmModal({
     iconName: "zap",
@@ -1467,6 +1558,9 @@ document.getElementById("usb-file-browse").addEventListener("click", async () =>
   if (selected) {
     usbLocalFilePath = selected;
     document.getElementById("usb-file-name").textContent = basename(selected);
+    usbLocalFirmwareInfo = await inspectLocalFirmware(selected);
+    updateLocalUsbFileStatus();
+    updateUsbFlashButton();
   }
 });
 
