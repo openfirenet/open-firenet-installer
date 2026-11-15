@@ -1305,6 +1305,14 @@ impl CliLang {
             format!("⚡ PSRAM rilevata ({} MB): selezione della versione firmware con supporto PSRAM", mb),
             format!("⚡ PSRAM detectada ({} MB): seleccionando versión de firmware con soporte PSRAM", mb))
     }
+    pub fn psram_quad_unsupported(&self, mb: u32) -> String {
+        tr!(self,
+            format!("PSRAM quad de {} Mo détectée : non prise en charge, la version standard sera installée", mb),
+            format!("Quad PSRAM of {} MB detected: not supported, the standard build will be installed", mb),
+            format!("Quad-PSRAM mit {} MB erkannt: nicht unterstützt, die Standardversion wird installiert", mb),
+            format!("PSRAM quad da {} MB rilevata: non supportata, verrà installata la versione standard", mb),
+            format!("PSRAM quad de {} MB detectada: no compatible, se instalará la versión estándar", mb))
+    }
     pub fn downloading_verifying(&self) -> &'static str {
         tr!(self,
             "Téléchargement et vérification de la signature...",

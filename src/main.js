@@ -475,6 +475,9 @@ function showBoardReport() {
   if (report.psram && report.psram_bytes) {
     const psramMb = Math.round(report.psram_bytes / 1048576);
     text += ` · ${t("psramDetected").replace("{mb}", psramMb)}`;
+  } else if (report.psram_bytes) {
+    // Quad PSRAM (2 MB): the PSRAM build cannot use it, the board keeps the standard one.
+    text += ` · ${t("psramQuad").replace("{mb}", Math.round(report.psram_bytes / 1048576))}`;
   }
   status.textContent = text;
   updatePsramWarning();

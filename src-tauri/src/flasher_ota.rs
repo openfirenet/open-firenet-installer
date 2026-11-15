@@ -98,7 +98,7 @@ impl OtaFlasher {
             .map(|s| s.to_string())
     }
 
-    /// Whether the device has physical PSRAM or is running a PSRAM firmware build.
+    /// Whether the device runs the PSRAM build or has PSRAM that build can use (octal, 8 or 16 MB).
     pub fn is_psram_device(ip: &str) -> bool {
         let url = format!("http://{}/api/state", ip);
         let state = match ureq::get(&url).timeout(Duration::from_millis(1500)).call().ok()
@@ -112,7 +112,11 @@ impl OtaFlasher {
         };
         let variant = dev.get("firmware_variant").and_then(|v| v.as_str()).unwrap_or("");
         let hw_psram = dev.get("hardware_psram").and_then(|v| v.as_bool()).unwrap_or(false);
-        variant == "psram" || hw_psram
+        let hw_size = dev.get("hardware_psram_size").and_then(|v| v.as_u64()).unwrap_or(0);
+        // The PSRAM build needs octal PSRAM (8 or 16 MB); quad PSRAM (2 MB) stays on the standard build.
+        let supported = dev.get("psram_build_supported").and_then(|v| v.as_bool())
+            .unwrap_or(hw_psram && hw_size >= 8 * 1024 * 1024);
+        variant == "psram" || supported
     }
 
     /// Effectue la mise à jour sans fil via le protocole ArduinoOTA en 100% Rust natif
