@@ -139,6 +139,8 @@ fn main() -> Result<()> {
             let report = board_probe::probe(&port, lang)?;
             let psram_desc = if report.psram {
                 format!(" | psram: {} MB", report.psram_bytes / (1024 * 1024))
+            } else if report.psram_bytes > 0 {
+                format!(" | psram: {} MB quad (not supported)", report.psram_bytes / (1024 * 1024))
             } else {
                 String::new()
             };
@@ -363,6 +365,8 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     if is_psram {
         let mb = probe_result.as_ref().map(|r| r.psram_bytes / (1024 * 1024)).unwrap_or(8);
         println!("{}", lang.psram_detected(mb).cyan());
+    } else if let Some(bytes) = probe_result.as_ref().ok().map(|r| r.psram_bytes).filter(|b| *b > 0) {
+        println!("{}", lang.psram_quad_unsupported(bytes / (1024 * 1024)).yellow());
     }
 
     let bin_path = if let Some(f) = file {

@@ -92,7 +92,9 @@ pub fn inspect_firmware_file(path: &std::path::Path) -> Result<FirmwareInfo> {
 }
 
 /// Decodes ESP32-S3 PSRAM capacity from BLOCK1 eFuse word 4 (EFUSE_RD_MAC_SPI_SYS_4_REG, bits 3..4)
-/// and word 5 (EFUSE_RD_MAC_SPI_SYS_5_REG, bit 19). Returns (has_psram, size_in_bytes).
+/// and word 5 (EFUSE_RD_MAC_SPI_SYS_5_REG, bit 19). Returns (usable by the PSRAM build, size_in_bytes).
+/// The PSRAM build drives the PSRAM in octal mode, which only the 8 MB and 16 MB chips have (R8, R16V); the 2 MB
+/// chips (R2) have quad PSRAM, so they report their size but keep the standard build.
 pub fn decode_psram(word4: u32, word5: u32) -> (bool, u32) {
     let cap_low = (word4 >> 3) & 0x03;
     let cap_hi = (word5 >> 19) & 0x01;
@@ -104,7 +106,7 @@ pub fn decode_psram(word4: u32, word5: u32) -> (bool, u32) {
         4 => 4 * 1024 * 1024,
         _ => 0,
     };
-    (bytes > 0, bytes)
+    (bytes >= 8 * 1024 * 1024, bytes)
 }
 
 /// The entries of a partition table image (32 bytes each, magic 0xAA 0x50), up to the end marker.
@@ -301,7 +303,7 @@ mod tests {
 
         // 2 MB PSRAM: cap = 2 (low=2, hi=0)
         let w4_2m = 2 << 3;
-        assert_eq!(decode_psram(w4_2m, 0), (true, 2 * 1024 * 1024));
+        assert_eq!(decode_psram(w4_2m, 0), (false, 2 * 1024 * 1024)); // quad: standard build
 
         // 16 MB PSRAM: cap = 3 (low=3, hi=0)
         let w4_16m = 3 << 3;
@@ -309,7 +311,7 @@ mod tests {
 
         // 4 MB PSRAM: cap = 4 (low=0, hi=1)
         let w5_4m = 1 << 19;
-        assert_eq!(decode_psram(0, w5_4m), (true, 4 * 1024 * 1024));
+        assert_eq!(decode_psram(0, w5_4m), (false, 4 * 1024 * 1024)); // not octal: standard build
     }
 
     #[test]
