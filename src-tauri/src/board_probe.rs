@@ -44,7 +44,67 @@ pub struct BoardReport {
     pub state: BoardState,
     pub chip: String,
     pub flash_bytes: u32,
+    pub psram: bool,
+    pub psram_bytes: u32,
     pub partitions: Vec<Partition>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct FirmwareInfo {
+    pub is_valid: bool,
+    pub is_esp32s3: bool,
+    pub has_psram: bool,
+    pub file_size: u64,
+}
+
+/// Inspects the contents of a binary firmware image to detect whether it is a valid
+/// ESP32-S3 image and whether it was compiled with PSRAM support (checks for `esp_psram_init`).
+pub fn inspect_firmware_bytes(bytes: &[u8]) -> FirmwareInfo {
+    if bytes.is_empty() {
+        return FirmwareInfo {
+            is_valid: false,
+            is_esp32s3: false,
+            has_psram: false,
+            file_size: 0,
+        };
+    }
+
+    let is_valid = bytes[0] == 0xE9;
+    let is_esp32s3 = if bytes.len() >= 14 && bytes[0] == 0xE9 {
+        u16::from_le_bytes([bytes[12], bytes[13]]) == 0x0009
+    } else {
+        false
+    };
+
+    let has_psram = bytes.windows(14).any(|w| w == b"esp_psram_init");
+
+    FirmwareInfo {
+        is_valid,
+        is_esp32s3,
+        has_psram,
+        file_size: bytes.len() as u64,
+    }
+}
+
+pub fn inspect_firmware_file(path: &std::path::Path) -> Result<FirmwareInfo> {
+    let bytes = std::fs::read(path)?;
+    Ok(inspect_firmware_bytes(&bytes))
+}
+
+/// Decodes ESP32-S3 PSRAM capacity from BLOCK1 eFuse word 4 (EFUSE_RD_MAC_SPI_SYS_4_REG, bits 3..4)
+/// and word 5 (EFUSE_RD_MAC_SPI_SYS_5_REG, bit 19). Returns (has_psram, size_in_bytes).
+pub fn decode_psram(word4: u32, word5: u32) -> (bool, u32) {
+    let cap_low = (word4 >> 3) & 0x03;
+    let cap_hi = (word5 >> 19) & 0x01;
+    let cap = (cap_hi << 2) | cap_low;
+    let bytes = match cap {
+        1 => 8 * 1024 * 1024,
+        2 => 2 * 1024 * 1024,
+        3 => 16 * 1024 * 1024,
+        4 => 4 * 1024 * 1024,
+        _ => 0,
+    };
+    (bytes > 0, bytes)
 }
 
 /// The entries of a partition table image (32 bytes each, magic 0xAA 0x50), up to the end marker.
@@ -110,7 +170,7 @@ pub fn probe(port_name: &str, lang: CliLang) -> Result<BoardReport> {
         .flow_control(serialport::FlowControl::None)
         .open_native()
         .map_err(|e| anyhow!(lang.cannot_open_port(port_name, &e.to_string())))?;
-    let before = if port_info.pid == 0x1001 { ResetBeforeOperation::UsbReset } else { ResetBeforeOperation::DefaultReset };
+    let before = if port_info.pid == 0x1001 || port_info.pid == 0x819a { ResetBeforeOperation::UsbReset } else { ResetBeforeOperation::DefaultReset };
 
     // No chip is imposed: the point is to learn which one it is.
     let mut flasher = Flasher::connect(serial, port_info, Some(115_200), true, false, false, None, ResetAfterOperation::HardReset, before)
@@ -135,7 +195,22 @@ pub fn probe(port_name: &str, lang: CliLang) -> Result<BoardReport> {
     } else {
         (Vec::new(), false)
     };
-    Ok(BoardReport { state: classify(is_s3, flash_bytes, &partitions, app_present), chip: format!("{}", info.chip), flash_bytes, partitions })
+    let (psram, psram_bytes) = if is_s3 {
+        // EFUSE_RD_MAC_SPI_SYS_4_REG (0x6000_7054) and EFUSE_RD_MAC_SPI_SYS_5_REG (0x6000_7058)
+        let w4 = flasher.connection().read_reg(0x6000_7054).unwrap_or(0);
+        let w5 = flasher.connection().read_reg(0x6000_7058).unwrap_or(0);
+        decode_psram(w4, w5)
+    } else {
+        (false, 0)
+    };
+    Ok(BoardReport {
+        state: classify(is_s3, flash_bytes, &partitions, app_present),
+        chip: format!("{}", info.chip),
+        flash_bytes,
+        psram,
+        psram_bytes,
+        partitions,
+    })
 }
 
 #[cfg(test)]
@@ -212,5 +287,53 @@ mod tests {
     fn a_wrong_chip_or_a_small_flash_is_refused() {
         assert_eq!(classify(false, MB4, &parse_partition_table(&ours()), true), BoardState::WrongChip);
         assert_eq!(classify(true, 2 * 1024 * 1024, &[], false), BoardState::FlashTooSmall);
+    }
+
+    #[test]
+    fn psram_efuse_decoding() {
+        // No PSRAM: cap = 0
+        assert_eq!(decode_psram(0, 0), (false, 0));
+        assert_eq!(decode_psram(0xFFFFFFFF & !(0x3 << 3), 0xFFFFFFFF & !(1 << 19)), (false, 0));
+
+        // 8 MB PSRAM: cap = 1 (low=1, hi=0)
+        let w4_8m = 1 << 3;
+        assert_eq!(decode_psram(w4_8m, 0), (true, 8 * 1024 * 1024));
+
+        // 2 MB PSRAM: cap = 2 (low=2, hi=0)
+        let w4_2m = 2 << 3;
+        assert_eq!(decode_psram(w4_2m, 0), (true, 2 * 1024 * 1024));
+
+        // 16 MB PSRAM: cap = 3 (low=3, hi=0)
+        let w4_16m = 3 << 3;
+        assert_eq!(decode_psram(w4_16m, 0), (true, 16 * 1024 * 1024));
+
+        // 4 MB PSRAM: cap = 4 (low=0, hi=1)
+        let w5_4m = 1 << 19;
+        assert_eq!(decode_psram(0, w5_4m), (true, 4 * 1024 * 1024));
+    }
+
+    #[test]
+    fn inspect_firmware_detection() {
+        let mut standard = vec![0u8; 100];
+        standard[0] = 0xE9;
+        standard[12] = 0x09;
+        standard[13] = 0x00;
+        let info = inspect_firmware_bytes(&standard);
+        assert!(info.is_valid);
+        assert!(info.is_esp32s3);
+        assert!(!info.has_psram);
+
+        let mut with_psram = standard.clone();
+        with_psram.extend_from_slice(b"some prefix esp_psram_init some suffix");
+        let info_psram = inspect_firmware_bytes(&with_psram);
+        assert!(info_psram.is_valid);
+        assert!(info_psram.is_esp32s3);
+        assert!(info_psram.has_psram);
+
+        let invalid = vec![0x12, 0x34];
+        let info_inv = inspect_firmware_bytes(&invalid);
+        assert!(!info_inv.is_valid);
+        assert!(!info_inv.is_esp32s3);
+        assert!(!info_inv.has_psram);
     }
 }

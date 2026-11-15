@@ -87,6 +87,34 @@ impl OtaFlasher {
         Some(state.get("device").and_then(|d| d.get("ota_password_set")).and_then(|v| v.as_bool()).unwrap_or(false))
     }
 
+    /// The firmware variant reported by the bridge (`device.firmware_variant`, e.g. "psram" or "standard").
+    pub fn firmware_variant(ip: &str) -> Option<String> {
+        let url = format!("http://{}/api/state", ip);
+        let state = ureq::get(&url).timeout(Duration::from_millis(1500)).call().ok()?
+            .into_json::<serde_json::Value>().ok()?;
+        state.get("device")
+            .and_then(|d| d.get("firmware_variant"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    }
+
+    /// Whether the device has physical PSRAM or is running a PSRAM firmware build.
+    pub fn is_psram_device(ip: &str) -> bool {
+        let url = format!("http://{}/api/state", ip);
+        let state = match ureq::get(&url).timeout(Duration::from_millis(1500)).call().ok()
+            .and_then(|r| r.into_json::<serde_json::Value>().ok()) {
+            Some(s) => s,
+            None => return false,
+        };
+        let dev = match state.get("device") {
+            Some(d) => d,
+            None => return false,
+        };
+        let variant = dev.get("firmware_variant").and_then(|v| v.as_str()).unwrap_or("");
+        let hw_psram = dev.get("hardware_psram").and_then(|v| v.as_bool()).unwrap_or(false);
+        variant == "psram" || hw_psram
+    }
+
     /// Effectue la mise à jour sans fil via le protocole ArduinoOTA en 100% Rust natif
     /// (UDP 3232 pour l'invitation + TCP local pour le streaming du firmware)
     pub fn flash_arduino_ota<F>(ip: &str, bin_path: &Path, password: Option<&str>, lang: CliLang, on_progress: F) -> Result<()>

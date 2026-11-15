@@ -49,6 +49,8 @@ const selectOtaSource = setupSourceToggle({
   onSwitch: (source) => {
     otaSource = source;
     otaLocalFilePath = null;
+    otaLocalFirmwareInfo = null;
+    updateLocalOtaFileStatus();
     const el = document.getElementById("ota-file-name");
     if (el) el.textContent = "";
   },
@@ -59,6 +61,9 @@ const selectUsbSource = setupSourceToggle({
   onSwitch: (source) => {
     usbSource = source;
     usbLocalFilePath = null;
+    usbLocalFirmwareInfo = null;
+    updateLocalUsbFileStatus();
+    updateUsbFlashButton();
     const el = document.getElementById("usb-file-name");
     if (el) el.textContent = "";
   },
@@ -116,7 +121,248 @@ const usbProgressBox = document.getElementById("usb-progress-box");
 const usbProgressBar = document.getElementById("usb-progress-bar");
 const usbStatusText = document.getElementById("usb-status-text");
 
+function setupCustomSelect(selectEl) {
+  if (!selectEl || selectEl._customSelect) return selectEl?._customSelect;
+
+  selectEl.style.display = "none";
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "custom-select-wrapper";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "custom-select-btn";
+  btn.setAttribute("aria-haspopup", "listbox");
+  btn.setAttribute("aria-expanded", "false");
+
+  const labelSpan = document.createElement("span");
+  labelSpan.className = "custom-select-label";
+
+  const arrowSpan = document.createElement("span");
+  arrowSpan.className = "custom-select-arrow";
+  arrowSpan.innerHTML = icon("chevron-down");
+
+  btn.appendChild(labelSpan);
+  btn.appendChild(arrowSpan);
+
+  const menu = document.createElement("ul");
+  menu.className = "custom-select-menu hidden";
+  menu.setAttribute("role", "listbox");
+
+  wrapper.appendChild(btn);
+  wrapper.appendChild(menu);
+
+  selectEl.parentNode.insertBefore(wrapper, selectEl.nextSibling);
+
+  function closeMenu() {
+    wrapper.classList.remove("open");
+    menu.classList.add("hidden");
+    btn.setAttribute("aria-expanded", "false");
+  }
+
+  function openMenu() {
+    document.querySelectorAll(".custom-select-wrapper.open").forEach((el) => {
+      if (el !== wrapper) {
+        el.classList.remove("open");
+        el.querySelector(".custom-select-menu")?.classList.add("hidden");
+        el.querySelector(".custom-select-btn")?.setAttribute("aria-expanded", "false");
+      }
+    });
+    wrapper.classList.add("open");
+    menu.classList.remove("hidden");
+    btn.setAttribute("aria-expanded", "true");
+    const sel = menu.querySelector(".custom-select-item.selected");
+    if (sel) sel.scrollIntoView({ block: "nearest" });
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (selectEl.disabled) return;
+    if (wrapper.classList.contains("open")) {
+      closeMenu();
+    } else {
+      openMenu();
+    }
+  });
+
+  btn.addEventListener("keydown", (e) => {
+    if (selectEl.disabled) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!wrapper.classList.contains("open")) {
+        openMenu();
+      } else {
+        const items = Array.from(menu.querySelectorAll(".custom-select-item:not(.disabled)"));
+        const curr = items.findIndex((it) => it.classList.contains("selected"));
+        const next = e.key === "ArrowDown" ? Math.min(items.length - 1, curr + 1) : Math.max(0, curr - 1);
+        if (items[next]) items[next].click();
+      }
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (wrapper.classList.contains("open")) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    }
+  });
+
+  function sync() {
+    menu.innerHTML = "";
+    const options = Array.from(selectEl.options);
+    const selectedOpt = selectEl.options[selectEl.selectedIndex] || options[0];
+    labelSpan.textContent = selectedOpt ? selectedOpt.textContent : "";
+    btn.title = labelSpan.textContent;
+
+    options.forEach((opt) => {
+      const li = document.createElement("li");
+      li.className = "custom-select-item";
+      li.setAttribute("role", "option");
+      li.setAttribute("data-value", opt.value);
+      li.textContent = opt.textContent;
+      li.title = opt.textContent;
+
+      if (opt.disabled) li.classList.add("disabled");
+      if (opt.value === selectEl.value) li.classList.add("selected");
+
+      li.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (opt.disabled) return;
+        selectEl.value = opt.value;
+        labelSpan.textContent = opt.textContent;
+        btn.title = opt.textContent;
+        menu.querySelectorAll(".custom-select-item").forEach((it) => it.classList.remove("selected"));
+        li.classList.add("selected");
+        closeMenu();
+        selectEl.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+
+      menu.appendChild(li);
+    });
+
+    btn.disabled = selectEl.disabled;
+    wrapper.classList.toggle("disabled", selectEl.disabled);
+  }
+
+  const origDescriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  if (origDescriptor && !selectEl._valueIntercepted) {
+    selectEl._valueIntercepted = true;
+    Object.defineProperty(selectEl, "value", {
+      get() {
+        return origDescriptor.get.call(this);
+      },
+      set(val) {
+        origDescriptor.set.call(this, val);
+        const opt = Array.from(this.options).find((o) => o.value === String(val));
+        if (opt) {
+          labelSpan.textContent = opt.textContent;
+          btn.title = opt.textContent;
+          menu.querySelectorAll(".custom-select-item").forEach((it) => {
+            it.classList.toggle("selected", it.getAttribute("data-value") === String(val));
+          });
+        }
+      },
+    });
+  }
+
+  const observer = new MutationObserver(() => sync());
+  observer.observe(selectEl, { childList: true, subtree: true, attributes: true, attributeFilter: ["disabled"] });
+
+  selectEl.addEventListener("change", () => {
+    const selectedOpt = selectEl.options[selectEl.selectedIndex];
+    if (selectedOpt) {
+      labelSpan.textContent = selectedOpt.textContent;
+      btn.title = selectedOpt.textContent;
+      menu.querySelectorAll(".custom-select-item").forEach((it) => {
+        it.classList.toggle("selected", it.getAttribute("data-value") === selectEl.value);
+      });
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!wrapper.contains(e.target)) closeMenu();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!wrapper.classList.contains("open")) return;
+    if (e.key === "Escape") {
+      closeMenu();
+      btn.focus();
+    }
+  });
+
+  selectEl._customSelect = { sync, wrapper, btn, menu };
+  selectEl._customSelectSync = sync;
+
+  sync();
+  return selectEl._customSelect;
+}
+
 let isUsbFlashingInProgress = false;
+let usbLocalFirmwareInfo = null;
+let otaLocalFirmwareInfo = null;
+
+async function inspectLocalFirmware(path) {
+  try {
+    return await invoke("inspect_firmware", { path });
+  } catch (e) {
+    console.warn("inspect_firmware failed:", e);
+    return null;
+  }
+}
+
+function updateLocalUsbFileStatus() {
+  const el = document.getElementById("usb-file-psram-status");
+  if (!el) return;
+  if (!usbLocalFilePath || !usbLocalFirmwareInfo) {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+    return;
+  }
+  const info = usbLocalFirmwareInfo;
+  if (!info.is_valid) {
+    el.textContent = t("localFileInvalid");
+    el.className = "status-msg status-error";
+    return;
+  }
+  const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+  if (isPsram && !info.has_psram) {
+    el.textContent = t("localFileNoPsram");
+    el.className = "status-msg status-warning";
+  } else if (!isPsram && info.has_psram) {
+    el.textContent = t("localFileRequiresPsram");
+    el.className = "status-msg status-error";
+  } else if (isPsram && info.has_psram) {
+    el.textContent = t("localFilePsramMatch");
+    el.className = "status-msg status-success";
+  } else {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+  }
+}
+
+function updateLocalOtaFileStatus() {
+  const el = document.getElementById("ota-file-psram-status");
+  if (!el) return;
+  if (!otaLocalFilePath || !otaLocalFirmwareInfo) {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+    return;
+  }
+  const info = otaLocalFirmwareInfo;
+  if (!info.is_valid) {
+    el.textContent = t("localFileInvalid");
+    el.className = "status-msg status-error";
+    return;
+  }
+  if (info.has_psram) {
+    el.textContent = t("localFilePsramMatch");
+    el.className = "status-msg status-success";
+  } else {
+    el.textContent = "";
+    el.className = "status-msg hidden";
+  }
+}
 
 function updateUsbFlashButton() {
   if (!btnStartUsbFlash) return;
@@ -131,6 +377,10 @@ function updateUsbFlashButton() {
   }
   const report = lastBoardReport;
   if (report && typeof report === "object" && (report.state === "wrong_chip" || report.state === "flash_too_small")) {
+    btnStartUsbFlash.disabled = true;
+    return;
+  }
+  if (usbSource === "file" && (!usbLocalFilePath || (usbLocalFirmwareInfo && !usbLocalFirmwareInfo.is_valid))) {
     btnStartUsbFlash.disabled = true;
     return;
   }
@@ -160,17 +410,47 @@ const btnUsbModeUpdate = document.getElementById("usb-mode-update");
 const btnUsbModeFactory = document.getElementById("usb-mode-factory");
 let selectedUsbMode = "factory"; // "update" | "factory": first installation unless the board is found ready for an update
 
+function hasPsramAsset(rel, mode) {
+  if (!rel || !rel.assets) return false;
+  if (mode === "factory") {
+    return rel.assets.some((a) => (a.name.includes("factory-psram") || (a.name.includes("psram") && a.name.includes("factory"))) && a.name.endsWith(".bin"));
+  }
+  return rel.assets.some((a) => (a.name.includes("ota-psram") || (a.name.includes("psram") && !a.name.includes("factory") && !a.name.includes("bootloader"))) && a.name.endsWith(".bin"));
+}
+
+function updatePsramWarning() {
+  const usbWarn = document.getElementById("usb-release-psram-warning");
+  if (usbWarn) {
+    const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+    const tag = usbReleaseSelect ? usbReleaseSelect.value : "";
+    const rel = (availableReleases || []).find((r) => r.tag_name === tag);
+    if (isPsram && rel && !hasPsramAsset(rel, selectedUsbMode)) {
+      usbWarn.textContent = t("releaseNoPsramWarning");
+      usbWarn.classList.remove("hidden");
+    } else {
+      usbWarn.textContent = "";
+      usbWarn.classList.add("hidden");
+    }
+  }
+}
+
+if (usbReleaseSelect) {
+  usbReleaseSelect.addEventListener("change", updatePsramWarning);
+}
+
 if (btnUsbModeUpdate && btnUsbModeFactory) {
   btnUsbModeUpdate.addEventListener("click", () => {
     selectedUsbMode = "update";
     btnUsbModeUpdate.classList.add("active");
     btnUsbModeFactory.classList.remove("active");
+    updatePsramWarning();
   });
 
   btnUsbModeFactory.addEventListener("click", () => {
     selectedUsbMode = "factory";
     btnUsbModeFactory.classList.add("active");
     btnUsbModeUpdate.classList.remove("active");
+    updatePsramWarning();
   });
 }
 
@@ -191,7 +471,14 @@ function showBoardReport() {
     return;
   }
   const key = { blank: "boardBlank", other_layout: "boardOther", ready: "boardReady", wrong_chip: "boardWrongChip", flash_too_small: "boardSmall" }[report.state];
-  status.textContent = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
+  let text = t(key).replace("{chip}", report.chip.toUpperCase()).replace("{mb}", Math.round(report.flash_bytes / 1048576));
+  if (report.psram && report.psram_bytes) {
+    const psramMb = Math.round(report.psram_bytes / 1048576);
+    text += ` · ${t("psramDetected").replace("{mb}", psramMb)}`;
+  }
+  status.textContent = text;
+  updatePsramWarning();
+  updateLocalUsbFileStatus();
 }
 // `asked`: the user clicked "Check the board". Without it, only a port that is an ESP32 for sure is read: reading
 // restarts the device, and a generic serial adapter may carry something that has nothing to do with us.
@@ -387,7 +674,8 @@ function renderBoardBanner() {
   document.getElementById("board-modal-title").textContent = t("boardModalTitle");
   // The port is named: with several boards plugged in, it tells which one this is about.
   const sentence = t(ready ? "bannerBoardReady" : "bannerBoardNew").replace(/\.\s*$/, "");
-  document.getElementById("board-modal-text").textContent = `${sentence} (${usbPortSelect.value}).`;
+  const psramNote = report && report.psram && report.psram_bytes ? ` · ${t("psramDetected").replace("{mb}", Math.round(report.psram_bytes / 1048576))}` : "";
+  document.getElementById("board-modal-text").textContent = `${sentence} (${usbPortSelect.value}${psramNote}).`;
   const go = document.getElementById("board-modal-go");
   go.textContent = t(ready ? "btnBannerUpdate" : "btnBannerInstall");
   go.onclick = () => {
@@ -632,6 +920,10 @@ window.alert = (msg) => {
 };
 
 const wifiPortSelect = document.getElementById("wifi-port-select");
+setupCustomSelect(otaReleaseSelect);
+setupCustomSelect(usbPortSelect);
+setupCustomSelect(usbReleaseSelect);
+setupCustomSelect(wifiPortSelect);
 const wifiSsid = document.getElementById("wifi-ssid");
 const wifiPass = document.getElementById("wifi-pass");
 const btnSendWifi = document.getElementById("btn-send-wifi");
@@ -690,6 +982,7 @@ function updateDynamicButtons() {
   if (releasesLabel) releasesLabel.textContent = t("btnRefreshReleases");
   const retryLabel = emptyBtnRetry ? emptyBtnRetry.querySelector(".btn-label") : null;
   if (retryLabel) retryLabel.textContent = t("emptyBtnRetryScan");
+  [otaReleaseSelect, usbPortSelect, usbReleaseSelect, wifiPortSelect].forEach((s) => s?._customSelectSync?.());
 }
 
 // Language selector dropdown with vector flags
@@ -949,6 +1242,16 @@ async function loadReleases() {
   }
 }
 
+function formatReleaseOptionLabel(release) {
+  const badgeText = release.prerelease ? t("badgePrerelease") : t("badgeStable");
+  let name = (release.name || "").trim();
+  // Strip redundant tag prefix at start of release name if present (e.g. "v4.9.1 - Buttons...")
+  if (name.toLowerCase().startsWith(release.tag_name.toLowerCase())) {
+    name = name.slice(release.tag_name.length).replace(/^[\s\-–:]+/, "").trim();
+  }
+  return name ? `${release.tag_name} (${badgeText}) - ${name}` : `${release.tag_name} (${badgeText})`;
+}
+
 function populateReleaseDropdowns(releases) {
   otaReleaseSelect.innerHTML = "";
   usbReleaseSelect.innerHTML = "";
@@ -967,17 +1270,18 @@ function populateReleaseDropdowns(releases) {
   }
 
   releases.forEach((r) => {
-    const badgeText = r.prerelease ? t("badgePrerelease") : t("badgeStable");
+    const label = formatReleaseOptionLabel(r);
     const optOta = document.createElement("option");
     optOta.value = r.tag_name;
-    optOta.textContent = `${r.tag_name} (${badgeText}) - ${r.name || ""}`;
+    optOta.textContent = label;
     otaReleaseSelect.appendChild(optOta);
 
     const optUsb = document.createElement("option");
     optUsb.value = r.tag_name;
-    optUsb.textContent = `${r.tag_name} (${badgeText}) - ${r.name || ""}`;
+    optUsb.textContent = label;
     usbReleaseSelect.appendChild(optUsb);
   });
+  updatePsramWarning();
 }
 
 function formatBytes(bytes) {
@@ -1324,6 +1628,8 @@ document.getElementById("ota-file-browse").addEventListener("click", async () =>
   if (selected) {
     otaLocalFilePath = selected;
     document.getElementById("ota-file-name").textContent = basename(selected);
+    otaLocalFirmwareInfo = await inspectLocalFirmware(selected);
+    updateLocalOtaFileStatus();
   }
 });
 
@@ -1347,6 +1653,7 @@ async function doUsbFlash() {
       releaseTag: tag || null,
       customFile: localFile,
       mode: selectedUsbMode,
+      psram: Boolean(lastBoardReport && lastBoardReport.psram),
       lang: getLang(),
     });
     usbProgressBar.style.width = "100%";
@@ -1394,15 +1701,39 @@ btnStartUsbFlash.addEventListener("click", () => {
   }
 
   const modeLabel = selectedUsbMode === "factory" ? t("usbModeFactoryTitle") : t("usbModeUpdateTitle");
-  const firmwareDisplay = usbSource === "file" ? basename(localFile) : `${tag} (${modeLabel})`;
-  const warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
+  const isPsram = Boolean(lastBoardReport && typeof lastBoardReport === "object" && lastBoardReport.psram);
+  let warningKey = selectedUsbMode === "factory" ? "modalConfirmWarningFactory" : "modalConfirmWarning";
+  let firmwareDisplay = "";
+  if (usbSource === "file") {
+    const fileHasPsram = usbLocalFirmwareInfo && usbLocalFirmwareInfo.has_psram;
+    const filePsramNote = fileHasPsram ? " · PSRAM" : "";
+    firmwareDisplay = `${basename(localFile)} (${modeLabel}${filePsramNote})`;
+    if (usbLocalFirmwareInfo && !usbLocalFirmwareInfo.is_valid) {
+      warningKey = "localFileInvalid";
+    } else if (isPsram && !fileHasPsram) {
+      warningKey = "localFileNoPsram";
+    } else if (!isPsram && fileHasPsram) {
+      warningKey = "localFileRequiresPsram";
+    }
+  } else {
+    const rel = (availableReleases || []).find((r) => r.tag_name === tag);
+    const relHasPsram = hasPsramAsset(rel, selectedUsbMode);
+    const psramNote = isPsram ? (relHasPsram ? " · PSRAM" : "") : "";
+    firmwareDisplay = `${tag} (${modeLabel}${psramNote})`;
+    if (isPsram && !relHasPsram) {
+      warningKey = "releaseNoPsramWarning";
+    }
+  }
+  const portDisplay = isPsram && lastBoardReport.psram_bytes
+    ? `${port} (${t("psramDetected").replace("{mb}", Math.round(lastBoardReport.psram_bytes / 1048576))})`
+    : port;
 
   openConfirmModal({
     iconName: "zap",
     titleKey: "modalConfirmTitle",
     descKey: "modalConfirmDesc",
     targetLabelKey: "modalTargetPort",
-    targetValue: port,
+    targetValue: portDisplay,
     firmwareValue: firmwareDisplay,
     warningKey: warningKey,
     confirmIconName: "zap",
@@ -1419,6 +1750,9 @@ document.getElementById("usb-file-browse").addEventListener("click", async () =>
   if (selected) {
     usbLocalFilePath = selected;
     document.getElementById("usb-file-name").textContent = basename(selected);
+    usbLocalFirmwareInfo = await inspectLocalFirmware(selected);
+    updateLocalUsbFileStatus();
+    updateUsbFlashButton();
   }
 });
 

@@ -137,7 +137,12 @@ fn main() -> Result<()> {
         Some(Commands::Probe { port }) => {
             let port = choose_serial_port(port, lang)?;
             let report = board_probe::probe(&port, lang)?;
-            println!("chip: {} | flash: {} bytes | state: {:?}", report.chip, report.flash_bytes, report.state);
+            let psram_desc = if report.psram {
+                format!(" | psram: {} MB", report.psram_bytes / (1024 * 1024))
+            } else {
+                String::new()
+            };
+            println!("chip: {} | flash: {} bytes{} | state: {:?}", report.chip, report.flash_bytes, psram_desc, report.state);
             for p in &report.partitions {
                 println!("  {:<10} type {:#04x} subtype {:#04x} offset {:#08x} size {:#08x}", p.label, p.kind, p.subtype, p.offset, p.size);
             }
@@ -353,10 +358,28 @@ fn cmd_flash(port: Option<String>, file: Option<PathBuf>, release: Option<String
     println!("{}\n", lang.usb_native_hint().dimmed());
 
     let selected_port = choose_serial_port(port, lang)?;
+    let probe_result = board_probe::probe(&selected_port, lang);
+    let is_psram = probe_result.as_ref().map(|r| r.psram).unwrap_or(false);
+    if is_psram {
+        let mb = probe_result.as_ref().map(|r| r.psram_bytes / (1024 * 1024)).unwrap_or(8);
+        println!("{}", lang.psram_detected(mb).cyan());
+    }
+
     let bin_path = if let Some(f) = file {
+        if let Ok(info) = board_probe::inspect_firmware_file(&f) {
+            if !info.is_valid {
+                println!("{}", lang.local_file_invalid().red().bold());
+            } else if is_psram && !info.has_psram {
+                println!("{}", lang.local_file_no_psram().yellow());
+            } else if !is_psram && info.has_psram {
+                println!("{}", lang.local_file_requires_psram().red().bold());
+            } else if is_psram && info.has_psram {
+                println!("{}", lang.local_file_psram_match().cyan());
+            }
+        }
         f
     } else {
-        choose_or_download_firmware(true, release, lang)?
+        choose_or_download_firmware(true, release, is_psram, lang)?
     };
 
     SerialFlasher::flash_factory_bin(&selected_port, &bin_path, 460800, lang, |_pct, _msg| {})?;
@@ -379,10 +402,22 @@ fn cmd_ota_password(port: Option<String>, lang: CliLang) -> Result<()> {
 fn cmd_ota(ip: &str, file: Option<PathBuf>, release: Option<String>, password: Option<String>, lang: CliLang) -> Result<()> {
     println!("{}", lang.ota_updating_to(ip).bold());
 
+    let is_psram = flasher_ota::OtaFlasher::is_psram_device(ip);
     let bin_path = if let Some(f) = file {
+        if let Ok(info) = board_probe::inspect_firmware_file(&f) {
+            if !info.is_valid {
+                println!("{}", lang.local_file_invalid().red().bold());
+            } else if is_psram && !info.has_psram {
+                println!("{}", lang.local_file_no_psram().yellow());
+            } else if !is_psram && info.has_psram {
+                println!("{}", lang.local_file_requires_psram().red().bold());
+            } else if is_psram && info.has_psram {
+                println!("{}", lang.local_file_psram_match().cyan());
+            }
+        }
         f
     } else {
-        choose_or_download_firmware(false, release, lang)?
+        choose_or_download_firmware(false, release, is_psram, lang)?
     };
 
     // The bridge tells whether it asks for a password; it is then typed here, never stored.
@@ -450,7 +485,7 @@ fn interactive_ota(lang: CliLang) -> Result<()> {
     cmd_ota(&ip, None, None, None, lang)
 }
 
-fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang: CliLang) -> Result<PathBuf> {
+fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, psram: bool, lang: CliLang) -> Result<PathBuf> {
     let gh = GitHubClient::new(lang);
     let cache_dir = GitHubClient::cache_dir();
     std::fs::create_dir_all(&cache_dir)?;
@@ -483,11 +518,23 @@ fn choose_or_download_firmware(factory: bool, release_tag: Option<String>, lang:
         releases[idx].clone()
     };
 
-    let asset = if factory {
-        rel.factory_asset()
+    let (asset, is_psram_fallback) = if factory {
+        if psram && !rel.has_psram_factory() {
+            (rel.factory_asset_for(false), true)
+        } else {
+            (rel.factory_asset_for(psram), false)
+        }
     } else {
-        rel.ota_asset()
+        if psram && !rel.has_psram_ota() {
+            (rel.ota_asset_for(false), true)
+        } else {
+            (rel.ota_asset_for(psram), false)
+        }
     };
+
+    if is_psram_fallback {
+        println!("{}", lang.no_psram_binary_warning().yellow());
+    }
 
     let asset = match asset {
         Some(a) => a,

@@ -1249,6 +1249,62 @@ impl CliLang {
             "Nessuna immagine completa (factory) trovata in questa versione",
             "No se encontró ninguna imagen completa (factory) en esta versión")
     }
+    pub fn no_psram_binary(&self) -> &'static str {
+        tr!(self,
+            "Cette version ne contient aucun binaire compatible avec les clés équipées de PSRAM (support introduit avec la version 5.0)",
+            "This release does not contain any binary compatible with PSRAM boards (support introduced in version 5.0)",
+            "Dieses Release enthält keine mit PSRAM-Dongles kompatible Binärdatei (Unterstützung ab Version 5.0)",
+            "Questa versione non contiene alcun binario compatibile con i dongle dotati di PSRAM (supporto introdotto nella versione 5.0)",
+            "Esta versión no contiene ningún binario compatible con módulos con PSRAM (soporte introducido en la versión 5.0)")
+    }
+    pub fn no_psram_binary_warning(&self) -> &'static str {
+        tr!(self,
+            "⚠️  Cette version ne contient pas de binaire optimisé pour la PSRAM : le binaire standard sera installé.",
+            "⚠️  This release does not contain a PSRAM-optimized binary: standard binary will be installed.",
+            "⚠️  Dieses Release enthält keine für PSRAM optimierte Binärdatei: Die Standard-Binärdatei wird installiert.",
+            "⚠️  Questa versione non contiene un binario ottimizzato per PSRAM: verrà installato il binario standard.",
+            "⚠️  Esta versión no contiene un binario optimizado para PSRAM: se instalará el binario estándar.")
+    }
+    pub fn local_file_no_psram(&self) -> &'static str {
+        tr!(self,
+            "⚠️  Binaire standard : la PSRAM de la clé ne sera pas utilisée.",
+            "⚠️  Standard binary: the board's PSRAM will not be used.",
+            "⚠️  Standard-Binärdatei: Der PSRAM des Dongles wird nicht genutzt.",
+            "⚠️  Binario standard: la PSRAM del dongle non verrà utilizzata.",
+            "⚠️  Binario estándar: la PSRAM del módulo no se utilizará.")
+    }
+    pub fn local_file_requires_psram(&self) -> &'static str {
+        tr!(self,
+            "⛔ Ce binaire nécessite de la PSRAM, mais cette clé n'en a pas (elle ne pourra pas démarrer).",
+            "⛔ This binary requires PSRAM, but this board has none (it will not boot).",
+            "⛔ Diese Binärdatei benötigt PSRAM, aber dieser Dongle hat keinen (er wird nicht starten).",
+            "⛔ Questo binario richiede PSRAM, ma questo dongle non ne ha (non potrà avviarsi).",
+            "⛔ Este binario requiere PSRAM, pero este módulo no tiene (no podrá arrancar).")
+    }
+    pub fn local_file_psram_match(&self) -> &'static str {
+        tr!(self,
+            "⚡ Binaire avec support PSRAM (adapté à cette clé).",
+            "⚡ Binary with PSRAM support (matches this board).",
+            "⚡ Binärdatei mit PSRAM-Unterstützung (für diesen Dongle geeignet).",
+            "⚡ Binario con supporto PSRAM (adatto a questo dongle).",
+            "⚡ Binario con soporte PSRAM (adecuado para este módulo).")
+    }
+    pub fn local_file_invalid(&self) -> &'static str {
+        tr!(self,
+            "Fichier invalide : ce n'est pas un binaire exécutable ESP32.",
+            "Invalid file: not a valid ESP32 executable binary.",
+            "Ungültige Datei: Keine gültige ausführbare ESP32-Binärdatei.",
+            "File non valido: non è un binario eseguibile ESP32 valido.",
+            "Archivo no válido: no es un binario ejecutable ESP32 válido.")
+    }
+    pub fn psram_detected(&self, mb: u32) -> String {
+        tr!(self,
+            format!("⚡ PSRAM détectée ({} Mo) : sélection de la version avec support PSRAM", mb),
+            format!("⚡ PSRAM detected ({} MB): selecting firmware build with PSRAM support", mb),
+            format!("⚡ PSRAM erkannt ({} MB): Wähle Firmware-Version mit PSRAM-Unterstützung", mb),
+            format!("⚡ PSRAM rilevata ({} MB): selezione della versione firmware con supporto PSRAM", mb),
+            format!("⚡ PSRAM detectada ({} MB): seleccionando versión de firmware con soporte PSRAM", mb))
+    }
     pub fn downloading_verifying(&self) -> &'static str {
         tr!(self,
             "Téléchargement et vérification de la signature...",
