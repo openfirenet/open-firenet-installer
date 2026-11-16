@@ -84,13 +84,15 @@ Pre-compiled standalone binaries and packages are available on the [**GitHub Rel
 | **Linux (Debian / Ubuntu / Mint)** | `open-firenet-installer-linux-amd64.deb` | Native Debian package (Desktop integration & icons) |
 | **Linux (CLI / Raw ELF)** | `open-firenet-installer-linux-x86_64` | Standalone ELF 64-bit executable |
 | **Windows (x86_64)** | `open-firenet-installer-windows-x86_64.exe` | Standalone `.exe` executable |
+| **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64.dmg` | Disk image with the app (recommended) |
+| **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64.dmg` | Disk image with the app (recommended) |
 | **macOS Apple Silicon (M1/M2/M3/M4)** | `open-firenet-installer-macos-arm64` | Standalone Mach-O arm64 |
 | **macOS Intel (x86_64)** | `open-firenet-installer-macos-x86_64` | Standalone Mach-O x86_64 |
 
 > [!IMPORTANT]
 > **Your computer may warn you at the first start.** The installer is not signed with a paid publisher certificate, so Windows and macOS do not know it. This is expected.
 > - **Windows**: on the blue "Windows protected your PC" screen (Microsoft Defender SmartScreen), click **More info**, then **Run anyway**.
-> - **macOS**: the file is a plain program. In the Terminal, make it executable (`chmod +x open-firenet-installer-macos-arm64`), then start it. If macOS says it cannot be opened or that its developer cannot be verified, open **System Settings > Privacy & Security** and click **Open Anyway**.
+> - **macOS**: open the `.dmg` file and drag **Open Firenet Installer** into **Applications**. At the first start, if macOS says it cannot be opened or that its developer cannot be verified, open **System Settings > Privacy & Security** and click **Open Anyway**. The plain programs (without `.dmg`) are still published: make them executable in the Terminal (`chmod +x open-firenet-installer-macos-arm64`) before starting them.
 >
 > To check that the file is the genuine one, compare its SHA-256 with the `SHA256SUMS` file published with each release.
 

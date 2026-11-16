@@ -39,6 +39,43 @@ jobs:
           path: dist/
           retention-days: 1
 
+  macos-dmg:
+    name: macOS disk image
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: dmg-aarch64-apple-darwin
+          workspaces: ". -> target"
+
+      - name: Build the app and the disk image
+        run: npx tauri build --target aarch64-apple-darwin --bundles app,dmg
+
+      - name: Check the disk image
+        run: |
+          DMG=$(find target/aarch64-apple-darwin/release/bundle/dmg -name "*.dmg" | head -n 1)
+          test -f "$DMG" || { echo "::error::DMG not found"; exit 1; }
+          hdiutil verify "$DMG"
+          codesign -dv "target/aarch64-apple-darwin/release/bundle/macos/Open Firenet Installer.app"
+
   rust-check:
     name: Rust Tests & Clippy
     runs-on: ubuntu-latest
