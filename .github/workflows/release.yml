@@ -104,9 +104,14 @@ jobs:
         run: |
           npx tauri build --target ${{ matrix.target }} --bundles deb,appimage
 
-      - name: Build release binary (Non-Linux)
-        if: matrix.os != 'ubuntu-latest'
+      - name: Build release binary (Windows)
+        if: matrix.os == 'windows-latest'
         run: cargo build --release --target ${{ matrix.target }}
+
+      # macOS: the plain binary as before, plus a disk image (.dmg) holding the app, which opens without the Terminal.
+      - name: Build release binary and disk image (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: npx tauri build --target ${{ matrix.target }} --bundles app,dmg
 
       # Validation stricte des binaires et paquets (Smoke Tests)
       - name: Validate Linux Binary and Packages
@@ -160,6 +165,9 @@ jobs:
             # on GitHub-hosted macOS runners) since there's no native x86_64 runner left.
             arch -x86_64 "$BIN" --version
           fi
+          DMG=$(find target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -n 1)
+          test -f "$DMG" || { echo "::error::DMG not found"; exit 1; }
+          hdiutil verify "$DMG"
 
       - name: Prepare release assets
         shell: bash
@@ -177,6 +185,10 @@ jobs:
             if [ -n "$DEB" ]; then
               cp "$DEB" "release-dist/open-firenet-installer-linux-amd64.deb"
             fi
+          fi
+          if [ "${{ startsWith(matrix.os, 'macos') }}" = "true" ]; then
+            DMG=$(find target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -n 1)
+            cp "$DMG" "release-dist/${{ matrix.asset_name }}.dmg"
           fi
 
       - name: Upload artifact
