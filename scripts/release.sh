@@ -209,12 +209,21 @@ npm run build >/dev/null || fatal "Le build frontend (npm run build) a échoué 
 (cd src-tauri && cargo check --quiet 2>/dev/null || true)
 ok "Build frontend et Cargo.lock synchronisés."
 
-# 7.5 Commit automatique du bump de version
+# 7.5 Release notes: the "## Non publié" section of CHANGELOG.md becomes the one of this release.
+# The next section is created again by the first feat or fix that adds an entry.
+if [ -f CHANGELOG.md ] && grep -q "^## Non publié$" CHANGELOG.md; then
+  sed -i "s/^## Non publié$/## ${TARGET_VERSION} ($(date +%F))/" CHANGELOG.md
+  ok "CHANGELOG.md : section \"Non publié\" renommée en ${TARGET_VERSION}."
+else
+  warn "CHANGELOG.md sans section \"## Non publié\" : aucune note de version pour ${TARGET_VERSION}."
+fi
+
+# 7.6 Commit automatique du bump de version
 info "Commit automatique de la version ${TARGET_VERSION}..."
 # Note: Cargo.lock lives at the repo root (not src-tauri/), and dist/ is gitignored
 # (build output, not versioned) — do not add either, a single unmatched pathspec
 # makes `git add` stage nothing at all, silently skipping the commit below.
-git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml Cargo.lock
+git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml Cargo.lock CHANGELOG.md
 if ! git diff --cached --quiet; then
   git commit -m "chore(release): bump version to ${TARGET_VERSION}" --author="openfirenet <openfirenet@lestang.net>"
   info "Push du commit sur origin/${CURRENT_BRANCH}..."
